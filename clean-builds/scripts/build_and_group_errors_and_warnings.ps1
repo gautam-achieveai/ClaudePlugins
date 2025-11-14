@@ -9,7 +9,7 @@
     It then groups them by error/warning code and message, providing a summary of all violations.
 
 .PARAMETER SolutionPath
-    Path to the solution file. Defaults to the solution in the current directory.
+    Path to the solution file. When omitted, the script discovers a *.sln under the current directory.
 
 .PARAMETER OutputFormat
     Output format: 'Console' (default), 'Json', or 'Csv'
@@ -19,11 +19,109 @@
 #>
 
 param(
-    [string]$SolutionPath = "DOC_Project_2025.sln",
+    [string]$SolutionPath,
     [ValidateSet("Console", "Json", "Csv")]
     [string]$OutputFormat = "Console",
     [string]$SaveToFile = ""
 )
+
+function Get-NormalizedPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ""
+    }
+
+    return [System.IO.Path]::GetFullPath($Path).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+}
+
+function Get-DirectoryDepth {
+    param([string]$Path)
+
+    $normalized = Get-NormalizedPath -Path $Path
+    if (-not $normalized) {
+        return 0
+    }
+
+    return $normalized.Split(@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar), [System.StringSplitOptions]::RemoveEmptyEntries).Count
+}
+
+function Test-IsSameOrAncestorPath {
+    param(
+        [string]$Ancestor,
+        [string]$Descendant
+    )
+
+    $normalizedAncestor = Get-NormalizedPath -Path $Ancestor
+    $normalizedDescendant = Get-NormalizedPath -Path $Descendant
+
+    if ($normalizedAncestor -eq "" -or $normalizedDescendant -eq "") {
+        return $false
+    }
+
+    if ($normalizedDescendant.Equals($normalizedAncestor, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
+    $ancestorWithSeparator = $normalizedAncestor + [System.IO.Path]::DirectorySeparatorChar
+    return $normalizedDescendant.StartsWith($ancestorWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+$currentWorkingDirectory = (Get-Location).Path
+
+if ([string]::IsNullOrWhiteSpace($SolutionPath)) {
+    $solutionFiles = @(Get-ChildItem -Path $currentWorkingDirectory -Filter *.sln -Recurse -File -ErrorAction SilentlyContinue)
+
+    if ($solutionFiles.Count -eq 0) {
+        throw "No solution (*.sln) files were found under '$currentWorkingDirectory'. Specify -SolutionPath explicitly."
+    }
+
+    if ($solutionFiles.Count -eq 1) {
+        $SolutionPath = $solutionFiles[0].FullName
+    }
+    else {
+        $candidates = $solutionFiles | ForEach-Object {
+            $directory = Split-Path -Parent $_.FullName
+            [PSCustomObject]@{
+                FullName  = $_.FullName
+                Directory = $directory
+                Depth     = Get-DirectoryDepth -Path $directory
+            }
+        } | Sort-Object Depth, FullName
+
+        $selectedCandidate = $null
+
+        foreach ($candidate in $candidates) {
+            $isAncestor = $true
+            foreach ($other in $candidates) {
+                if ($other.FullName -eq $candidate.FullName) {
+                    continue
+                }
+
+                if (-not (Test-IsSameOrAncestorPath -Ancestor $candidate.Directory -Descendant $other.Directory)) {
+                    $isAncestor = $false
+                    break
+                }
+            }
+
+            if ($isAncestor) {
+                $selectedCandidate = $candidate
+                break
+            }
+        }
+
+        if ($null -eq $selectedCandidate) {
+            $paths = $candidates | ForEach-Object { " - $($_.FullName)" }
+            $details = [string]::Join([Environment]::NewLine, $paths)
+            throw "Multiple solution (*.sln) files were found in different directory trees:$([Environment]::NewLine)$details$([Environment]::NewLine)Please rerun the script with -SolutionPath set to the desired solution."
+        }
+
+        $SolutionPath = $selectedCandidate.FullName
+    }
+}
+elseif (Test-Path -LiteralPath $SolutionPath) {
+    $SolutionPath = (Resolve-Path -LiteralPath $SolutionPath).Path
+}
 
 # Determine project root based on solution path
 if ([System.IO.Path]::IsPathRooted($SolutionPath)) {

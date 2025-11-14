@@ -1,187 +1,514 @@
-# Format Code PowerShell Script for DOC_Project_2025
-# Formats the root project with CSharpier first, then ReSharper CLT
-# Formats submodules using CSharpier only
-#
-# Roslynator CLI documentation: https://josefpihrt.github.io/docs/roslynator/cli/commands/fix/
-# Note: Roslynator requires the project to be built before running fixes
+# Workspace Code Formatting Script
+# Automatically formats root projects discovered outside the submodules directory.
 
 param(
-    [switch]$CheckOnly,    # Just check formatting without making changes
-    [switch]$SubmodulesOnly, # Only format submodules
-    [switch]$RootOnly,     # Only format root project
-    [switch]$Help          # Show help information
+    [string]$SolutionPath,
+    [switch]$CheckOnly,
+    [switch]$SubmodulesOnly,
+    [switch]$RootOnly,
+    [switch]$Help
 )
 
+$script:RootFormattingSucceeded = $true
+$script:SubmoduleFormattingSucceeded = $true
+
 function Show-Help {
-    Write-Host "DOC_Project_2025 Code Formatting Script" -ForegroundColor Green
+    Write-Host "Workspace Code Formatting Script" -ForegroundColor Green
     Write-Host ""
     Write-Host "USAGE:"
-    Write-Host "  .\format-code.ps1              # Format both root and submodules"
-    Write-Host "  .\format-code.ps1 -CheckOnly   # Check formatting without changes"
-    Write-Host "  .\format-code.ps1 -RootOnly    # Format only root project (multi-tool)"
-    Write-Host "  .\format-code.ps1 -SubmodulesOnly # Format only submodules (CSharpier)"
-    Write-Host "  .\format-code.ps1 -Help        # Show this help"
+    Write-Host "  pwsh .\\format-code.ps1                # Format auto-detected root projects"
+    Write-Host "  pwsh .\\format-code.ps1 -CheckOnly     # Validate formatting without changes"
+    Write-Host "  pwsh .\\format-code.ps1 -SolutionPath path\\My.sln"
+    Write-Host "  pwsh .\\format-code.ps1 -SubmodulesOnly"
+    Write-Host "  pwsh .\\format-code.ps1 -Help"
     Write-Host ""
-    Write-Host "TOOLS USED (Root Project):"
-    Write-Host "  1. CSharpier                   # Fast baseline formatting (runs first)"
-    Write-Host "  2. dotnet format style         # Code style fixes (IDE0032, etc.)"
-    Write-Host "  3. Roslynator CLI (optional)   # Advanced code analysis fixes"
-    Write-Host "  4. ReSharper CLT               # Comprehensive formatting (final pass)"
-    Write-Host ""
-    Write-Host "TOOLS USED (Submodules):"
-    Write-Host "  CSharpier                      # Fast, opinionated formatting"
+    Write-Host "BEHAVIOR:"
+    Write-Host "  - Discovers the top-most .sln outside submodules, falling back to .csproj files."
+    Write-Host "  - Skips scanning inside the 'submodules' directory when locating targets."
+    Write-Host "  - Formats submodules only when -SubmodulesOnly is explicitly provided."
+    Write-Host "  - Formatting order: dotnet format → Roslynator → ReSharper CLT → CSharpier"
+    Write-Host "  - CSharpier runs last to ensure consistent final formatting"
     Write-Host ""
     Write-Host "PREREQUISITES:"
-    Write-Host "  # Required:"
+    Write-Host "  dotnet SDK"
     Write-Host "  dotnet tool install -g csharpier"
     Write-Host "  dotnet tool install -g JetBrains.ReSharper.GlobalTools"
-    Write-Host ""
-    Write-Host "  # Optional (for advanced code analysis):"
     Write-Host "  dotnet tool install -g Roslynator.DotNet.Cli"
 }
 
 function Test-ToolInstalled {
-    param($ToolCommand, $ToolName)
+    param(
+        [string]$ToolCommand,
+        [string]$ToolName,
+        [switch]$Required
+    )
 
     try {
         & $ToolCommand --version > $null 2>&1
         return $true
     }
     catch {
-        Write-Host "ERROR: $ToolName is not installed" -ForegroundColor Red
+        $prefix = $Required ? "[ERROR]" : "[INFO]"
+        $color = $Required ? "Red" : "Yellow"
+        Write-Host "$prefix $ToolName is not installed." -ForegroundColor $color
         return $false
+    }
+}
+
+function Get-NormalizedPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ""
+    }
+
+    return [System.IO.Path]::GetFullPath($Path).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+}
+
+function Get-DirectoryDepth {
+    param([string]$Path)
+
+    $normalized = Get-NormalizedPath -Path $Path
+    if (-not $normalized) {
+        return 0
+    }
+
+    return $normalized.Split(@([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar), [System.StringSplitOptions]::RemoveEmptyEntries).Count
+}
+
+function Test-IsSameOrAncestorPath {
+    param(
+        [string]$Ancestor,
+        [string]$Descendant
+    )
+
+    $normalizedAncestor = Get-NormalizedPath -Path $Ancestor
+    $normalizedDescendant = Get-NormalizedPath -Path $Descendant
+
+    if (-not $normalizedAncestor -or -not $normalizedDescendant) {
+        return $false
+    }
+
+    if ($normalizedDescendant.Equals($normalizedAncestor, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
+    $ancestorWithSeparator = $normalizedAncestor + [System.IO.Path]::DirectorySeparatorChar
+    return $normalizedDescendant.StartsWith($ancestorWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Test-IsSubmodulePath {
+    param([string]$Path)
+
+    $normalized = Get-NormalizedPath -Path $Path
+    if (-not $normalized) {
+        return $false
+    }
+
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $segment = "$separator" + "submodules" + "$separator"
+
+    if ($normalized.EndsWith("submodules", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
+    return $normalized.IndexOf($segment, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
+function Get-RelativePath {
+    param(
+        [string]$BasePath,
+        [string]$TargetPath
+    )
+
+    $baseNormalized = Get-NormalizedPath -Path $BasePath
+    $targetNormalized = Get-NormalizedPath -Path $TargetPath
+
+    if (-not $baseNormalized -or -not $targetNormalized) {
+        return $TargetPath
+    }
+
+    $baseUri = New-Object System.Uri($baseNormalized + [System.IO.Path]::DirectorySeparatorChar)
+    $targetUri = New-Object System.Uri($targetNormalized)
+    return $baseUri.MakeRelativeUri($targetUri).ToString().Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+}
+
+function Get-FilesExcludingSubmodules {
+    param(
+        [string]$RootPath,
+        [string]$Filter
+    )
+
+    $results = @()
+    $ignored = @("submodules", "bin", "obj", "node_modules", ".git", ".vs", ".idea")
+
+    $rootItem = Get-Item -LiteralPath $RootPath -ErrorAction Stop
+    $stack = New-Object System.Collections.Stack
+    $stack.Push($rootItem)
+
+    while ($stack.Count -gt 0) {
+        $current = $stack.Pop()
+
+        $files = Get-ChildItem -Path $current.FullName -Filter $Filter -File -ErrorAction SilentlyContinue
+        if ($files) {
+            $results += $files
+        }
+
+        $childDirs = Get-ChildItem -Path $current.FullName -Directory -ErrorAction SilentlyContinue
+        foreach ($dir in $childDirs) {
+            $name = $dir.Name.ToLowerInvariant()
+            if ($ignored -contains $name) {
+                continue
+            }
+            $stack.Push($dir)
+        }
+    }
+
+    return $results
+}
+
+function Select-PrimaryCandidate {
+    param([object[]]$Candidates)
+
+    if (-not $Candidates -or $Candidates.Count -eq 0) {
+        return $null
+    }
+
+    foreach ($candidate in $Candidates) {
+        $isAncestor = $true
+        foreach ($other in $Candidates) {
+            if ($other.FullName -eq $candidate.FullName) {
+                continue
+            }
+
+            if (-not (Test-IsSameOrAncestorPath -Ancestor $candidate.Directory -Descendant $other.Directory)) {
+                $isAncestor = $false
+                break
+            }
+        }
+
+        if ($isAncestor) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function Resolve-FormattingTargets {
+    param(
+        [string]$WorkspaceRoot,
+        [string]$SolutionOverride
+    )
+
+    $solutionPath = $null
+    $projectOverride = @()
+
+    if (-not [string]::IsNullOrWhiteSpace($SolutionOverride)) {
+        $resolvedOverride = (Resolve-Path -LiteralPath $SolutionOverride -ErrorAction Stop).Path
+
+        if (Test-IsSubmodulePath -Path $resolvedOverride) {
+            throw "Provided path '$SolutionOverride' resides under a submodule and cannot be used."
+        }
+
+        $extension = [System.IO.Path]::GetExtension($resolvedOverride)
+
+        if ($extension -ieq ".sln") {
+            $solutionPath = $resolvedOverride
+        }
+        elseif ($extension -ieq ".csproj") {
+            $projectOverride = @($resolvedOverride)
+        }
+        else {
+            throw "Provided path must be a .sln or .csproj file."
+        }
+    }
+
+    if (-not $solutionPath) {
+        $solutions = Get-FilesExcludingSubmodules -RootPath $WorkspaceRoot -Filter "*.sln"
+        if ($solutions.Count -gt 0) {
+            $candidates = $solutions | ForEach-Object {
+                $dir = Split-Path -Parent $_.FullName
+                [PSCustomObject]@{
+                    FullName  = $_.FullName
+                    Directory = $dir
+                    Depth     = Get-DirectoryDepth -Path $dir
+                }
+            } | Sort-Object Depth, FullName
+
+            $selected = Select-PrimaryCandidate -Candidates $candidates
+            if ($null -eq $selected) {
+                $list = $candidates | ForEach-Object { " - $($_.FullName)" } | Sort-Object
+                $joined = [string]::Join([Environment]::NewLine, $list)
+                throw "Multiple solution files were found outside submodules. Pass -SolutionPath to select one of the following:`n$joined"
+            }
+
+            $solutionPath = $selected.FullName
+        }
+    }
+
+    $projectPaths = @()
+    if ($projectOverride.Count -gt 0) {
+        $projectPaths = $projectOverride
+    }
+    else {
+        $projects = Get-FilesExcludingSubmodules -RootPath $WorkspaceRoot -Filter "*.csproj"
+        if ($projects.Count -eq 0) {
+            throw "No .csproj files were found outside submodules under '$WorkspaceRoot'."
+        }
+        $projectPaths = $projects | ForEach-Object { $_.FullName } | Sort-Object -Unique
+    }
+
+    $projectDirectories = $projectPaths | ForEach-Object { Split-Path -Parent $_ } | Sort-Object -Unique
+
+    return [PSCustomObject]@{
+        SolutionPath       = $solutionPath
+        ProjectPaths       = $projectPaths
+        ProjectDirectories = $projectDirectories
     }
 }
 
 function Format-RootProject {
-    param([bool]$CheckOnly)
+    param(
+        [bool]$CheckOnly,
+        [string]$WorkspaceRoot,
+        [string]$SolutionPath,
+        [string[]]$ProjectPaths,
+        [string[]]$ProjectDirectories
+    )
 
-    Write-Host "Formatting root project with multiple tools..." -ForegroundColor Yellow
+    $script:RootFormattingSucceeded = $true
 
-    # Check required tools
-    if (-not (Test-ToolInstalled "jb" "ReSharper Command Line Tools")) {
-        Write-Host "Please install with: dotnet tool install -g JetBrains.ReSharper.GlobalTools" -ForegroundColor Red
-        return $false
+    if (-not $ProjectPaths -or $ProjectPaths.Count -eq 0) {
+        Write-Host "No project files were discovered to format." -ForegroundColor Red
+        $script:RootFormattingSucceeded = $false
+        return
     }
 
-    try {
-        if ($CheckOnly) {
-            Write-Host "Checking root project formatting..."
+    $dotnetTargets = if ($SolutionPath) { @($SolutionPath) } else { $ProjectPaths }
+    $roslynatorTargets = $ProjectPaths
+    $csharpierAvailable = Test-ToolInstalled "csharpier" "CSharpier"
+    $roslynatorAvailable = Test-ToolInstalled "roslynator" "Roslynator CLI" -Required
 
-            # Check dotnet format style issues
-            Write-Host "Checking code style issues..."
-            dotnet format style --verify-no-changes --verbosity minimal
+    if (-not $CheckOnly) {
+        if (-not (Test-ToolInstalled "jb" "ReSharper Command Line Tools" -Required)) {
+            Write-Host "Install the ReSharper Global Tools with: dotnet tool install -g JetBrains.ReSharper.GlobalTools" -ForegroundColor Red
+            return $false
+        }
+    }
 
-            # Check Roslynator issues if available
-            if (Test-ToolInstalled "roslynator" "Roslynator CLI") {
-                Write-Host "Checking Roslynator issues..."
-                roslynator analyze server/AIChat.Server/AIChat.Server.csproj --severity-level info --verbosity minimal
+    if (-not $roslynatorAvailable) {
+        Write-Host "Install Roslynator with: dotnet tool install -g Roslynator.DotNet.Cli" -ForegroundColor Red
+        $script:RootFormattingSucceeded = $false
+        return
+    }
+
+    if ($CheckOnly) {
+        Write-Host "Checking workspace formatting (no files will be modified)..." -ForegroundColor Yellow
+
+        if ($csharpierAvailable) {
+            foreach ($dir in $ProjectDirectories) {
+                $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $dir
+                Write-Host "Checking CSharpier formatting in $relative" -ForegroundColor Cyan
+                csharpier check $dir
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "[ERROR] CSharpier validation failed in $relative." -ForegroundColor Red
+                    $script:RootFormattingSucceeded = $false
+                    return
+                }
             }
-
-            Write-Host "Note: ReSharper CLT doesn't support check-only mode. Use git diff after running format." -ForegroundColor Yellow
-            return $true
         }
         else {
-            # Step 1: Format with CSharpier first (opinionated baseline)
-            Write-Host "Step 1/5: Formatting with CSharpier (baseline formatting)..." -ForegroundColor Cyan
-            if (Test-ToolInstalled "csharpier" "CSharpier") {
-                csharpier server/
-            }
-            else {
-                Write-Host "  CSharpier not installed, skipping baseline formatting" -ForegroundColor Yellow
-                Write-Host "  Install with: dotnet tool install -g csharpier" -ForegroundColor Gray
-            }
-
-            # Step 2: Apply code style fixes (like IDE0032)
-            Write-Host "Step 2/5: Applying dotnet format style fixes (IDE0032, etc.)..." -ForegroundColor Cyan
-            dotnet format style --diagnostics "IDE0032 IDE0017 IDE0028 IDE0025" --verbosity minimal
-
-            # Step 3: Apply Roslynator fixes (if available)
-            if (Test-ToolInstalled "roslynator" "Roslynator CLI") {
-                Write-Host "Step 3/5: Applying Roslynator code analysis fixes..." -ForegroundColor Cyan
-
-                # Build projects first (required for Roslynator)
-                Write-Host "  - Building projects (required for Roslynator)..."
-                dotnet build server/AIChat.Server/AIChat.Server.csproj --verbosity minimal --nologo
-                dotnet build server/AIChat.Server.Tests/AIChat.Server.Tests.csproj --verbosity minimal --nologo
-
-                # Fix server project
-                Write-Host "  - Fixing server project with Roslynator..."
-                roslynator fix server/AIChat.Server/AIChat.Server.csproj --severity-level info --verbosity minimal --ignore-compiler-errors --fix-scope project
-
-                # Fix test project
-                Write-Host "  - Fixing test project with Roslynator..."
-                roslynator fix server/AIChat.Server.Tests/AIChat.Server.Tests.csproj --severity-level info --verbosity minimal --ignore-compiler-errors --fix-scope project
-            }
-            else {
-                Write-Host "Step 3/5: Roslynator not installed, skipping advanced fixes" -ForegroundColor Yellow
-                Write-Host "  Install with: dotnet tool install -g Roslynator.DotNet.Cli" -ForegroundColor Gray
-            }
-
-            # Step 4: Format server project with ReSharper
-            Write-Host "Step 4/5: Formatting server project with ReSharper CLT..." -ForegroundColor Cyan
-            jb cleanupcode server/AIChat.Server/AIChat.Server.csproj
-
-            # Step 5: Format test project with ReSharper
-            Write-Host "Step 5/5: Formatting test project with ReSharper CLT..." -ForegroundColor Cyan
-            jb cleanupcode server/AIChat.Server.Tests/AIChat.Server.Tests.csproj
-
-            Write-Host "Root project formatting completed!" -ForegroundColor Green
-            return $true
+            Write-Host "[INFO] CSharpier is not installed; skipping CSharpier checks." -ForegroundColor Yellow
         }
-    }
-    catch {
-        Write-Host "Error formatting root project: $($_.Exception.Message)" -ForegroundColor Red
-        return $false
-    }
-}
 
-function Format-Submodules {
-    param([bool]$CheckOnly)
-
-    Write-Host "Formatting submodules with CSharpier..." -ForegroundColor Yellow
-
-    if (-not (Test-ToolInstalled "csharpier" "CSharpier")) {
-        Write-Host "Please install with: dotnet tool install -g csharpier" -ForegroundColor Red
-        return $false
-    }
-
-    $submodulesPath = "submodules/LmDotnetTools"
-
-    if (-not (Test-Path $submodulesPath)) {
-        Write-Host "Submodules directory not found: $submodulesPath" -ForegroundColor Red
-        return $false
-    }
-
-    try {
-        Push-Location $submodulesPath
-
-        if ($CheckOnly) {
-            Write-Host "Checking submodules formatting..."
-            csharpier --check .
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "Submodules formatting is correct!" -ForegroundColor Green
-                return $true
-            }
-            else {
-                Write-Host "Submodules need formatting!" -ForegroundColor Red
+        foreach ($target in $dotnetTargets) {
+            $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $target
+            Write-Host "Checking dotnet format style for $relative" -ForegroundColor Cyan
+            dotnet format style $target --verify-no-changes --verbosity minimal
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "[ERROR] dotnet format verification failed for $relative." -ForegroundColor Red
                 return $false
             }
         }
-        else {
-            Write-Host "Formatting submodules..."
-            csharpier .
-            Write-Host "Submodules formatting completed!" -ForegroundColor Green
-            return $true
+
+        $roslynatorAnalyzeFailures = @()
+        foreach ($target in $roslynatorTargets) {
+            $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $target
+            Write-Host "Checking Roslynator diagnostics for $relative" -ForegroundColor Cyan
+            roslynator analyze $target --severity-level info --verbosity minimal
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "[ERROR] Roslynator analyze reported failures for $relative. Continuing with remaining projects." -ForegroundColor Red
+                $script:RootFormattingSucceeded = $false
+                $roslynatorAnalyzeFailures += $relative
+                continue
+            }
+        }
+
+        if ($roslynatorAnalyzeFailures.Count -gt 0) {
+            Write-Host "[INFO] Roslynator analyze failed for the following projects:" -ForegroundColor Yellow
+            foreach ($failure in $roslynatorAnalyzeFailures) {
+                Write-Host "  - $failure" -ForegroundColor Yellow
+            }
+        }
+
+        Write-Host "Note: ReSharper CLT does not support a check-only mode. Run the formatter without -CheckOnly to apply its fixes." -ForegroundColor Yellow
+        return $true
+    }
+
+    Write-Host "Step 1: Applying dotnet format style fixes..." -ForegroundColor Cyan
+    foreach ($target in $dotnetTargets) {
+        $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $target
+        Write-Host "  - $relative" -ForegroundColor Gray
+        dotnet format style $target --diagnostics "IDE0032 IDE0017 IDE0028 IDE0025" --verbosity minimal
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] dotnet format style failed for $relative." -ForegroundColor Red
+            $script:RootFormattingSucceeded = $false
+            return
         }
     }
-    catch {
-        Write-Host "Error formatting submodules: $($_.Exception.Message)" -ForegroundColor Red
-        return $false
+
+    Write-Host "Step 2: Applying Roslynator fixes..." -ForegroundColor Cyan
+    $roslynatorFixFailures = @()
+    $roslynatorBuildFailures = @()
+    foreach ($target in $roslynatorTargets) {
+        $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $target
+        Write-Host "  - Building $relative before Roslynator" -ForegroundColor Gray
+        dotnet build $target --verbosity minimal --nologo
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[WARNING] dotnet build failed for $relative. Skipping Roslynator for this project." -ForegroundColor Yellow
+            $roslynatorBuildFailures += $relative
+            continue
+        }
+
+        Write-Host "  - Running Roslynator fix on $relative" -ForegroundColor Gray
+        roslynator fix $target --severity-level info --verbosity minimal --ignore-compiler-errors --fix-scope project
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[WARNING] Roslynator fix failed for $relative. Continuing with remaining projects." -ForegroundColor Yellow
+            $roslynatorFixFailures += $relative
+            continue
+        }
     }
-    finally {
-        Pop-Location
+
+    if ($roslynatorBuildFailures.Count -gt 0) {
+        Write-Host "[INFO] Skipped Roslynator for projects with build failures:" -ForegroundColor Yellow
+        foreach ($failure in $roslynatorBuildFailures) {
+            Write-Host "  - $failure" -ForegroundColor Yellow
+        }
     }
+
+    if ($roslynatorFixFailures.Count -gt 0) {
+        Write-Host "[INFO] Roslynator fix failed for the following projects:" -ForegroundColor Yellow
+        foreach ($failure in $roslynatorFixFailures) {
+            Write-Host "  - $failure" -ForegroundColor Yellow
+        }
+    }
+
+    Write-Host "Step 3: Formatting with ReSharper CLT..." -ForegroundColor Cyan
+    $resharperFailures = @()
+    foreach ($target in $dotnetTargets) {
+        $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $target
+        Write-Host "  - $relative" -ForegroundColor Gray
+        jb cleanupcode $target
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[WARNING] ReSharper CLT failed for $relative. Continuing with CSharpier..." -ForegroundColor Yellow
+            $resharperFailures += $relative
+            continue
+        }
+    }
+
+    if ($resharperFailures.Count -gt 0) {
+        Write-Host "[INFO] ReSharper CLT failed for the following targets:" -ForegroundColor Yellow
+        foreach ($failure in $resharperFailures) {
+            Write-Host "  - $failure" -ForegroundColor Yellow
+        }
+    }
+
+    if ($csharpierAvailable) {
+        Write-Host "Step 4: Running CSharpier (final formatting)..." -ForegroundColor Cyan
+        foreach ($dir in $ProjectDirectories) {
+            $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $dir
+            Write-Host "  - $relative" -ForegroundColor Gray
+            csharpier format $dir
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "[ERROR] CSharpier failed in $relative." -ForegroundColor Red
+                $script:RootFormattingSucceeded = $false
+                return
+            }
+        }
+    }
+    else {
+        Write-Host "[INFO] CSharpier is not installed; skipping final formatting." -ForegroundColor Yellow
+    }
+
+    Write-Host "Root workspace formatting completed successfully." -ForegroundColor Green
+    $script:RootFormattingSucceeded = $true
+    return
+}
+
+function Format-Submodules {
+    param(
+        [bool]$CheckOnly,
+        [string]$WorkspaceRoot
+    )
+
+    $script:SubmoduleFormattingSucceeded = $true
+
+    $submodulesRoot = Join-Path $WorkspaceRoot "submodules"
+
+    if (-not (Test-Path $submodulesRoot)) {
+        Write-Host "No submodules directory found at $submodulesRoot. Nothing to format." -ForegroundColor Yellow
+        $script:SubmoduleFormattingSucceeded = $true
+        return
+    }
+
+    $submoduleDirs = Get-ChildItem -Path $submodulesRoot -Directory -ErrorAction SilentlyContinue
+    if ($submoduleDirs.Count -eq 0) {
+        Write-Host "Submodules directory exists but contains no repositories." -ForegroundColor Yellow
+        $script:SubmoduleFormattingSucceeded = $true
+        return
+    }
+
+    if (-not (Test-ToolInstalled "csharpier" "CSharpier" -Required)) {
+        Write-Host "Install CSharpier with: dotnet tool install -g csharpier" -ForegroundColor Red
+        $script:SubmoduleFormattingSucceeded = $false
+        return
+    }
+
+    $allSucceeded = $true
+    foreach ($dir in $submoduleDirs) {
+        $relative = Get-RelativePath -BasePath $WorkspaceRoot -TargetPath $dir.FullName
+        Write-Host "Running CSharpier in $relative" -ForegroundColor Cyan
+        Push-Location $dir.FullName
+        try {
+            if ($CheckOnly) {
+                csharpier check .
+            }
+            else {
+                csharpier format .
+            }
+
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "[ERROR] CSharpier failed in $relative." -ForegroundColor Red
+                $allSucceeded = $false
+                $script:SubmoduleFormattingSucceeded = $false
+                break
+            }
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    if ($allSucceeded) {
+        Write-Host "Submodule formatting completed." -ForegroundColor Green
+        $script:SubmoduleFormattingSucceeded = $true
+    }
+    else {
+        $script:SubmoduleFormattingSucceeded = $false
+    }
+
+    return
 }
 
 # Main script execution
@@ -190,26 +517,40 @@ if ($Help) {
     exit 0
 }
 
-Write-Host "DOC_Project_2025 Code Formatting Script" -ForegroundColor Green
-Write-Host "=======================================" -ForegroundColor Green
+if ($RootOnly -and $SubmodulesOnly) {
+    Write-Host "Use either -RootOnly or -SubmodulesOnly, not both." -ForegroundColor Red
+    exit 1
+}
+
+$workspaceRoot = (Get-Location).Path
+$formatTargets = $null
+
+if (-not $SubmodulesOnly) {
+    try {
+        $formatTargets = Resolve-FormattingTargets -WorkspaceRoot $workspaceRoot -SolutionOverride $SolutionPath
+    }
+    catch {
+        Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+}
+
+Write-Host "Workspace Code Formatting" -ForegroundColor Green
+Write-Host "==========================" -ForegroundColor Green
 
 $success = $true
 
-if ($RootOnly) {
-    $success = Format-RootProject -CheckOnly $CheckOnly
-}
-elseif ($SubmodulesOnly) {
-    $success = Format-Submodules -CheckOnly $CheckOnly
+if ($SubmodulesOnly) {
+    Format-Submodules -CheckOnly $CheckOnly -WorkspaceRoot $workspaceRoot
+    $success = $script:SubmoduleFormattingSucceeded
 }
 else {
-    # Format both
-    Write-Host "Formatting both root project and submodules..." -ForegroundColor Cyan
-
-    $rootSuccess = Format-RootProject -CheckOnly $CheckOnly
-    $submodulesSuccess = Format-Submodules -CheckOnly $CheckOnly
-
-    $success = $rootSuccess -and $submodulesSuccess
+    Format-RootProject -CheckOnly $CheckOnly -WorkspaceRoot $workspaceRoot -SolutionPath $formatTargets.SolutionPath -ProjectPaths $formatTargets.ProjectPaths -ProjectDirectories $formatTargets.ProjectDirectories
+    $success = $script:RootFormattingSucceeded
 }
+
+$successType = if ($null -ne $success) { $success.GetType().FullName } else { "<null>" }
+Write-Verbose ("[format-code] success flag: {0} (type {1})" -f $success, $successType)
 
 Write-Host ""
 if ($success) {
@@ -218,63 +559,11 @@ if ($success) {
     }
     else {
         Write-Host "✓ Code formatting completed successfully!" -ForegroundColor Green
-        Write-Host "Tip: Run 'git diff' to see what was changed." -ForegroundColor Gray
-
-        # Post-formatting validation to ensure formatting didn't break anything
-        Write-Host ""
-        Write-Host "Running post-formatting validation..." -ForegroundColor Yellow
-        $validationScript = "scripts/validate-file-change.ps1"
-        if (Test-Path $validationScript) {
-            & $validationScript
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "❌ Post-formatting validation failed - formatting may have introduced issues" -ForegroundColor Red
-                Write-Host "Please review changes and fix any compilation errors" -ForegroundColor Yellow
-                exit 1
-            }
-            else {
-                Write-Host "✅ Post-formatting validation passed - code still builds correctly" -ForegroundColor Green
-            }
-        }
-        else {
-            Write-Host "⚠️ Validation script not found, skipping post-formatting validation" -ForegroundColor Yellow
-        }
-
-        # Check for critical warnings that must be fixed
-        Write-Host ""
-        Write-Host "Checking for critical code quality warnings..." -ForegroundColor Yellow
-        $warningsScript = "scripts/check-critical-warnings.ps1"
-        if (Test-Path $warningsScript) {
-            & $warningsScript
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host ""
-                Write-Host "❌ CRITICAL WARNINGS DETECTED" -ForegroundColor Red
-                Write-Host "=" * 70 -ForegroundColor Red
-                Write-Host ""
-                Write-Host "The code has critical quality issues that MUST be fixed before checkin." -ForegroundColor Yellow
-                Write-Host "These warnings indicate:" -ForegroundColor Yellow
-                Write-Host "  • Performance problems (CA1826, CA1859)" -ForegroundColor White
-                Write-Host "  • Correctness issues (CA1310, CA1304, CA1305)" -ForegroundColor White
-                Write-Host "  • Dead code (IDE0052)" -ForegroundColor White
-                Write-Host "  • Modern pattern violations (CA1513)" -ForegroundColor White
-                Write-Host ""
-                Write-Host "ACTION REQUIRED:" -ForegroundColor Red
-                Write-Host "  1. Review the warnings above" -ForegroundColor Cyan
-                Write-Host "  2. Fix each warning manually (see HOW TO FIX section)" -ForegroundColor Cyan
-                Write-Host "  3. Run this script again to verify all warnings are resolved" -ForegroundColor Cyan
-                Write-Host ""
-                Write-Host "For detailed information, run:" -ForegroundColor Gray
-                Write-Host "  .\scripts\check-critical-warnings.ps1 -Detailed" -ForegroundColor White
-                Write-Host ""
-                exit 1
-            }
-            else {
-                Write-Host "✅ No critical warnings found - code quality check passed" -ForegroundColor Green
-            }
-        }
+        Write-Host "Tip: Run 'git diff' to review the applied changes." -ForegroundColor Gray
     }
     exit 0
 }
 else {
-    Write-Host "✗ Formatting failed!" -ForegroundColor Red
+    Write-Host "✗ Formatting failed." -ForegroundColor Red
     exit 1
 }
