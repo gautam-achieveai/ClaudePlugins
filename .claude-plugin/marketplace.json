@@ -1,10 +1,10 @@
 {
-  "name": "claude-plugins-marketplace",
+  "name": "gb-plugins-marketplace",
   "owner": {
     "name": "Gautam Bhakar"
   },
   "metadata": {
-    "description": "A marketplace for Claude Code plugins and skills",
+    "description": "A marketplace for custom plugins and skills",
     "version": "1.0.0"
   },
   "plugins": [
