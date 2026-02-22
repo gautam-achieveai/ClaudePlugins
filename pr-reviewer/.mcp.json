@@ -1,0 +1,33 @@
+{
+    "mcpServers": {
+        "clarify-doubt": {
+            "command": "npx",
+            "args": [
+                "@achieveai/hitl-mcp-server@latest"
+            ]
+        },
+        "mongodb": {
+            "command": "npx",
+            "args": [
+                "mongodb-mcp-server",
+                "--connectionString",
+                "mongodb://local.mongodb:27021"
+            ],
+            "env": {},
+            "defer_loading": true
+        },
+        "azure-devops": {
+            "command": "npx",
+            "args": [
+                "@achieveai/azuredevops-mcp"
+            ],
+            "env": {
+                "AZURE_DEVOPS_ORG_URL": "https://mcqdbdev.visualstudio.com/",
+                "AZURE_DEVOPS_PROJECT": "MCQdb_Development",
+                "AZURE_DEVOPS_IS_ON_PREMISES": "false",
+                "ALLOWED_TOOLS": "createLink,createPullRequest,listPullRequests,getPullRequest,getPullRequestComments,approvePullRequest,mergePullRequest,addPullRequestInlineComment,addPullRequestFileComment,addPullRequestComment,getPullRequestFileChanges,getPullRequestChangesCount,getAllPullRequestChanges,getFileContent,browseRepository,getCommitHistory,azureDevOpsWorkItems,addWorkItemComment,assignWorkItem,bulkCreateWorkItems,convertFindingsToWorkItems,createArea,createIteration,createWorkItem,getCurrentSprint,getIterations,getSprints,getSprintWorkItems,getTeamMembers,getTeams,getWorkItemById,getWorkItemTypeFields,getWorkItemTypes,listWorkItems,searchWorkItems,updateWorkItem,updateWorkItemState,listRepositories"
+            },
+            "defer_loading": true
+        }
+    }
+}
