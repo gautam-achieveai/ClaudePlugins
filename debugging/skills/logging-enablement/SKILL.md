@@ -1,6 +1,6 @@
 ---
 name: logging-enablement
-description: Set up structured JSONL logging in a codebase for both production code and test harnesses. Supports C#, JavaScript/TypeScript, Python, and Rust. Use when asked to "add logging", "set up structured logging", "enable test logging", "make this debuggable", "add JSONL logging", "configure log output", or "instrument this code with logs". NOT for debugging issues (use debug-with-logs) or reviewing logging quality (use logging-review agent).
+description: Set up structured JSONL logging in a codebase for both production code and test frameworks (unit tests, integration tests). Supports C#, JavaScript/TypeScript, Python, and Rust. Use when asked to "add logging", "set up structured logging", "enable test logging", "make this debuggable", "add JSONL logging", "configure log output", "instrument this code with logs", "fix unit test logging", "set up test framework logging", "add logging to tests", "replace Console.WriteLine in tests", or "configure xUnit/NUnit/MSTest/Jest/Vitest/pytest logging". NOT for debugging issues (use debug-with-logs) or reviewing logging quality (use logging-review agent).
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
