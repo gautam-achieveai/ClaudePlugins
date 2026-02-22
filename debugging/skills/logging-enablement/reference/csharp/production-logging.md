@@ -1,6 +1,6 @@
 # C# Production Logging
 
-Structured JSONL logging for C# production code using Serilog as the primary recommendation. All output uses `CompactJsonFormatter` to produce canonical fields that the debugging plugin can parse and render.
+Structured JSONL logging for C# production code. Covers **Serilog** (primary recommendation — canonical fields out of the box) and **NLog** (widely used — requires `JsonLayout` attribute mapping). Both produce JSONL queryable with DuckDB.
 
 ---
 
@@ -185,6 +185,193 @@ public class OrderService
 ```
 
 > Using `ILogger<T>` keeps production code decoupled from Serilog. In tests, inject `NullLogger<T>.Instance` or a Serilog `ILogger` wrapped with `SerilogLoggerFactory`.
+
+---
+
+## Alternative: NLog with JsonLayout
+
+If the project already uses NLog, configure `JsonLayout` to emit JSONL with canonical field names. NLog uses `NLog.config` (XML) for target/rule configuration.
+
+### NuGet Packages
+
+```bash
+dotnet add package NLog
+dotnet add package NLog.Web.AspNetCore        # For ASP.NET Core integration
+```
+
+### NLog.config with Canonical JSONL Fields
+
+Map NLog layout renderers to canonical field names via `JsonLayout` attributes:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      autoReload="true"
+      internalLogLevel="Warn"
+      internalLogFile="App_Data/logs/internal-nlog.txt">
+
+    <extensions>
+        <add assembly="NLog.Web.AspNetCore"/>
+    </extensions>
+
+    <targets>
+        <!-- JSONL target with canonical field names -->
+        <target xsi:type="File"
+                name="jsonFile"
+                fileName="${basedir}/../Logs/${processname}.log.jsonl"
+                archiveFileName="${basedir}/../Logs/${processname}.{#}.log.jsonl"
+                archiveAboveSize="104857600"
+                maxArchiveFiles="14"
+                archiveNumbering="Sequence"
+                keepFileOpen="true"
+                concurrentWrites="true"
+                autoFlush="true">
+            <layout xsi:type="JsonLayout">
+                <attribute name="@t" layout="${date:universalTime=true:format=O}" />
+                <attribute name="@l" layout="${level:upperCase=true}" />
+                <attribute name="@m" layout="${message}" />
+                <attribute name="@logger" layout="${logger:shortName=true}" />
+                <attribute name="application" layout="${processname}" />
+                <attribute name="@x" layout="${exception:format=Message,Type,Method,Data,StackTrace:innerFormat=Message,Type,Method,Data,StackTrace:maxInnerExceptionLevel=50}" />
+                <attribute name="processId" layout="${processid}" />
+                <attribute name="threadId" layout="${threadid}" />
+                <attribute name="correlationId" layout="${aspnet-traceidentifier}" />
+                <attribute name="properties" layout="${all-event-properties:format=@}" encode="false" />
+            </layout>
+        </target>
+
+        <!-- Optional: plain text target for console during development -->
+        <target xsi:type="Console" name="console"
+                layout="${longdate}|${level:uppercase=true}|${logger:shortName=true}|${message} ${exception:format=ToString}" />
+    </targets>
+
+    <rules>
+        <logger name="Microsoft.*" maxlevel="Info" final="true" />
+        <logger name="System.*" maxlevel="Info" final="true" />
+        <logger name="*" minlevel="Info" writeTo="jsonFile" />
+        <logger name="*" minlevel="Debug" writeTo="console" />
+    </rules>
+</nlog>
+```
+
+### Field Mapping: NLog → Canonical
+
+| Canonical Field | NLog Layout Renderer | Notes |
+|----------------|---------------------|-------|
+| `@t` | `${date:universalTime=true:format=O}` | ISO 8601 UTC |
+| `@l` | `${level:upperCase=true}` | INFO, WARN, ERROR, etc. |
+| `@m` | `${message}` | Rendered message |
+| `@logger` | `${logger:shortName=true}` | Class name without namespace |
+| `@x` | `${exception:format=...}` | Full stack trace with inner exceptions |
+| `application` | `${processname}` | Or hardcoded via `layout="MyApp"` |
+| `correlationId` | `${aspnet-traceidentifier}` | ASP.NET Core trace ID |
+
+### Migrating Existing NLog Configs
+
+If your project already has an NLog.config with a `JsonLayout` target using non-canonical field names (e.g., `time`, `level`, `message`), remap the attribute names:
+
+```xml
+<!-- BEFORE (existing field names) -->
+<attribute name="time" layout="${date:universalTime=true:format=O}" />
+<attribute name="level" layout="${level:upperCase=true}" />
+<attribute name="message" layout="${message}" />
+<attribute name="logger" layout="${logger}" />
+<attribute name="exception" layout="${exception:format=ShortType, Message}" />
+<attribute name="exceptionStack" layout="${exception:format=Message,Type,Method,Data,StackTrace...}" />
+<attribute name="app" layout="WebCore" />
+
+<!-- AFTER (canonical field names for DuckDB querying) -->
+<attribute name="@t" layout="${date:universalTime=true:format=O}" />
+<attribute name="@l" layout="${level:upperCase=true}" />
+<attribute name="@m" layout="${message}" />
+<attribute name="@logger" layout="${logger:shortName=true}" />
+<attribute name="@x" layout="${exception:format=Message,Type,Method,Data,StackTrace:innerFormat=Message,Type,Method,Data,StackTrace:maxInnerExceptionLevel=50}" />
+<attribute name="application" layout="WebCore" />
+```
+
+Key changes:
+- `time` → `@t`, `level` → `@l`, `message` → `@m`, `logger` → `@logger`
+- Merge `exception` + `exceptionStack` into a single `@x` field
+- `app` → `application` for consistency
+- Keep additional fields (`requestId`, `userName`, `clientIp`, etc.) as-is — they become queryable structured properties
+
+### ASP.NET Core Integration
+
+```csharp
+// Program.cs
+using NLog;
+using NLog.Web;
+
+var logger = LogManager.Setup()
+    .LoadConfigurationFromAppSettings()
+    .GetCurrentClassLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
+
+    var app = builder.Build();
+    app.Run();
+}
+catch (Exception ex)
+{
+    logger.Error(ex, "Application stopped due to exception");
+    throw;
+}
+finally
+{
+    LogManager.Shutdown();
+}
+```
+
+### Usage in Production Classes
+
+NLog integrates with `Microsoft.Extensions.Logging`, so production code uses the same `ILogger<T>` abstraction as Serilog:
+
+```csharp
+public class OrderService
+{
+    private readonly ILogger<OrderService> _log;
+
+    public OrderService(ILogger<OrderService> log) => _log = log;
+
+    public void PlaceOrder(Order order)
+    {
+        // Structured logging with NLog message templates
+        _log.LogInformation("Placing order {OrderId} for {CustomerId}", order.Id, order.CustomerId);
+
+        // NLog captures these as structured properties in the JsonLayout "properties" attribute
+    }
+}
+```
+
+### Structured Properties in NLog
+
+NLog captures message template parameters as event properties. Include them in JSONL output using:
+
+```xml
+<!-- Renders all event properties as nested JSON -->
+<attribute name="properties" layout="${all-event-properties:format=@}" encode="false" />
+```
+
+This produces:
+
+```jsonl
+{"@t":"2026-02-22T10:15:31.200Z","@l":"INFO","@m":"Placing order ORD-123 for CUST-456","@logger":"OrderService","application":"MyApp","properties":{"OrderId":"ORD-123","CustomerId":"CUST-456"}}
+```
+
+> **Note**: NLog nests structured properties under `"properties"` unlike Serilog which promotes them to top-level fields. When querying with DuckDB, access them via `json_extract(properties, '$.OrderId')` or use `read_json_auto` which may flatten them depending on the structure.
+
+### NLog Sample JSONL Output
+
+```jsonl
+{"@t":"2026-02-22T10:15:30.001Z","@l":"INFO","@m":"Application starting","@logger":"Program","application":"MyApp","processId":"12345","threadId":"1","correlationId":""}
+{"@t":"2026-02-22T10:15:31.200Z","@l":"INFO","@m":"Placing order ORD-123 for item ITEM-42","@logger":"OrderService","application":"MyApp","processId":"12345","threadId":"8","correlationId":"abc123","properties":{"OrderId":"ORD-123","ItemId":"ITEM-42"}}
+{"@t":"2026-02-22T10:15:31.360Z","@l":"ERROR","@m":"Payment failed for order ORD-123","@logger":"OrderService","application":"MyApp","@x":"PaymentException: Connection timeout\n   at PaymentGateway.ChargeAsync(...)","processId":"12345","threadId":"8","correlationId":"abc123","properties":{"OrderId":"ORD-123"}}
+```
 
 ---
 
@@ -397,6 +584,8 @@ Key observations:
 
 ## Quick Reference Checklist
 
+### Serilog Projects
+
 - [ ] `CompactJsonFormatter` configured on the file sink — never a plain text sink for production.
 - [ ] `Enrich.FromLogContext()` enabled so `LogContext.PushProperty` flows through.
 - [ ] `application`, `environment`, `MachineName` enrichers set at bootstrap.
@@ -406,3 +595,15 @@ Key observations:
 - [ ] `ILogger<T>` used in all production classes — no direct Serilog references in business logic.
 - [ ] Minimum level set to `Information` in production, `Verbose` locally.
 - [ ] `Log.CloseAndFlush()` called in the finally block at application shutdown.
+
+### NLog Projects
+
+- [ ] `JsonLayout` target configured with canonical attribute names (`@t`, `@l`, `@m`, `@logger`, `@x`).
+- [ ] `application` attribute set (via `${processname}` or hardcoded).
+- [ ] `${all-event-properties:format=@}` included to capture structured properties.
+- [ ] `archiveAboveSize` and `maxArchiveFiles` set for rotation and retention.
+- [ ] `correlationId` mapped from `${aspnet-traceidentifier}` or custom header.
+- [ ] `ILogger<T>` used in all production classes — no direct `NLog.LogManager` references in business logic.
+- [ ] Minimum level set to `Info` in production, `Debug`/`Trace` locally.
+- [ ] `LogManager.Shutdown()` called in the finally block at application shutdown.
+- [ ] Microsoft/System loggers filtered to `Warn` or above to reduce noise.
