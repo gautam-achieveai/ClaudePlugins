@@ -3,7 +3,6 @@ name: pr-reviewer
 description: Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works with PR numbers, branch names, or Azure DevOps URLs. NOT for developer performance reviews over time.
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__azure-devops__*
 ---
-
 # Pull Request Code Reviewer
 
 Review individual PRs for code quality, security (OWASP Top 10), performance, and testing adequacy.
@@ -32,7 +31,6 @@ mcp__azure-devops__getPullRequest -repository "MCQdbDEV" -pullRequestId 12345
 ```
 
 2. Extract source branch from response (e.g., `sourceRefName: "refs/heads/developers/gb/feature"`)
-
 3. Call `pwsh` script with parameters:
 
 ```pwsh
@@ -57,41 +55,57 @@ NOTE: everything is based of origin.
 
 ## Essential Workflow
 
-1. **Setup code**:
+1. **Setup code**: `<Use Agent to complete this step> Expectation is that agent sets up the worktree using script provided and returns basic details for further review`
 
 - **Get PR Details**: Use mcp__azure-devops__getPullRequest to get the basic pr details
 - **Checkout the pull request**: Use Start-PRReview.ps1 script to setup the code and work tree
 - **Check previous comments**: Use `getPullRequestComments` to check for any previous comments on the pull request. Take note of any ongoing discussions or issues that need to be addressed.
 - **Check for work items**: Use `getWorkItemById` to check for any work items associated with the pull request, if applicable.
 
-2. **Understand the changes**:
+2. **Understand the changes**: `<Launch agent to understand what the changes are doing and any salient features / bug fixes>`
 
 - **Analyze the changes**: Now that you've checked out the branch and have the changes, analyze them to understand what has been modified, what the intent is, and how it fits into the overall project.
 - **Double-check the changes**: Use getWorkItemById tool to double-check the work item associated with the pull request, if applicable.
 
-3. **Check the code for coding Guidelines**:
+3. **Check the code for coding Guidelines**: `<parallel agent>`
 
 - **Review the code**: Look for adherence to coding standards, best practices, and project guidelines.
 - **Check for tests**: Ensure that there are appropriate unit tests, integration tests, and end-to-end tests for the changes made.
 - **Check for documentation**: Verify that any necessary documentation has been updated or created.
 
-4. **Check the code Quality**:
+4. **Check the code Quality**: `<parllel agent>`
 
 - **Run static analysis tools**: Use tools like linters and code analyzers to check for code quality issues.
 - **Check for performance**: Look for any potential performance issues in the code changes.
 - **Check for security vulnerabilities**: Ensure that the code changes do not introduce any security vulnerabilities.
 
-5. **Design Principles**:
+5. **Design Principles**: `<parallel agent>`
 
 - **Analyze the code base for duplication**: Use Sequential Thinking tools to analyze the code base for duplication and suggest refactoring if necessary.
 - **Check for modularity**: Ensure that the code is modular and follows the Single Responsibility Principle.
 - **Reanalyze if functionality can be simplified**: If you find any complex logic, suggest ways to simplify it or break it down into smaller, more manageable functions.
 - **Check if code follows Design Patterns from the code base**: Ensure that the code follows the design patterns used in the code base, such as MVC, Singleton, Factory, etc.
 
-6. **Provide Feedback**:
+6. **Domain-Specific Review**: `<parallel agents — dispatch based on changed file types>`
+
+   Analyze the changed files and dispatch the appropriate specialized review agents in parallel. Only dispatch agents whose domain is present in the PR:
+
+   - **`nscript-review`**: Dispatch when changed files include NScript client code — `.cs` files under `src/Client/` referencing `ObservableObject`, `Promise<T>`, `[AutoFire]`, `Mcqdb.NScript.Sdk`, or `.html`/`.less` template/style files in client projects. Covers AutoFire/nameof enforcement, Promise patterns, IoC registration, NScript C# restrictions, MVVM patterns, template bindings, LESS conventions, and JS interop attributes (`[JsonType]`, `[IgnoreNamespace]`, `[ScriptName]`).
+
+   - **`orleans-review`**: Dispatch when changed files include Orleans grain code — classes inheriting `Grain`/`Grain<TState>`, grain interfaces (`IGrainWithStringKey`, etc.), `[Reentrant]`/`[AlwaysInterleave]` attributes, stream subscriptions, or silo configuration. Covers reentrancy/deadlock analysis, state management, stream anti-patterns, and async patterns within grains.
+
+   - **`logging-review`**: Dispatch when changed files include logging statements — `ILogger`, `LoggerFactory`, `_logger.Log*`, structured logging templates, or test code with `Console.WriteLine`. Covers structured logging compliance, log levels, queryability, and test logging practices.
+
+   **Dispatch rules:**
+   - A single PR may trigger multiple agents (e.g., a PR touching both Orleans grains and NScript client code dispatches both `orleans-review` and `nscript-review`)
+   - Run all applicable agents in parallel — they are independent
+   - Collect findings from all agents before proceeding to step 7
+
+7. **Provide Feedback**:
 
 - **Add comments**: Use the `addPullRequestComment`, `addPullRequestFileComment`, and `addPullRequestInlineComment` tools to provide feedback on the pull request.
-- **Prever InlineComments**: Use `addPullRequestInlineComment` as hard as possible, if there are any issues, debug them first then move to `addPullRequestFileComment` and finally `addPullRequestComment`.
+- **Prefer InlineComments**: Use `addPullRequestInlineComment` as hard as possible, if there are any issues, debug them first then move to `addPullRequestFileComment` and finally `addPullRequestComment`.
+- **Include domain-specific findings**: Incorporate all findings from step 6 agents into the feedback, using the same severity levels (CRITICAL/HIGH/MEDIUM/LOW) from the agent outputs.
 - **Suggest changes**: If there are issues that need to be addressed, suggest specific changes or improvements.
 - **Approve the pull request**: If everything looks good, use the `approvePullRequest` tool to approve the pull request.
 
