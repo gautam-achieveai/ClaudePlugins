@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "duckdb": {
+      "command": "npx",
+      "args": [
+        "@nickcdryan/duckdb-mcp-server"
+      ],
+      "defer_loading": true
+    }
+  }
+}

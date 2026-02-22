@@ -1,0 +1,19 @@
+{
+  "name": "debugging",
+  "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, and logging compliance review.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Gautam Bhakar"
+  },
+  "homepage": "https://github.com/yourusername/claude-plugins",
+  "license": "MIT",
+  "keywords": [
+    "debugging",
+    "logging",
+    "structured-logging",
+    "jsonl",
+    "duckdb",
+    "log-analysis",
+    "tracing"
+  ]
+}

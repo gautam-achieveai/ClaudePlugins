@@ -66,6 +66,28 @@
         "nuget",
         "package-validation"
       ]
+    },
+    {
+      "name": "debugging",
+      "source": "./debugging",
+      "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB",
+      "version": "1.0.0",
+      "category": "development",
+      "tags": [
+        "debugging",
+        "logging",
+        "structured-logging",
+        "log-analysis"
+      ],
+      "keywords": [
+        "debugging",
+        "logging",
+        "structured-logging",
+        "jsonl",
+        "duckdb",
+        "log-analysis",
+        "tracing"
+      ]
     }
   ]
 }
