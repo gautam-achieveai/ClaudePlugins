@@ -22,6 +22,22 @@ Review individual PRs for code quality, security (OWASP Top 10), performance, an
 - "Re-review PR #12345 after updates" → Use **pr-reviewer** (re-review mode) ✅
 - "Check what changed since my last review on PR #12345" → Use **pr-reviewer** (re-review mode) ✅
 
+## Basics, identify which repo to use
+
+When you check git remote, you will see something like this:
+
+```
+origin	https://mcqdbdev.visualstudio.com/MCQdb_Development/_git/MCQdb (fetch)
+origin	https://mcqdbdev.visualstudio.com/MCQdb_Development/_git/MCQdb (push)
+```
+
+From this you can check ADO variables\
+1. AZURE_DEVOPS_ORG_URL = https://mcqdbdev.visualstudio.com/
+2. AZURE_DEVOPS_PROJECT = MCQdb_Development
+3. AZURE_DEVOPS_REPOSITORY = MCQdb
+
+Use this mechanism to discover repository name.
+
 ## Quick Start
 
 **LLM Workflow:**
@@ -148,7 +164,36 @@ NOTE: everything is based of origin.
    | Large ToListAsync | `.ToListAsync()` on potentially large collections (should use cursor with `BatchSize`) |
    | Missing read preference | Read-heavy query without `WithReadPreference(SecondaryPreferred)` |
 
-8. **Cross-Reference Test Coverage**:
+8. **External Agent Discovery and Dispatch**: `<parallel agents — dispatch based on PR characteristics from steps 2-3>`
+
+   Beyond the plugin-owned domain agents in step 7, the environment provides additional review agents that add unique value for specific PR types. Dispatch them conditionally based on PR signals.
+
+   **Agent Dispatch Matrix:**
+
+   | Agent | Dispatch When | Skip When |
+   |---|---|---|
+   | `architecture-reviewer` | PR introduces new classes/services, changes project structure, adds cross-layer dependencies, or modifies DI registration | PR only modifies method bodies, config, or styling |
+   | `pr-review-toolkit:silent-failure-hunter` | PR contains try-catch blocks, error handling, fallback logic, `.catch()`, `Result<T>` | PR is purely additive with no error handling, or only config/styling |
+   | `pr-review-toolkit:type-design-analyzer` | PR introduces NEW classes, records, structs, interfaces — especially data models, domain entities, DTOs | PR only modifies method bodies without changing type signatures |
+   | `pr-review-toolkit:pr-test-analyzer` | PR includes test file changes OR adds new public methods that should have tests | PR is test-only with no source changes, or documentation-only |
+   | `pr-review-toolkit:comment-analyzer` | PR adds/modifies XML doc comments, inline documentation blocks, or README content | PR has no comment changes |
+   | `pr-review-toolkit:code-simplifier` | PR is LARGE (20+ files) AND introduces complex new logic (deep nesting, long methods) | PR is small/medium or straightforward changes |
+
+   **Agents excluded by default (overlap with steps 4-6):**
+   - `pr-review-toolkit:code-reviewer` — Steps 4-5 already cover general code quality with project-specific reference guides
+   - `feature-dev:code-reviewer` — Same overlap with steps 4-5
+   - **Exception**: Dispatch `feature-dev:code-reviewer` as a second-opinion safety net when PR is **30+ files** OR touches **security-sensitive code** (auth, crypto, payment)
+
+   **Size-based dispatch heuristics:**
+   - **Small PR (1-5 files)**: 0-1 external agents — only dispatch if strong signal match
+   - **Medium PR (6-19 files)**: 1-2 external agents — dispatch best-matching agents
+   - **Large PR (20+ files)**: All matching agents — cast a wide net
+
+   **Future-proofing for unknown agents:** For agents NOT listed in the catalog above (newly added to the environment), evaluate by reading their description and checking: (a) does it cover something not already addressed in steps 4-7? (b) does this PR have relevant signals for it? If both answers are yes, dispatch the agent.
+
+   **Execution:** Run all selected external agents in parallel. Where possible, dispatch concurrently with step 7 domain agents to minimize wall-clock time. Collect all findings before proceeding to step 9.
+
+9. **Cross-Reference Test Coverage**:
 
    Verify the PR includes adequate test coverage by mapping source projects to their expected test projects:
 
@@ -160,14 +205,16 @@ NOTE: everything is based of origin.
    | Orleans grains | `Mcqdb.Grains.Tests` |
    | `JobRunner` | `JobRunner.Tests` |
 
+   If `pr-review-toolkit:pr-test-analyzer` was dispatched in step 8, cross-reference its behavioral findings with the structural test-to-source mapping here.
+
    Flag if:
    - New public methods have no corresponding test methods
    - Existing tests were modified but not in a way that covers the new behavior
    - Test methods lack `[TestCategory("CI")]` for CI pipeline inclusion
 
-9. **Provide Feedback**: `<Post comments via Azure DevOps MCP tools>`
+10. **Provide Feedback**: `<Post comments via Azure DevOps MCP tools>`
 
-   Consolidate all findings from steps 4-8 (reference guide checks, domain agent results, server-side checks, test coverage) and post them to the PR.
+   Consolidate all findings from steps 4-9 (reference guide checks, domain agent results, external agent results, server-side checks, test coverage) and post them to the PR. When an external agent from step 8 flags the same issue already found in steps 4-7, keep the more detailed version and discard the duplicate.
 
    **Comment posting priority (most specific first):**
 
@@ -341,6 +388,16 @@ For comprehensive checklists and examples:
 - `orleans-review` - Orleans grain architecture, reentrancy, state management, streams
 - `logging-review` - Structured logging compliance, log levels, queryability
 - `temp-code-review` - **(always dispatched)** Temporary code, debug artifacts, hardcoded hacks, mistaken files
+
+**External Review Agents (dispatched conditionally in step 8):**
+
+- `architecture-reviewer` - SOLID principles, coupling analysis, design pattern review
+- `pr-review-toolkit:silent-failure-hunter` - Silent failures, swallowed exceptions
+- `pr-review-toolkit:type-design-analyzer` - Type invariants, encapsulation, type system design
+- `pr-review-toolkit:pr-test-analyzer` - Behavioral test coverage, edge case analysis
+- `pr-review-toolkit:comment-analyzer` - Comment accuracy, documentation rot
+- `pr-review-toolkit:code-simplifier` - Code clarity (large PRs only)
+- Additional agents discovered dynamically from the environment
 
 **Reference Guides (used in steps 4-5):**
 
