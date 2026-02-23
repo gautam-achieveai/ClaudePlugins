@@ -38,6 +38,9 @@ From this you can check ADO variables\
 
 Use this mechanism to discover repository name.
 
+Template:
+<AZURE_DEVOPS_ORG_URL>/<PROJECT>/_git/<REPOSITORY>
+
 ## Quick Start
 
 **LLM Workflow:**
