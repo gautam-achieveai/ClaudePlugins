@@ -1,5 +1,5 @@
 {
   "name": "orleans-dev",
-  "description": "Microsoft Orleans patterns, best practices, and code review for virtual actor model applications",
+  "description": "Microsoft Orleans patterns, best practices, and code review for virtual actor model applications — covers grain design, concurrency, cross-grain communication, streams, and serialization.",
   "version": "1.0.0"
 }
