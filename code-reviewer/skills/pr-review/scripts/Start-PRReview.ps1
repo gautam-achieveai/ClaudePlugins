@@ -22,9 +22,6 @@
     The source branch name for the PR (e.g., "developers/gb/bulkUpload").
     This should be obtained by the LLM using mcp__azure-devops__getPullRequest.
 
-.PARAMETER Repository
-    Optional repository name (defaults to current repo). Use for Azure DevOps.
-
 .PARAMETER BaseBranch
     The base branch to compare against (defaults to 'dev')
 
@@ -42,7 +39,7 @@
 
 .EXAMPLE
     # LLM workflow:
-    # 1. LLM calls: mcp__azure-devops__getPullRequest -repository "MCQdbDEV" -pullRequestId 12345
+    # 1. LLM calls: mcp__azure-devops__getPullRequest -pullRequestId 12345
     # 2. LLM extracts sourceRefName, title, author, description
     # 3. LLM calls this script with parameters:
 
@@ -52,7 +49,6 @@
     .\Start-PRReview.ps1 `
         -PRNumber 10395 `
         -SourceBranch "developers/gb/bulkUpload" `
-        -Repository "MCQdbDEV" `
         -BaseBranch "dev" `
         -PRTitle "Add bulk upload feature" `
         -PRAuthor "Gautam Bhakar"
@@ -75,9 +71,6 @@ param(
 
     [Parameter(Mandatory = $true, HelpMessage = "Source branch name from PR (e.g., 'developers/gb/feature')")]
     [string]$SourceBranch,
-
-    [Parameter(Mandatory = $false)]
-    [string]$Repository = "MCQdbDEV",
 
     [Parameter(Mandatory = $false)]
     [string]$BaseBranch = "dev",

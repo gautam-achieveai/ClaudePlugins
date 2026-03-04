@@ -7,3 +7,9 @@
 [submodule "inspirations/claude-plugins-official"]
 	path = inspirations/claude-plugins-official
 	url = https://github.com/anthropics/claude-plugins-official.git
+[submodule "inspirations/superpowers"]
+	path = inspirations/superpowers
+	url = https://github.com/obra/superpowers.git
+[submodule "inspirations/claude-plugin-mp"]
+	path = inspirations/claude-plugin-mp
+	url = https://github.com/gautam-msft/claude-plugin-mp.git

@@ -1,0 +1,10 @@
+{
+  "hooks": [
+    {
+      "event": "PostToolUse",
+      "tools": ["Write", "Edit"],
+      "command": "npx eslint --fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true",
+      "description": "Runs ESLint with auto-fix on files after they are written or edited."
+    }
+  ]
+}

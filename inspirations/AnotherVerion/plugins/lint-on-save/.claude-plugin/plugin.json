@@ -1,0 +1,5 @@
+{
+  "name": "lint-on-save",
+  "description": "Automatically runs linting after file edits via hooks.",
+  "version": "1.0.0"
+}

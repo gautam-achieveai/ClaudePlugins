@@ -1,0 +1,5 @@
+{
+  "name": "git-helper",
+  "description": "Git assistant agent for branching, merging, and repository management.",
+  "version": "1.0.0"
+}

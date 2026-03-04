@@ -48,7 +48,7 @@ Template:
 1. Fetch PR data using MCP:
 
 ```
-mcp__azure-devops__getPullRequest -repository "MCQdbDEV" -pullRequestId 12345
+mcp__azure-devops__getPullRequest -pullRequestId 12345 -de
 ```
 
 2. Extract source branch from response (e.g., `sourceRefName: "refs/heads/developers/gb/feature"`)
@@ -73,6 +73,109 @@ git merge-base origin/dev origin/feature/user/feature_name
 NOTE: everything is based of origin.
 
 5. From this point onwards, all diffs are against merge-base-commit-id
+
+## Step 0: Determine Review Mode
+
+Before starting the review, determine which review mode is appropriate. There are three modes:
+
+### Lightweight Review (diff-only)
+
+Use this mode when changes are **low-complexity and self-contained** — the diffs alone provide enough context to understand and evaluate the PR. This is the **default and most common mode**.
+
+**Low-complexity signals — a lightweight review is appropriate when:**
+- **Localized scope**: Changes are confined to a single feature, module, or layer (e.g., a bug fix in one service, a config update, documentation)
+- **Low cognitive load**: A reviewer can understand each changed file in isolation — no need to mentally model how changes interact across the codebase
+- **Shallow dependency fan-out**: The changed code doesn't call into or get called by many other parts of the system; side effects are contained
+- **Mechanical or repetitive changes**: Renames, find-and-replace, namespace updates, formatting fixes, bulk attribute additions — even across many files — are inherently low-complexity because each diff is structurally identical
+- **Self-explanatory diffs**: The surrounding context in the diff is sufficient to judge correctness; you don't need to open other files, trace call chains, or check consumer usage
+- **No new abstractions**: The PR works within existing patterns and doesn't introduce new classes, interfaces, services, or architectural layers
+
+**How it works:**
+1. Use `mcp__azure-devops__getPullRequest` to fetch PR metadata (title, author, description, source/target branches).
+2. Use `mcp__azure-devops__getPullRequestFileChanges` and `mcp__azure-devops__getPullRequestChangesCount` to get the list and count of changed files.
+3. **Assess complexity** (see [Complexity Assessment](#complexity-assessment) below). If high-complexity signals are present, switch to Deep Review.
+4. Use `mcp__azure-devops__getFileContent` or git diff commands to view the actual changes.
+5. Perform the review directly from the diffs — no worktree needed.
+
+### Deep Review (worktree checkout)
+
+Use this mode when the PR has **high complexity** — you need the full source tree to understand how changes interact with the broader codebase.
+
+**High-complexity signals — escalate to deep review when any are present:**
+- **Cross-cutting changes**: Modifications span multiple layers or modules (e.g., API controller + service + data layer + tests all in one PR)
+- **New abstractions or architectural changes**: PR introduces new classes, interfaces, design patterns, or restructures existing architecture
+- **High dependency fan-out**: Changed code is called by or calls into many other components — side effects can't be judged from the diff alone
+- **Core business logic changes**: Modifications to critical algorithms, rules, or workflows where correctness has significant downstream impact
+- **Complex control flow**: New logic with deep nesting, state machines, concurrency patterns, or intricate conditional branches
+- **Shared infrastructure changes**: Modifications to base classes, shared utilities, DI registrations, or interfaces with many consumers — you need to check all usage sites
+- **External dependency changes**: Updating NuGet packages, SDK versions, or third-party library usage where compatibility and breaking changes need full-context evaluation
+- **Unclear or missing PR context**: The PR description doesn't explain the "why" — you need to explore the codebase to understand the motivation and impact
+- **The user explicitly requests a deep review**
+
+**How it works:**
+1. Use `mcp__azure-devops__getPullRequest` to fetch PR metadata.
+2. Run the setup script to create an isolated worktree (see Quick Start above).
+3. Perform the review from within the worktree, where you have full access to the source tree.
+4. Use the generated templates in `scratchpad/pr_reviews/pr-<number>/analysis/` to structure your findings.
+5. When the review is complete, remind the user to clean up the worktree:
+   ```bash
+   git worktree remove worktrees/pr-<number>-review
+   ```
+
+### Local Branch Review (no PR)
+
+Use this mode when reviewing changes on the **current branch** before a PR has been created — comparing local work against a base branch.
+
+**When to use:**
+- The user asks to review their current branch or local changes
+- No PR number is provided
+- The user wants a pre-PR review to catch issues before opening a pull request
+
+**How it works:**
+1. Find the merge-base between HEAD and the base branch:
+   ```bash
+   git fetch origin <base_branch> && git merge-base HEAD origin/<base_branch>
+   ```
+   If the user doesn't specify a base branch, auto-detect by checking which of `dev`, `main`, `master` exists on origin (in that order).
+2. Use the merge-base commit to scope all diffs:
+   ```bash
+   # List changed files
+   git diff --name-only <merge_base>...HEAD
+
+   # Full diff
+   git diff <merge_base>...HEAD
+
+   # Diff for a specific file
+   git diff <merge_base>...HEAD -- path/to/file
+
+   # Commit log since divergence
+   git log --oneline <merge_base>..HEAD
+   ```
+3. Review the diffs the same way as a lightweight review. You already have the full source tree since you're on the branch.
+
+### Making the Decision
+
+After understanding what the user wants reviewed, state which mode you're using and why. If the user disagrees, switch modes. For example:
+
+> "This PR changes 4 files with a focused bug fix — I'll do a **lightweight review** from the diffs."
+
+> "This PR touches 25 files across 3 layers and introduces a new bulk upload feature — I'll do a **deep review** with a worktree checkout so I can trace the full call chain."
+
+> "No PR yet — I'll find the merge-base against `dev` and review your branch changes locally."
+
+### Complexity Assessment
+
+Use this framework after fetching PR metadata and the changes summary to decide between Lightweight and Deep Review. Evaluate each dimension qualitatively — **no single metric alone determines complexity**; it's the combination that matters.
+
+| Dimension | Low Complexity (→ Lightweight) | High Complexity (→ Deep Review) |
+|---|---|---|
+| **Scope** | Changes confined to one feature, service, or layer | Changes span multiple layers, modules, or projects |
+| **Nature of logic** | Mechanical/repetitive (renames, formatting, bulk updates) or straightforward fixes | Novel business logic, new algorithms, complex control flow, concurrency |
+| **Dependency impact** | Changed code has few callers/consumers; side effects are obvious | Changed code is widely referenced — base classes, shared utilities, interfaces, DI registrations |
+| **Cognitive load** | Each file's diff can be understood in isolation | You need to hold a mental model of how multiple changed files interact |
+| **Context adequacy** | PR description + diff context tells the full story | You need to explore the repo to understand motivation, calling code, or downstream effects |
+
+**Key principle**: A PR that touches many files but makes the same mechanical change everywhere is lower complexity than a PR that touches one file but rewrites a core algorithm. Always assess the **nature and impact** of changes, not just their volume.
 
 ## Essential Workflow
 
@@ -136,6 +239,12 @@ NOTE: everything is based of origin.
    - **`logging-review`**: Dispatch when changed files include logging statements — `ILogger`, `LoggerFactory`, `_logger.Log*`, structured logging templates, or test code with `Console.WriteLine`. Covers structured logging compliance, log levels, queryability, and test logging practices.
 
    - **`temp-code-review`**: **Always dispatch for every PR.** Scans all changed files for temporary code, debugging artifacts, hardcoded bypasses/hacks, mistakenly committed files, test/mock data in production code, disabled tests, and accidental inclusions. Catches `Console.WriteLine` in production code, `// HACK`/`// TODO: remove` comments, hardcoded credentials, `.env` files, forced `if (true)` branches, `Debugger.Launch()`, and similar patterns that should never reach production.
+
+   - **`duplicate-code-detector`**: Dispatch when PR adds substantial new code (new classes, methods, or logic blocks). Finds exact duplicates, near-duplicate blocks with minor variations, repeated patterns, and structural duplication across the changed files and the broader codebase. Suggests concrete extractions (shared methods, base classes, utilities).
+
+   - **`euii-leak-detector`**: Dispatch when PR adds or modifies logging, telemetry, error messages, or HTTP logging. Scans for End User Identifiable Information (EUII) leaks — emails, names, tokens, IPs, passwords, connection strings. Uses heuristic field name matching to catch PII in log templates, exception messages, and API responses.
+
+   - **`class-design-simplifier`**: Dispatch when PR introduces NEW classes, interfaces, or architectural layers. Analyzes what the PR is trying to accomplish, then flags over-engineering: single-implementation interfaces, pass-through layers, premature generalization, deep inheritance hierarchies. Proposes merging, inlining, or flattening.
 
    **Dispatch rules:**
    - **`temp-code-review` is mandatory** — dispatch it for every PR regardless of domain
@@ -344,10 +453,13 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
 > - Consistency with team standards
 
 - [ ] **Code Alignment**: Follows project patterns, no duplication, framework best practices ⭐
-- [ ] Security: OWASP Top 10 checked 🛡️
-- [ ] Performance: N+1 queries, memory leaks, algorithm efficiency ⚡
+- [ ] Bugs & Correctness: Logic errors, off-by-one, null/undefined handling, edge cases, incorrect API usage 🐛
+- [ ] Security: OWASP Top 10, injection, hardcoded secrets, input validation, insecure defaults 🛡️
+- [ ] Performance: N+1 queries, memory leaks, algorithm efficiency, redundant computations, missing caching ⚡
 - [ ] Code Quality: SOLID, code smells, duplication 📋
+- [ ] Maintainability: Code clarity, overly complex logic, misleading names 🧹
 - [ ] Testing: Coverage, edge cases, integration tests 🧪
+- [ ] EUII / PII: No user-identifiable info in logs, telemetry, or error messages 🔒
 - [ ] Specific feedback with file:line references
 - [ ] Code examples for issues and fixes
 - [ ] Balanced positive and constructive feedback
@@ -391,6 +503,9 @@ For comprehensive checklists and examples:
 - `orleans-review` - Orleans grain architecture, reentrancy, state management, streams
 - `logging-review` - Structured logging compliance, log levels, queryability
 - `temp-code-review` - **(always dispatched)** Temporary code, debug artifacts, hardcoded hacks, mistaken files
+- `duplicate-code-detector` - Exact/near duplicates, repeated patterns, structural duplication; suggests extractions
+- `euii-leak-detector` - EUII/PII leaks in logs, telemetry, error messages, HTTP logging
+- `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
 
 **External Review Agents (dispatched conditionally in step 8):**
 

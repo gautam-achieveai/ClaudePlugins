@@ -1,0 +1,5 @@
+{
+  "name": "code-reviewer",
+  "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, design simplification, code simplification, and log review.",
+  "version": "1.2.0"
+}

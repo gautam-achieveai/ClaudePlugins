@@ -1,0 +1,45 @@
+{
+  "name": "gb-astra-plugins",
+  "version": "1.1.0",
+  "description": "Internal plugin marketplace for Claude Code — a curated collection of skills, agents, and hooks for developer productivity.",
+  "owner": {
+    "name": "Gautam B"
+  },
+  "plugins": [
+    {
+      "name": "code-reviewer",
+      "source": "./plugins/code-reviewer",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, design simplification, code simplification, and log review.",
+      "category": "code-quality",
+      "tags": ["review", "security", "bugs", "performance", "duplicates", "euii", "privacy", "design", "simplification", "logging", "agent"]
+    },
+    {
+      "name": "git-helper",
+      "source": "./plugins/git-helper",
+      "description": "Git assistant agent for branching, merging, and repository management.",
+      "category": "version-control",
+      "tags": ["git", "branching", "merge", "agent"]
+    },
+    {
+      "name": "lint-on-save",
+      "source": "./plugins/lint-on-save",
+      "description": "Automatically runs linting after file edits via hooks.",
+      "category": "code-quality",
+      "tags": ["lint", "hooks", "auto-fix"]
+    },
+    {
+      "name": "azure-devops-helper",
+      "source": "./plugins/azure-devops-helper",
+      "description": "Azure DevOps integration with work item management, PR publishing, and iterative PR tending skills, plus a DevOps workflow assistant agent.",
+      "category": "project-management",
+      "tags": ["azure-devops", "work-items", "pull-requests", "pr-review", "agent", "skill"]
+    },
+    {
+      "name": "orleans-helper",
+      "source": "./plugins/orleans-helper",
+      "description": "Microsoft Orleans patterns, best practices, and code review for virtual actor model applications — covers grain design, concurrency, cross-grain communication, streams, and serialization.",
+      "category": "code-quality",
+      "tags": ["orleans", "grains", "actor-model", "concurrency", "streams", "serialization", "code-review", "agent", "skill"]
+    }
+  ]
+}
