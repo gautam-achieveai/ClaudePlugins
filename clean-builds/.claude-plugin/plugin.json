@@ -1,18 +1,5 @@
 {
-    "name": "clean-builds",
-    "description": "Achieve zero-warning builds through systematic warning elimination, code formatting, and package version validation",
-    "version": "1.0.0",
-    "author": {
-        "name": "Gautam Bhakar"
-    },
-    "homepage": "https://github.com/yourusername/claude-plugins",
-    "license": "MIT",
-    "keywords": [
-        "build",
-        "warnings",
-        "code-quality",
-        "formatting",
-        "roslynator",
-        "nuget"
-    ]
+  "name": "clean-builds",
+  "description": "Achieve zero-warning builds through systematic warning elimination, code formatting, and package version validation",
+  "version": "1.0.0"
 }
