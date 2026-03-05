@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
@@ -50,22 +50,46 @@
       ]
     },
     {
-      "name": "pr-reviewer",
-      "source": "./pr-reviewer",
-      "description": "Pull request code review skill for security, performance, and quality analysis",
-      "version": "1.1.0",
+      "name": "code-reviewer",
+      "source": "./code-reviewer",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, design simplification, code simplification, and log review. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps.",
+      "version": "1.3.0",
       "category": "development",
       "tags": [
         "review",
         "pull-request",
         "code-review",
-        "security"
+        "security",
+        "euii"
       ],
       "keywords": [
+        "code-review",
         "pr-review",
-        "code-quality",
-        "security",
-        "owasp"
+        "duplicate-detection",
+        "euii-scanning",
+        "log-review",
+        "review-pr"
+      ]
+    },
+    {
+      "name": "orleans-dev",
+      "source": "./orleans-dev",
+      "description": "Microsoft Orleans patterns, best practices, and code review for virtual actor model applications — covers grain design, concurrency, cross-grain communication, streams, and serialization.",
+      "version": "1.0.1",
+      "category": "development",
+      "tags": [
+        "orleans",
+        "dotnet",
+        "actor-model",
+        "distributed-systems"
+      ],
+      "keywords": [
+        "orleans",
+        "grain-design",
+        "virtual-actor",
+        "concurrency",
+        "streams",
+        "serialization"
       ]
     },
     {
@@ -92,7 +116,7 @@
     {
       "name": "debugging",
       "source": "./debugging",
-      "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB",
+      "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, and logging compliance review.",
       "version": "1.0.0",
       "category": "development",
       "tags": [
