@@ -152,7 +152,9 @@ relevant code with `getPullRequestFileChanges` or the local file.
 
 Load and follow `references/review-reception-protocol.md` for the full
 feedback-evaluation pattern (READ → UNDERSTAND → VERIFY → EVALUATE → RESPOND →
-IMPLEMENT).
+IMPLEMENT). Also reference `references/review-thread-state-machine.md` for the
+thread lifecycle — replies should follow the standard format (`Fixed: <desc>`
+or `Won't Fix: <rationale>`) to enable proper state transitions.
 
 **Interactive mode**: This skill is interactive — **get user confirmation**
 before applying fixes or replying to reviewers. Present the reviewer's request

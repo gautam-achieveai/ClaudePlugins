@@ -53,7 +53,10 @@ Address issues in this priority order:
 For each active, unresolved comment thread (skip previously addressed IDs):
 
 1. Read the comment text, the file/line context, and the reviewer's intent.
-2. Categorize the comment:
+2. Check for the `[BLOCKER]` tag: tagged comments are mandatory for merge;
+   comments without the tag are non-blocking suggestions. Prioritize BLOCKERs.
+3. Categorize the comment following `references/review-reception-protocol.md`
+   and the [Review Thread State Machine](references/review-thread-state-machine.md):
 
 **IMPORTANT**: Every reply posted with `replyToComment` MUST be prefixed with
 `[<developer name>'s bot]` so reviewers know this is an automated response.
@@ -67,11 +70,14 @@ Determine the developer name from the PR author or git config (`git config user.
   behavior
 - The reviewer misunderstood the code's intent
 
-Action: Reply with `replyToComment` clearly explaining **why** it won't be
-fixed. Be respectful and specific. Example:
+Action: Reply using the standard format:
 
-> [Jane's bot] This is intentional — the null check here guards against a race
-> condition documented in issue #456. Removing it would reintroduce the bug.
+> [Jane's bot] Won't Fix: The null check here guards against a race condition
+> documented in issue #456. Removing it would reintroduce the bug.
+
+**BLOCKER Won't Fix restriction**: Be more conservative about Won't Fix on
+`[BLOCKER]` items — default to addressing them. For `[BLOCKER]` comments tagged
+as security issues, **always address** — do not Won't Fix without user approval.
 
 **Needs Addressing** — Use when:
 - The comment identifies a real bug, security issue, or correctness problem
@@ -81,9 +87,9 @@ fixed. Be respectful and specific. Example:
 
 Action:
 1. Fix the code as the reviewer requested (or with an equivalent improvement).
-2. Reply with `replyToComment` explaining what was changed. Example:
+2. Reply using the standard format:
 
-> [Jane's bot] Good catch — added null validation and an early return. See the
+> [Jane's bot] Fixed: Added null validation and an early return. See the
 > updated code at line 42.
 
 **Important**: Do NOT resolve comment threads — let the reviewer resolve them.

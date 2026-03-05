@@ -161,12 +161,15 @@ For each finding that has a specific **file and line**:
   number, and formatted comment:
 
 ```
-[<developer name>'s bot] **<Severity>** (<Category>)
+[<developer name>'s bot] [BLOCKER] **<Severity>** (<Category>)
 
 <Description>
 
 **Suggestion:** <Suggestion>
 ```
+
+Omit the `[BLOCKER]` tag for non-blocking findings (non-blocking is the
+default). See the base review skill's blocker rubric for classification rules.
 
 For findings with a **file but no specific line**, use
 `mcp__azure-devops__addPullRequestFileComment` instead with the same format.
@@ -189,11 +192,11 @@ After all inline comments are posted, use
 - [Specific things done well — file:line references where relevant]
 - ...
 
-| Severity | Count |
-|----------|-------|
-| Critical | N     |
-| Warning  | N     |
-| Info     | N     |
+| Severity | Count | Blockers |
+|----------|-------|----------|
+| Critical | N     | N        |
+| Warning  | N     | N        |
+| Info     | N     | N        |
 
 ### Critical Issues
 - [brief description] — see inline comment on `file.cs:line`

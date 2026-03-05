@@ -334,6 +334,24 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    2. **File comments** (`mcp__azure-devops__addPullRequestFileComment`) — Use when the issue is about the file but not a specific line (e.g., missing imports, wrong naming convention).
    3. **General comments** (`mcp__azure-devops__addPullRequestComment`) — Use for cross-cutting concerns, summary, and verdict. Post the full review summary as a general comment.
 
+   **Comment format with blocker tag:**
+
+   Blocking findings MUST include the `[BLOCKER]` tag:
+
+   ```
+   [<dev name>'s bot] [BLOCKER] **<Severity>** (<Category>)
+
+   <Description>
+
+   **Suggestion:** <Suggestion>
+   ```
+
+   Omit the `[BLOCKER]` tag for non-blocking findings (non-blocking is the default).
+
+   **Blocker classification rubric** (see [Review Thread State Machine](references/review-thread-state-machine.md) for full details):
+   - **BLOCKER** (tag required): Bug/correctness, security vulnerability, significant design issue, significant simplification, data loss risk, user-visible performance issue
+   - **Non-blocking** (no tag needed): Style, minor suggestions, informational, documentation, minor performance, alternative approaches
+
    **Workflow:**
    - **Always confirm with the user before posting** — show the comment text first
    - Post all CRITICAL and HIGH issues as inline/file comments first
@@ -372,12 +390,39 @@ Create a table tracking each previous issue:
 | # | Previous Issue | Severity | Status | Evidence |
 |---|---|---|---|---|
 | 1 | MockDistributionMetricManager | CRITICAL | RESOLVED | Replaced with CachedDistributionMetricManager |
-| 2 | Code duplication 400+ lines | HIGH | PARTIALLY RESOLVED | 60% reduced via ProficiencyMapCalculator |
+| 2 | Code duplication 400+ lines | HIGH | RESOLVED | Reduced via ProficiencyMapCalculator |
 | 3 | No fallback mechanism | HIGH | RESOLVED | ExecuteWithFallbackAsync added |
-| 4 | No automated tests | HIGH | DEFERRED | Author acknowledged, deferred to follow-up |
+| 4 | No automated tests | HIGH | WON'T FIX | Author: "Will follow up in separate PR" |
 ```
 
-Status values: `RESOLVED`, `PARTIALLY RESOLVED`, `DEFERRED`, `NOT ADDRESSED`, `WONTFIX`
+Status values: `RESOLVED`, `NOT ADDRESSED`, `WON'T FIX`
+
+### Step 3.5: Satisfaction Check
+
+For each thread in the tracker, verify the resolution using the delta diff and
+the [Review Thread State Machine](references/review-thread-state-machine.md):
+
+**RESOLVED threads** — verify fix in the delta diff:
+1. Find the code change that addresses the original finding
+2. Confirm it actually fixes the issue (not just a cosmetic change)
+3. Confirm no regressions were introduced
+4. If the fix is good → use `updatePullRequestThread` to close the thread
+5. If the fix is insufficient → reply with `replyToComment` explaining what is
+   still wrong or missing. The thread stays Active.
+
+**WON'T FIX threads** — evaluate the developer's rationale:
+1. Read the developer's `Won't Fix:` reply
+2. For non-blocking items (no `[BLOCKER]` tag): accept if the rationale is reasonable → close
+3. For `[BLOCKER]` items: accept only if the rationale is technically sound and
+   the risk is mitigated → close. Otherwise, reply explaining why the rationale
+   is insufficient and reopen.
+4. For security `[BLOCKER]` items: default is to reopen unless the justification
+   is compelling. Security issues require the highest bar for Won't Fix.
+
+**NOT ADDRESSED threads** — escalate:
+1. Reply with `replyToComment`: "This issue is still outstanding — please address
+   or provide a rationale for Won't Fix."
+2. The thread stays Active.
 
 ### Step 4: Review only the delta
 
@@ -494,6 +539,8 @@ For comprehensive checklists and examples:
 - `mcp__azure-devops__addPullRequestFileComment` - Add file-level comment (not tied to a specific line)
 - `mcp__azure-devops__addPullRequestInlineComment` - Add line-specific comment
 - `mcp__azure-devops__addWorkItemComment` - Comment on a work item (link review findings to work items)
+- `mcp__azure-devops__replyToComment` - Reply to an existing comment thread (used in re-review to reopen or escalate)
+- `mcp__azure-devops__updatePullRequestThread` - Update thread status (used in re-review to close verified threads)
 - `mcp__azure-devops__approvePullRequest` - Approve PR
 - `mcp__azure-devops__mergePullRequest` - Complete/merge a PR (squash, rebase, noFastForward)
 
@@ -543,20 +590,20 @@ Present findings in severity-grouped format:
 What was done well (with file:line references)
 
 ## Critical Issues
-| # | File | Line | Issue | Fix |
-|---|---|---|---|---|
+| # | File | Line | Blocker? | Issue | Fix |
+|---|---|---|---|---|---|
 
 ## High Issues
-| # | File | Line | Issue | Fix |
-|---|---|---|---|---|
+| # | File | Line | Blocker? | Issue | Fix |
+|---|---|---|---|---|---|
 
 ## Medium Issues
-| # | File | Line | Issue | Fix |
-|---|---|---|---|---|
+| # | File | Line | Blocker? | Issue | Fix |
+|---|---|---|---|---|---|
 
 ## Low Issues
-| # | File | Line | Issue | Fix |
-|---|---|---|---|---|
+| # | File | Line | Blocker? | Issue | Fix |
+|---|---|---|---|---|---|
 
 ## Testing Assessment
 Coverage gaps, suggested tests, missing test project mappings

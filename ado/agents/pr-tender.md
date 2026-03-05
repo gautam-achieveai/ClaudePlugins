@@ -19,8 +19,14 @@ to merge.
    threads. For each thread, understand what the reviewer wants.
 4. **Address feedback** -- For each active thread:
    - Show the user the reviewer's comment and the relevant code.
+   - Highlight the `[BLOCKER]` tag if present so the user can prioritize.
+     Comments without the tag are non-blocking. Address `[BLOCKER]` items first.
+   - Follow the [Review Thread State Machine](references/review-thread-state-machine.md)
+     for state transitions.
    - Propose a fix and wait for user approval before making changes.
-   - After fixing, reply to the thread with `replyToComment`.
+   - After fixing, reply using the standard format:
+     `[<dev name>'s bot] Fixed: <description>` or
+     `[<dev name>'s bot] Won't Fix: <rationale>`.
 5. **Fix build failures** -- Analyze CI failure messages, propose fixes, and
    apply with user confirmation.
 6. **Push and repeat** -- Commit fixes, push, and re-check. Continue until all

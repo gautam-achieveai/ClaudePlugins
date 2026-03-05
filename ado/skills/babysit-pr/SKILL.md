@@ -62,9 +62,13 @@ Gather every actionable issue into a structured list:
 - Filter to **active (unresolved)** threads only
 - For each thread, capture: comment text, file path, line number, reviewer name
 - Skip threads you have already replied to in a previous iteration
-- For each new thread, pre-classify before delegating using the evaluation
-  steps in `references/review-reception-protocol.md` (verify, YAGNI check,
-  context check). Flag as Won't Fix or Needs Addressing.
+- For each new thread, check for the `[BLOCKER]` tag from the reviewer
+  (absence means non-blocking). Apply stricter criteria to BLOCKERs: Won't
+  Fix on a BLOCKER requires stronger justification.
+- Pre-classify before delegating using the evaluation steps in
+  `references/review-reception-protocol.md` (verify, YAGNI check, context
+  check) and `references/review-thread-state-machine.md` for state transitions.
+  Flag as Won't Fix or Needs Addressing.
 
 ### Step 3: Delegate to Worker Agent
 
