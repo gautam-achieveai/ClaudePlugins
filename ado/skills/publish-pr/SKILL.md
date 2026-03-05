@@ -1,5 +1,5 @@
 ---
-description: Publish local changes as an Azure DevOps PR with a linked work item
+description: Publish local changes as an Azure DevOps pull request — analyzes commits, creates or links a work item (bug, task, or user story), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and build failures until the PR is merged.
 ---
 
 # Publish PR
@@ -88,21 +88,9 @@ If the push fails (e.g., uncommitted changes), inform the user and stop.
 
 ### Step 2.2: Compose PR Description
 
-Use this template (`AB#<id>` auto-links the work item in Azure DevOps):
-
-```markdown
-## Summary
-<2-4 sentences summarizing the change>
-
-## Changes
-<Bulleted list of key changes, grouped by area>
-
-## Testing
-<How the changes were tested, or recommended testing>
-
-## Related Work Items
-AB#<work_item_id>
-```
+Use the PR description template from `references/ado-mention-conventions.md`.
+Include `AB#<work_item_id>` in the Related Work Items section to auto-link
+the work item in Azure DevOps.
 
 ### Step 2.3: Create the Pull Request
 
@@ -133,9 +121,13 @@ Before entering, ask:
 > The PR is created. Would you like me to monitor and address feedback?
 > I will read review comments, check build/test status, and propose fixes.
 >
-> Say **yes** to start, or **no** to stop here.
+> - Say **yes** to start interactive tending (I'll confirm each change with you).
+> - Say **babysit** to hand off to the autonomous `babysit-pr` skill instead
+>   (it will fix issues and push without asking — see `skills/babysit-pr/SKILL.md`).
+> - Say **no** to stop here.
 
-If the user declines, the skill ends.
+If the user declines, the skill ends. If the user chooses babysit, load and
+execute `skills/babysit-pr/SKILL.md` with the PR number.
 
 ### The Tending Loop
 
@@ -158,13 +150,19 @@ relevant code with `getPullRequestFileChanges` or the local file.
 
 #### Step 3.3: Address Feedback
 
-For each piece of feedback:
-1. Explain what the reviewer is asking for.
-2. Propose a fix and **get user confirmation** before making changes.
-3. Apply the change.
-4. Reply to the thread using `replyToComment` explaining what was fixed.
+Load and follow `references/review-reception-protocol.md` for the full
+feedback-evaluation pattern (READ → UNDERSTAND → VERIFY → EVALUATE → RESPOND →
+IMPLEMENT).
 
-Do NOT resolve comment threads -- let the reviewer resolve them.
+**Interactive mode**: This skill is interactive — **get user confirmation**
+before applying fixes or replying to reviewers. Present the reviewer's request
+and your proposed change, then wait for approval.
+
+Reply to each thread using `replyToComment` explaining what was fixed or why
+it was declined. Prefix every reply with `[<developer name>'s bot]`.
+Determine the developer name from the PR author or `git config user.name`.
+
+Do NOT resolve comment threads — let the reviewer resolve them.
 
 #### Step 3.4: Check Build/Test Failures
 
@@ -205,6 +203,15 @@ Stop the loop when:
 - "Create a work item and PR for my current branch"
 - "Tend to PR #123"
 - "Check my PR for new comments"
+
+## ADO Reference Conventions
+
+Load and follow `references/ado-mention-conventions.md` for all mention syntax.
+Key rules for this skill:
+- Use `AB#<id>` in PR descriptions to auto-link work items
+- Use `#<id>` when referencing work items in comments
+- Use state transition keywords (`Fixes #123`) when appropriate
+- Prefix all bot replies with `[<developer name>'s bot]`
 
 ## Guidelines
 

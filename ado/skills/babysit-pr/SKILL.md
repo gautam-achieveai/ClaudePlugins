@@ -62,12 +62,9 @@ Gather every actionable issue into a structured list:
 - Filter to **active (unresolved)** threads only
 - For each thread, capture: comment text, file path, line number, reviewer name
 - Skip threads you have already replied to in a previous iteration
-- For each new thread, pre-classify before delegating:
-  - **Verify**: Does the reviewer's assumption hold against the actual code?
-  - **YAGNI check**: If the comment suggests adding a feature/abstraction,
-    check if it would actually be used. Flag as Won't Fix if not.
-  - **Context check**: Note if the comment appears to lack full context
-    (e.g., reviewer may not see a related change in another file)
+- For each new thread, pre-classify before delegating using the evaluation
+  steps in `references/review-reception-protocol.md` (verify, YAGNI check,
+  context check). Flag as Won't Fix or Needs Addressing.
 
 ### Step 3: Delegate to Worker Agent
 
@@ -78,15 +75,9 @@ If there are any issues to address, spawn the `babysit-pr-worker` agent with:
 - List of previously addressed comment thread IDs (to avoid re-work)
 - Pre-classification notes from Step 2d (YAGNI flags, context gaps, verification results)
 
-**Worker review-reception rules** — instruct the worker to follow this pattern
-for each review comment:
-1. Verify the suggestion against the actual codebase before implementing
-2. Check if the suggestion breaks existing functionality
-3. YAGNI: if the reviewer suggests adding unused features/abstractions, reply
-   explaining why it's not needed rather than implementing
-4. Fix in priority order: blocking issues → simple fixes → complex fixes
-5. Push back with technical reasoning when a suggestion is wrong — do not
-   blindly implement all feedback
+**Worker review-reception rules** — instruct the worker to follow
+`references/review-reception-protocol.md` in autonomous mode (no user
+confirmation). Pass the pre-classification notes so the worker can act on them.
 
 The worker agent handles all fixes, self-review, build verification, commit, and
 push for this iteration. Wait for it to complete and record which issues it
@@ -107,6 +98,8 @@ waiting on reviewers). Then wait **15 minutes** before looping back to Step 1.
 Stop the loop when:
 - PR is merged, completed, or abandoned
 - All builds green + all comment threads resolved + reviewer approved
+- All remaining issues were classified as Won't Fix with no new issues for two
+  consecutive iterations (nothing left to act on — waiting on reviewer action)
 - User interrupts with "stop" or "enough"
 
 When exiting, display a final summary: total iterations, issues fixed, comments
@@ -131,14 +124,9 @@ Key rules for this skill:
   summary but do not retry the same issue next iteration unless the context has
   changed (e.g., new comments on the same thread)
 - Use Azure DevOps MCP tools for all ADO operations, git/bash for local ops
-- **Verify before implementing** — never blindly apply a reviewer's suggestion
-  without checking it against the codebase. The reviewer may lack context.
-- **Technical correctness over social comfort** — if a suggestion would break
-  functionality, introduce unnecessary complexity, or violate YAGNI, reply with
-  clear technical reasoning instead of implementing it
-- **Implementation order matters** — fix blocking issues (build breaks, security)
-  first, then simple fixes, then complex changes. This minimizes cascading
-  failures across iterations
+- Follow `references/review-reception-protocol.md` for all reviewer feedback
+  evaluation — verify before implementing, push back when wrong, fix in
+  priority order (blocking → simple → complex)
 
 ## Tools
 

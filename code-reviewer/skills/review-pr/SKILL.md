@@ -236,6 +236,16 @@ No ADO interaction needed.
 
 ---
 
+## ADO Reference Conventions
+
+When in remote mode, load and follow
+`references/ado-mention-conventions.md` for all mention syntax. Key rules for
+this skill:
+- Use `#<id>` when referencing work items in PR comments (e.g., `See #123`)
+- Use `AB#<id>` if composing PR descriptions that need work item auto-linking
+- Use `!<id>` when referencing PRs in work item discussions
+- Prefix all bot comments with `[<developer name>'s bot]`
+
 ## Guidelines
 
 - **Delegate, don't duplicate**: Do not re-implement the review checklist — the
