@@ -2,6 +2,13 @@
 
 This is the single source of truth for structured log field names used across all logging in this plugin's methodology.
 
+## Philosophy
+
+- Logs are not afterthoughts — they ARE the debugging tool
+- The entire debugging methodology lives and dies by log effectiveness
+- Logs provide AI-visible execution traces, replacing the need for a debugger
+- Log enough information to easily identify the issue — include relevant variable values, IDs, and state as long as they meet the EUII policy for the chosen log level
+
 ## Format
 
 All logs MUST be written as **JSON Lines (JSONL)** — one JSON object per line, newline-delimited.
@@ -28,6 +35,7 @@ All logs MUST be written as **JSON Lines (JSONL)** — one JSON object per line,
 | `@logger` | string | Logger name / source class | `"OrderService"` |
 | `application` | string | Application or service name | `"checkout-api"` |
 | `@x` | string | Exception details (full stack trace) | `"System.NullReferenceException: ..."` |
+| `source` | string | Origin of the log entry | `"client"` or `"server"` |
 
 ### Test Context Fields
 
@@ -56,20 +64,43 @@ Any additional structured properties from log templates become top-level fields:
 
 Use consistent level names across the codebase:
 
-| Level | When to Use |
-|-------|------------|
-| `Trace` | Fine-grained diagnostics: method entry/exit, variable values. Local dev only. |
-| `Debug` | Diagnostic information useful during development and troubleshooting. |
-| `Information` | Normal operational events: request received, operation completed, state transitions. |
-| `Warning` | Unexpected but recoverable: retry needed, fallback used, degraded mode. |
-| `Error` | Operation failure that is recoverable at a higher level. |
-| `Fatal` / `Critical` | Unrecoverable failure requiring immediate attention. |
+| Level | Semantics | EUII | Production | Volume |
+|-------|-----------|------|------------|--------|
+| `Trace` | Breakpoint-level: variable values, intermediate state, debugger-equivalent | YES (stripped from release builds) | Compiled out, zero overhead | Highest (Debug < 1/4 of Trace) |
+| `Debug` | OCE area identification: positive handshakes ("OrderService started"). Narrows WHERE, not WHAT | NO | Kept, may be toggled | Info ~1/4 of Debug |
+| `Information` | Production bug sequence: execution flow, event timeline reconstruction | NO | Always on | Least verbose |
+| `Warning` | Unexpected but recoverable: retry, fallback, degraded mode | NO | Always on | -- |
+| `Error` | Operation failure, recoverable at higher level | NO | Always on | -- |
+| `Fatal` / `Critical` | Unrecoverable, immediate attention required | NO | Always on | -- |
 
 ## Level Strategy
 
-- **Local development / tests**: Set minimum level to `Trace`
-- **Production**: Set minimum level to `Information` (or `Warning` for high-volume services)
-- **Never** log sensitive data (passwords, tokens, PII) at any level
+- **Local dev / tests**: Trace minimum (full EUII visibility safe here)
+- **Production**: Information minimum (Debug when actively troubleshooting, toggled)
+- **Release builds**: Trace MUST be compiled out (this is what makes EUII-in-Trace safe)
+
+## EUII Policy
+
+- **FORBIDDEN** at Debug and above (these persist in production)
+- **PERMITTED** at Trace ONLY (stripped from release builds — the sole reason it's safe)
+- **What counts as EUII**: emails, user names, display names, IPs, phone numbers, session/auth tokens
+- **What is NOT EUII**: system-generated IDs (order IDs, correlation IDs, trace IDs), service names
+- **Enforcement**: logging-review agent flags EUII at Debug+ as CRITICAL
+
+## Client-Side Log Forwarding
+
+- Client logs (browser, web, mobile web) MUST be forwarded to server for file-based JSONL logging
+- Mechanism not prescribed (HTTP POST, WebSocket, beacon, etc.)
+- Server writes client logs in same JSONL format with canonical fields
+- Every log line MUST include `source` field: `"client"` or `"server"`
+- Rationale: without forwarding, client execution is invisible to DuckDB queries
+
+## Verbosity Guidance
+
+- Volume ratios: Trace >> Debug >> Info (each ~4x the next level up)
+- Trace = "what would I put a breakpoint on?"
+- Debug = "which service/component is executing?"
+- Info = "what is the sequence of business events?"
 
 ## File Naming Convention
 

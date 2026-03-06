@@ -71,6 +71,7 @@ For each guide, follow:
 3. Set up canonical field names per [log-render-spec.md](reference/log-render-spec.md)
 4. Add test context enrichment (for test projects)
 5. Add example log statements at key decision points
+6. For client/browser projects, configure log forwarding to a server backend and add `source: "client"` field to every log entry
 
 ### Step 4: Verify with DuckDB
 
@@ -125,14 +126,20 @@ Add logging at **decision points** — places where the code chooses a path:
 
 ### What level?
 
-See [log-format-spec.md](reference/log-render-spec.md) for the level guide. Quick rule:
+See [log-format-spec.md](reference/log-render-spec.md) for the full level guide. Quick rule:
 
-- **Trace**: Method entry/exit, variable values
-- **Debug**: Intermediate results, diagnostic data
-- **Information**: Business operations (order created, user logged in)
-- **Warning**: Recoverable issues (retry, fallback)
-- **Error**: Operation failures
-- **Fatal**: Unrecoverable failures
+- **Trace**: Breakpoint-level — variable values, intermediate state, debugger-equivalent. EUII permitted (stripped from release builds).
+- **Debug**: OCE area identification — positive handshakes narrowing WHERE, not WHAT. EUII forbidden.
+- **Information**: Production bug sequence — execution flow, event timeline reconstruction. EUII forbidden.
+- **Warning**: Unexpected but recoverable — retry, fallback, degraded mode. EUII forbidden.
+- **Error**: Operation failure, recoverable at higher level. EUII forbidden.
+- **Fatal**: Unrecoverable, immediate attention required. EUII forbidden.
+
+### EUII Policy
+
+- **Trace only** — EUII is permitted because Trace is stripped from release builds
+- **Forbidden at Debug+** — these levels persist in production
+- **Practical guidance**: if a log template includes email, user name, display name, IP, phone number, or session/auth token, it must be Trace-level or the EUII must be removed
 
 ## Reference Files
 

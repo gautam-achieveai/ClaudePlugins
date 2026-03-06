@@ -55,7 +55,7 @@ detection, note the corresponding skill to load alongside the base review.
 - **Base code review**: `skills/pr-review/SKILL.md` — bugs, security,
   performance, maintainability, plus the built-in agents (code-simplifier,
   class-design-simplifier, duplicate-code-detector, euii-leak-detector,
-  log-reviewer).
+  debugging:logging-review).
 
 **Conditional Detection**
 

@@ -114,7 +114,10 @@ Reference: [DuckDB Query Patterns](reference/duckdb-query-patterns.md)
 If Step 4 doesn't reveal the root cause:
 
 1. Identify the **gap** — where does visibility end?
-2. Add `Trace`-level logging at the specific decision points
+2. Add logging at the specific decision points:
+   - Trace: variable values, intermediate state (EUII OK — stripped from release builds)
+   - Debug: positive handshakes narrowing the area
+   - Information: high-level sequence of events only
 3. Re-run the reproduction steps (Step 2)
 4. Re-query with DuckDB (Step 4)
 
@@ -158,6 +161,7 @@ AFFECTED CODE: [file:line]
 3. **Query, don't scroll** — Use DuckDB SQL instead of manually reading log files.
 4. **Iterate visibility** — If logs don't show the answer, the problem is insufficient logging, not insufficient thinking.
 5. **Prove the fix** — The same logs that showed the bug must show the fix working.
+6. **EUII safety** — Trace may contain EUII (stripped from release builds), Debug and above must NEVER.
 
 ## Reference Files
 
