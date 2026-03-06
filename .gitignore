@@ -59,3 +59,6 @@ htmlcov/
 # Scratchpad - keep structure but ignore personal notes
 scratchpad/**
 !scratchpad/README.md
+
+# Inspiration reference repos (use scripts/clone-inspirations.sh to populate)
+inspirations/
