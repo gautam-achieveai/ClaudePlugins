@@ -1,5 +1,5 @@
 ---
-name: pr-reviewer
+name: pr-review
 description: Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works with PR numbers, branch names, or Azure DevOps URLs. NOT for developer performance reviews over time.
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__azure-devops__*
 ---
@@ -7,7 +7,7 @@ allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__azure-devops__*
 
 Review individual PRs for code quality, security (OWASP Top 10), performance, and testing adequacy.
 
-## ⚠️ Skill Scope
+## Skill Scope
 
 **This skill is for:**
 
@@ -246,11 +246,13 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
    - **`class-design-simplifier`**: Dispatch when PR introduces NEW classes, interfaces, or architectural layers. Analyzes what the PR is trying to accomplish, then flags over-engineering: single-implementation interfaces, pass-through layers, premature generalization, deep inheritance hierarchies. Proposes merging, inlining, or flattening.
 
+   <mandatory_dispatch>
    **Dispatch rules:**
    - **`temp-code-review` is mandatory** — dispatch it for every PR regardless of domain
    - A single PR may trigger multiple agents (e.g., a PR touching both Orleans grains and NScript client code dispatches both `orleans-review` and `nscript-review`)
    - Run all applicable agents in parallel — they are independent
    - Collect findings from all agents before proceeding to step 8
+   </mandatory_dispatch>
 
    **Server-side checks (applied directly, no agent needed):**
 
@@ -296,10 +298,12 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - `feature-dev:code-reviewer` — Same overlap with steps 4-5
    - **Exception**: Dispatch `feature-dev:code-reviewer` as a second-opinion safety net when PR is **30+ files** OR touches **security-sensitive code** (auth, crypto, payment)
 
+   <dispatch_heuristics>
    **Size-based dispatch heuristics:**
    - **Small PR (1-5 files)**: 0-1 external agents — only dispatch if strong signal match
    - **Medium PR (6-19 files)**: 1-2 external agents — dispatch best-matching agents
    - **Large PR (20+ files)**: All matching agents — cast a wide net
+   </dispatch_heuristics>
 
    **Future-proofing for unknown agents:** For agents NOT listed in the catalog above (newly added to the environment), evaluate by reading their description and checking: (a) does it cover something not already addressed in steps 4-7? (b) does this PR have relevant signals for it? If both answers are yes, dispatch the agent.
 
@@ -352,110 +356,30 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - **BLOCKER** (tag required): Bug/correctness, security vulnerability, significant design issue, significant simplification, data loss risk, user-visible performance issue
    - **Non-blocking** (no tag needed): Style, minor suggestions, informational, documentation, minor performance, alternative approaches
 
+   <posting_rules>
    **Workflow:**
    - **Always confirm with the user before posting** — show the comment text first
    - Post all CRITICAL and HIGH issues as inline/file comments first
    - Post MEDIUM issues as inline/file comments
    - Post the review summary (from Output Format below) as a general comment
    - **Determine verdict**: Choose one of:
-     - **APPROVE** — No Critical or High issues, few or no Medium issues
-     - **APPROVE WITH COMMENTS** — No Critical issues, some High/Medium issues that should be addressed
-     - **REQUEST CHANGES** — Any Critical issues, or multiple High issues that must be fixed
+     - **APPROVE** — No Critical/High issues, few or no Medium/Low issues
+     - **APPROVE WITH COMMENTS** — No Critical/High issues, some Medium/Low issues that should be addressed
+     - **REQUEST CHANGES** — Any Critical/High issues, or multiple Medium/Low issues that must be fixed
    - **Approve the pull request**: Only use `mcp__azure-devops__approvePullRequest` if verdict is APPROVE and user confirms
    - **Merge the pull request** (optional): If the user requests it after approval, use `mcp__azure-devops__mergePullRequest` with the appropriate merge strategy (squash for feature branches, noFastForward for release branches). Always confirm merge strategy with the user first.
+   </posting_rules>
 
-## Re-Review / Update Workflow
+For re-review workflow, load [reference/re-review-workflow.md](reference/re-review-workflow.md).
 
-When a PR was previously reviewed, the author pushed fixes, and the reviewer's vote was reset (e.g., "Vote of X was reset: Changes pushed to source branch"), the reviewer needs to focus on what changed since their last review — not re-review the entire PR.
+## Error Handling
 
-### Step 1: Detect re-review context
-
-- Call `mcp__azure-devops__getPullRequestComments` to check for existing review comments
-- If previous review comments exist from this reviewer (or Claude), this is a re-review
-- Extract the previous issue list (numbered issues with severities) from the last review summary comment
-- Note which issues the author responded to (replies to review threads)
-
-### Step 2: Find what changed since last review
-
-- Use `mcp__azure-devops__getCommitHistory` to find commits pushed after the last review comment date
-- Use `git log --after="<last-review-date>" origin/<source-branch>` locally to see new commits
-- Use `git diff <last-review-commit>..<current-head>` to see ONLY the delta since last review
-- **Critical difference from initial review**: diff against last-review-point, not merge-base
-
-### Step 3: Build issue resolution tracker
-
-Create a table tracking each previous issue:
-
-```
-| # | Previous Issue | Severity | Status | Evidence |
-|---|---|---|---|---|
-| 1 | MockDistributionMetricManager | CRITICAL | RESOLVED | Replaced with CachedDistributionMetricManager |
-| 2 | Code duplication 400+ lines | HIGH | RESOLVED | Reduced via ProficiencyMapCalculator |
-| 3 | No fallback mechanism | HIGH | RESOLVED | ExecuteWithFallbackAsync added |
-| 4 | No automated tests | HIGH | WON'T FIX | Author: "Will follow up in separate PR" |
-```
-
-Status values: `RESOLVED`, `NOT ADDRESSED`, `WON'T FIX`
-
-### Step 3.5: Satisfaction Check
-
-For each thread in the tracker, verify the resolution using the delta diff and
-the [Review Thread State Machine](references/review-thread-state-machine.md):
-
-**RESOLVED threads** — verify fix in the delta diff:
-1. Find the code change that addresses the original finding
-2. Confirm it actually fixes the issue (not just a cosmetic change)
-3. Confirm no regressions were introduced
-4. If the fix is good → use `updatePullRequestThread` to close the thread
-5. If the fix is insufficient → reply with `replyToComment` explaining what is
-   still wrong or missing. The thread stays Active.
-
-**WON'T FIX threads** — evaluate the developer's rationale:
-1. Read the developer's `Won't Fix:` reply
-2. For non-blocking items (no `[BLOCKER]` tag): accept if the rationale is reasonable → close
-3. For `[BLOCKER]` items: accept only if the rationale is technically sound and
-   the risk is mitigated → close. Otherwise, reply explaining why the rationale
-   is insufficient and reopen.
-4. For security `[BLOCKER]` items: default is to reopen unless the justification
-   is compelling. Security issues require the highest bar for Won't Fix.
-
-**NOT ADDRESSED threads** — escalate:
-1. Reply with `replyToComment`: "This issue is still outstanding — please address
-   or provide a rationale for Won't Fix."
-2. The thread stays Active.
-
-### Step 4: Review only the delta
-
-- Run the same domain-specific agents (step 7) but ONLY on files changed since last review
-- Focus on: Did the fix actually address the issue? Did the fix introduce new issues?
-- Look for regressions: Did fixing issue A break something else?
-
-### Step 5: Post re-review summary
-
-Use a structured format:
-
-```markdown
-## Re-Review Summary: PR #XXXX
-
-### Previous Issues Resolution Status
-| # | Issue | Severity | Resolution |
-|---|---|---|---|
-
-### New Issues Found (in updated code)
-#### [SEVERITY] - [Issue Title]
-...
-
-### Verdict
-APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
-```
-
-### Re-review rules
-
-- **Don't re-litigate resolved issues** — if the author fixed it, acknowledge and move on
-- **Track DEFERRED items** — note them as "acknowledged, not blocking" but keep them visible
-- **Focus on the delta** — only flag new issues in the updated code
-- **When author replies "won't fix" with valid reasoning** — respect it and note as WONTFIX
-- **Call out NEW issues** — clearly distinguish new findings from previous ones
+<error_handling>
+- **getPullRequest fails** → verify PR number, check ADO connectivity, inform user
+- **Worktree script fails** → fall back to lightweight review mode
+- **Agent dispatch fails** → skip that agent, note in findings, continue with others
+- **Comment posting fails** → retry once, then present findings to user in conversation
+</error_handling>
 
 ## Critical Principles
 
@@ -488,23 +412,16 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
 
 ## Quick Reference Checklist
 
-> ### ⭐ **CRITICAL FIRST STEP: Code Alignment**
->
-> **Before reviewing anything else**, check the [Code Alignment Guide](reference/code-project-alignment-guide.md) to ensure:
->
-> - Code follows existing project patterns
-> - No code duplication
-> - Proper framework usage
-> - Consistency with team standards
+Start with [Code Alignment Guide](reference/code-project-alignment-guide.md) — verifying project patterns, duplication, and framework usage is the highest-priority check.
 
-- [ ] **Code Alignment**: Follows project patterns, no duplication, framework best practices ⭐
-- [ ] Bugs & Correctness: Logic errors, off-by-one, null/undefined handling, edge cases, incorrect API usage 🐛
-- [ ] Security: OWASP Top 10, injection, hardcoded secrets, input validation, insecure defaults 🛡️
-- [ ] Performance: N+1 queries, memory leaks, algorithm efficiency, redundant computations, missing caching ⚡
-- [ ] Code Quality: SOLID, code smells, duplication 📋
-- [ ] Maintainability: Code clarity, overly complex logic, misleading names 🧹
-- [ ] Testing: Coverage, edge cases, integration tests 🧪
-- [ ] EUII / PII: No user-identifiable info in logs, telemetry, or error messages 🔒
+- [ ] **Code Alignment** (do first): Follows project patterns, no duplication, framework best practices
+- [ ] Bugs & Correctness: Logic errors, off-by-one, null/undefined handling, edge cases, incorrect API usage
+- [ ] Security: OWASP Top 10, injection, hardcoded secrets, input validation, insecure defaults
+- [ ] Performance: N+1 queries, memory leaks, algorithm efficiency, redundant computations, missing caching
+- [ ] Code Quality: SOLID, code smells, duplication
+- [ ] Maintainability: Code clarity, overly complex logic, misleading names
+- [ ] Testing: Coverage, edge cases, integration tests
+- [ ] EUII / PII: No user-identifiable info in logs, telemetry, or error messages
 - [ ] Specific feedback with file:line references
 - [ ] Code examples for issues and fixes
 - [ ] Balanced positive and constructive feedback
@@ -513,123 +430,15 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
 
 For comprehensive checklists and examples:
 
-- 🛡️ [Security Checklist (OWASP Top 10)](reference/security-checklist.md)
-- ⚡ [Performance Review Guide](reference/performance-guide.md)
-- 📋 [Code Quality Guide](reference/code-quality-guide.md)
-- ⭐ **[Code Alignment Guide](reference/code-project-alignment-guide.md)** ← **CRITICAL FOR CONSISTENCY**
-- 🧪 [Testing Assessment Guide](reference/testing-guide.md)
-- 🔧 [Scripts Documentation](scripts/README.md)
+- [Security Checklist (OWASP Top 10)](reference/security-checklist.md)
+- [Performance Review Guide](reference/performance-guide.md)
+- [Code Quality Guide](reference/code-quality-guide.md)
+- **[Code Alignment Guide](reference/code-project-alignment-guide.md)** — start here for consistency
+- [Testing Assessment Guide](reference/testing-guide.md)
+- [Scripts Documentation](scripts/README.md)
 
 ## Integration with Tools
 
-**Azure DevOps MCP:**
+For tool and agent catalog, see [reference/tool-catalog.md](reference/tool-catalog.md).
 
-- `mcp__azure-devops__getPullRequest` - Fetch PR details
-- `mcp__azure-devops__getPullRequestFileChanges` - Get changed files list
-- `mcp__azure-devops__getPullRequestChangesCount` - Quick scope check: total files changed, adds/edits/deletes
-- `mcp__azure-devops__getAllPullRequestChanges` - Get all file changes with diffs
-- `mcp__azure-devops__getPullRequestComments` - Get existing PR comments/discussions
-- `mcp__azure-devops__getCommitHistory` - Get commit log with optional file path filter (used in re-review to find commits since last review)
-- `mcp__azure-devops__listPullRequests` - List active/completed/abandoned PRs, filter by creator/reviewer
-- `mcp__azure-devops__getWorkItemById` - Get linked work item details
-- `mcp__azure-devops__listWorkItems` - WIQL query for work items
-- `mcp__azure-devops__searchWorkItems` - Search work items by text
-- `mcp__azure-devops__getFileContent` - Read file content from repo
-- `mcp__azure-devops__addPullRequestComment` - Add general comment
-- `mcp__azure-devops__addPullRequestFileComment` - Add file-level comment (not tied to a specific line)
-- `mcp__azure-devops__addPullRequestInlineComment` - Add line-specific comment
-- `mcp__azure-devops__addWorkItemComment` - Comment on a work item (link review findings to work items)
-- `mcp__azure-devops__replyToComment` - Reply to an existing comment thread (used in re-review to reopen or escalate)
-- `mcp__azure-devops__updatePullRequestThread` - Update thread status (used in re-review to close verified threads)
-- `mcp__azure-devops__approvePullRequest` - Approve PR
-- `mcp__azure-devops__mergePullRequest` - Complete/merge a PR (squash, rebase, noFastForward)
-
-**Specialized Review Agents (dispatched in step 7):**
-
-- `nscript-review` - NScript C#-to-JS transpiler compliance, MVVM, template/skin patterns
-- `orleans-review` - Orleans grain architecture, reentrancy, state management, streams
-- `debugging:logging-review` - Structured logging compliance, log levels, queryability, EUII policy enforcement, client-side log forwarding checks
-- `temp-code-review` - **(always dispatched)** Temporary code, debug artifacts, hardcoded hacks, mistaken files
-- `duplicate-code-detector` - Exact/near duplicates, repeated patterns, structural duplication; suggests extractions
-- `euii-leak-detector` - EUII/PII leaks in logs, telemetry, error messages, HTTP logging
-- `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
-
-**External Review Agents (dispatched conditionally in step 8):**
-
-- `architecture-reviewer` - SOLID principles, coupling analysis, design pattern review
-- `pr-review-toolkit:silent-failure-hunter` - Silent failures, swallowed exceptions
-- `pr-review-toolkit:type-design-analyzer` - Type invariants, encapsulation, type system design
-- `pr-review-toolkit:pr-test-analyzer` - Behavioral test coverage, edge case analysis
-- `pr-review-toolkit:comment-analyzer` - Comment accuracy, documentation rot
-- `pr-review-toolkit:code-simplifier` - Code clarity (large PRs only)
-- Additional agents discovered dynamically from the environment
-
-**Reference Guides (used in steps 4-5):**
-
-- [Code Alignment Guide](reference/code-project-alignment-guide.md) — project patterns, duplication, framework usage
-- [Code Quality Guide](reference/code-quality-guide.md) — SOLID, code smells
-- [Performance Guide](reference/performance-guide.md) — N+1 queries, memory, efficiency
-- [Security Checklist](reference/security-checklist.md) — OWASP Top 10
-- [Testing Guide](reference/testing-guide.md) — coverage, edge cases, CI categories
-
-## Output Format
-
-Present findings in severity-grouped format:
-
-```markdown
-# PR Review: [Title]
-
-## Summary
-- Total files reviewed: X
-- Findings: X Critical, X High, X Medium, X Low
-- Test coverage: adequate / needs improvement / missing
-- Domain areas touched: [NScript Client, Server, Orleans, Tests, etc.]
-- Branch convention: OK / non-conforming
-
-## Strengths
-What was done well (with file:line references)
-
-## Critical Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
-
-## High Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
-
-## Medium Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
-
-## Low Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
-
-## Testing Assessment
-Coverage gaps, suggested tests, missing test project mappings
-
-## Security Review
-OWASP issues found (if any)
-
-## Recommendations
-Specific, actionable improvements
-
-## Verdict
-**APPROVE** / **APPROVE WITH COMMENTS** / **REQUEST CHANGES**
-- APPROVE — No Critical or High issues, few or no Medium issues
-- APPROVE WITH COMMENTS — No Critical issues, some High/Medium issues that should be addressed
-- REQUEST CHANGES — Any Critical issues, or multiple High issues that must be fixed
-```
-
-## Remember
-
-**Goal:** Catch bugs before production, improve code quality, share knowledge, maintain standards
-
-**Focus on:**
-
-1. **Correctness** (bugs, security)
-2. **Maintainability** (future developers)
-3. **Performance** (user experience)
-4. **Testing** (confidence in changes)
-
-Be thorough but pragmatic. **Be specific, actionable, balanced, and professional.**
+For output format template, load [reference/output-format.md](reference/output-format.md).

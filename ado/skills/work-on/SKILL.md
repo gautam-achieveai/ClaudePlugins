@@ -171,8 +171,10 @@ tests before or alongside implementation. Auto-detect the test framework:
 If tests fail or implementation hits a wall:
 1. Invoke `superpowers:systematic-debugging` to diagnose
 2. Apply the fix and re-run tests
+<max_retries>
 3. If still failing after 3 debugging attempts, stop and present the situation
    to the user with what you've tried and what you've learned
+</max_retries>
 
 ---
 
@@ -322,9 +324,11 @@ creates an audit trail of what was done for each part of the fix.
 
 ## Guidelines
 
-- **Interactive checkpoints** — always wait for user confirmation at: understanding
-  (Phase 1), design approval (Phase 2), plan approval (Phase 3), pre-PR review
-  (Phase 6)
+<user_checkpoints>
+**Interactive checkpoints** — always wait for user confirmation at: understanding
+(Phase 1), design approval (Phase 2), plan approval (Phase 3), pre-PR review
+(Phase 6).
+</user_checkpoints>
 - **Autonomous execution** — between checkpoints, work autonomously without
   unnecessary pauses
 - Use Azure DevOps MCP tools for all ADO operations, git/bash for local ops

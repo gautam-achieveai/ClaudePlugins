@@ -12,7 +12,7 @@
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and end-to-end work item implementation skills, plus a DevOps workflow assistant agent.",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "category": "development",
       "tags": [
         "azure-devops",
@@ -34,7 +34,7 @@
       "name": "developer-performance-review",
       "source": "./developer-performance-review",
       "description": "Developer performance review skill for analyzing work over time (weeks/months)",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "development",
       "tags": [
         "review",
@@ -53,7 +53,7 @@
       "name": "code-reviewer",
       "source": "./code-reviewer",
       "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, design simplification, code simplification, and log review. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps.",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "category": "development",
       "tags": [
         "review",
@@ -75,7 +75,7 @@
       "name": "orleans-dev",
       "source": "./orleans-dev",
       "description": "Microsoft Orleans patterns, best practices, and code review for virtual actor model applications — covers grain design, concurrency, cross-grain communication, streams, and serialization.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "category": "development",
       "tags": [
         "orleans",

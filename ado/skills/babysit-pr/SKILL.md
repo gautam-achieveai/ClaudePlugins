@@ -1,4 +1,5 @@
 ---
+name: babysit-pr
 description: Autonomously monitor an Azure DevOps pull request — polls every 15+ minutes, fixes build breaks, test failures, and code coverage gaps, categorizes review comments as Won't Fix or Needs Addressing, and self-reviews all changes before pushing.
 ---
 
@@ -37,8 +38,10 @@ Use `getPullRequest` to check:
 - Reviewer votes (approved? waiting? rejected?)
 - Build/CI status (succeeded? failed? in progress?)
 
+<exit_check>
 **Exit if**: PR is merged, completed, or abandoned. Also exit if all builds are
 green, all comment threads are resolved, and at least one reviewer has approved.
+</exit_check>
 
 ### Step 2: Collect All Issues
 
@@ -99,12 +102,15 @@ waiting on reviewers). Then wait **15 minutes** before looping back to Step 1.
 
 ## Exit Conditions
 
+<exit_conditions>
 Stop the loop when:
 - PR is merged, completed, or abandoned
 - All builds green + all comment threads resolved + reviewer approved
 - All remaining issues were classified as Won't Fix with no new issues for two
   consecutive iterations (nothing left to act on — waiting on reviewer action)
 - User interrupts with "stop" or "enough"
+- After 20 iterations without full resolution, stop and report status to user
+</exit_conditions>
 
 When exiting, display a final summary: total iterations, issues fixed, comments
 addressed, current PR status.

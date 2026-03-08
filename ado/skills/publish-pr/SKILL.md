@@ -1,4 +1,5 @@
 ---
+name: publish-pr
 description: Publish local changes as an Azure DevOps pull request — analyzes commits, creates or links a work item (bug, task, or user story), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and build failures until the PR is merged.
 ---
 
@@ -17,11 +18,13 @@ opt-in and can also be invoked independently (e.g., "Tend to PR #123").
 
 Verify before starting:
 
+<prerequisites>
 1. The current directory is a git repo with an `origin` remote.
 2. There are local commits on a feature branch (not the base branch).
 3. Azure DevOps MCP tools are available.
 
 If any prerequisite fails, explain what is missing and how to fix it.
+</prerequisites>
 
 ---
 
@@ -111,15 +114,12 @@ Use `createLink` to link the work item from Phase 1 to the PR. Report:
 
 ## Phase 3 — Tend to PR
 
-This phase monitors and addresses PR feedback in a loop.
-
 **Standalone entry**: If the user says "Tend to PR #123", skip Phases 1-2 and
 start here with the given PR number.
 
 Before entering, ask:
 
 > The PR is created. Would you like me to monitor and address feedback?
-> I will read review comments, check build/test status, and propose fixes.
 >
 > - Say **yes** to start interactive tending (I'll confirm each change with you).
 > - Say **babysit** to hand off to the autonomous `babysit-pr` skill instead
@@ -129,74 +129,24 @@ Before entering, ask:
 If the user declines, the skill ends. If the user chooses babysit, load and
 execute `skills/babysit-pr/SKILL.md` with the PR number.
 
-### The Tending Loop
+For interactive tending, delegate to the `pr-tender` agent. Pass:
+- PR number from Phase 2
+- "Interactive mode" (confirm changes with user)
 
-Repeat until exit:
-
-#### Step 3.1: Check PR Status
-
-Use `getPullRequest` to check:
-- Merge status (merged? completed? abandoned?)
-- Reviewer votes (approved? waiting? rejected?)
-- Build/CI status
-
-If the PR is merged or fully approved with green builds, inform the user and stop.
-
-#### Step 3.2: Read Comments
-
-Use `getPullRequestComments` to fetch all comment threads. For each **active**
-(unresolved) thread, identify the file/line being discussed and read the
-relevant code with `getPullRequestFileChanges` or the local file.
-
-#### Step 3.3: Address Feedback
-
-Load and follow `references/review-reception-protocol.md` for the full
-feedback-evaluation pattern (READ → UNDERSTAND → VERIFY → EVALUATE → RESPOND →
-IMPLEMENT). Also reference `references/review-thread-state-machine.md` for the
-thread lifecycle — replies should follow the standard format (`Fixed: <desc>`
-or `Won't Fix: <rationale>`) to enable proper state transitions.
-
-**Interactive mode**: This skill is interactive — **get user confirmation**
-before applying fixes or replying to reviewers. Present the reviewer's request
-and your proposed change, then wait for approval.
-
-Reply to each thread using `replyToComment` explaining what was fixed or why
-it was declined. Prefix every reply with `[<developer name>'s bot]`.
-Determine the developer name from the PR author or `git config user.name`.
-
-Do NOT resolve comment threads — let the reviewer resolve them.
-
-#### Step 3.4: Check Build/Test Failures
-
-For each build or test failure in the PR status:
-1. Analyze the error message and propose a fix.
-2. **Get user confirmation** before making changes.
-3. Apply the fix.
-
-#### Step 3.5: Push Updates
-
-After all fixes are applied:
-
-```bash
-git add <changed files>
-git commit -m "<descriptive message>"
-git push
-```
-
-Report what was pushed.
-
-#### Step 3.6: Re-check
-
-Ask the user **"Check again?"** and loop back to Step 3.1.
-
-### Exit Conditions
-
-Stop the loop when:
-- PR is merged or approved with all builds green.
-- No active comment threads remain and CI is passing.
-- The user says "stop" or "enough".
+The `pr-tender` agent handles the full tending loop: reading comments,
+addressing feedback, fixing build failures, pushing updates, and re-checking
+until the PR is ready to merge or the user says "stop".
 
 ---
+
+## Error Handling
+
+<error_handling>
+- **Push rejected** → inform user (likely needs pull/rebase), stop
+- **createWorkItem fails** → check ADO connectivity, ask user to create manually
+- **createPullRequest fails** → check if PR already exists for this branch, inform user
+- **createLink fails** → warn user, continue (PR still works without link)
+</error_handling>
 
 ## Usage Examples
 

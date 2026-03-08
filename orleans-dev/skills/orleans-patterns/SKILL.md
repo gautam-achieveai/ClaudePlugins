@@ -1,4 +1,5 @@
 ---
+name: orleans-patterns
 description: Comprehensive Orleans patterns and rules — grain design, concurrency, cross-grain communication, streams, and serialization
 ---
 

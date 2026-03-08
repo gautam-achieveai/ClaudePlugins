@@ -58,9 +58,11 @@ For each active, unresolved comment thread (skip previously addressed IDs):
 3. Categorize the comment following `references/review-reception-protocol.md`
    and the [Review Thread State Machine](references/review-thread-state-machine.md):
 
-**IMPORTANT**: Every reply posted with `replyToComment` MUST be prefixed with
+<bot_identity>
+Every reply posted with `replyToComment` MUST be prefixed with
 `[<developer name>'s bot]` so reviewers know this is an automated response.
 Determine the developer name from the PR author or git config (`git config user.name`).
+</bot_identity>
 
 **Won't Fix** — Use when:
 - The comment is subjective style preference with no functional impact
@@ -75,9 +77,11 @@ Action: Reply using the standard format:
 > [Jane's bot] Won't Fix: The null check here guards against a race condition
 > documented in issue #456. Removing it would reintroduce the bug.
 
+<blocker_policy>
 **BLOCKER Won't Fix restriction**: Be more conservative about Won't Fix on
 `[BLOCKER]` items — default to addressing them. For `[BLOCKER]` comments tagged
 as security issues, **always address** — do not Won't Fix without user approval.
+</blocker_policy>
 
 **Needs Addressing** — Use when:
 - The comment identifies a real bug, security issue, or correctness problem
@@ -118,7 +122,11 @@ Run the build and test commands provided by the skill:
 
 - If the build fails → analyze the error, fix, re-run self-review, and retry.
 - If tests fail → analyze which test broke, fix, re-run self-review, and retry.
-- Repeat until green, or report what could not be resolved.
+<max_retries>
+Max 3 build/test retry cycles. If still failing after 3 cycles, report the
+failure and move on.
+</max_retries>
+- Repeat until green or max retries reached, then report what could not be resolved.
 
 If no local build tool was detected, skip this step (CI will validate after push).
 

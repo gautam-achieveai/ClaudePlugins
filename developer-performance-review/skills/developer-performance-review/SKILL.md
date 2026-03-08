@@ -1,5 +1,5 @@
 ---
-name: dev-reviewer
+name: developer-performance-review
 description: Conduct developer performance reviews over weeks or months by analyzing git history, pull requests, and code patterns. Extracts PR data, identifies activity gaps, analyzes bug patterns, and generates evidence-based assessments combining technical analysis with manager feedback. Use when asked to "review [developer]'s work from [date] to [date]", analyze productivity patterns, prepare performance feedback, or investigate developer growth over time. NOT for single PR code reviews.
 allowed-tools: Read, Grep, Glob, Bash, Task, mcp__azure-devops__*, mcp__clarify-doubt__ask_human
 ---

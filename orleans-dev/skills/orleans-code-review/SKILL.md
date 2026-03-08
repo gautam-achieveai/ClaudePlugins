@@ -1,4 +1,5 @@
 ---
+name: orleans-code-review
 description: Review Orleans code for correctness — loads orleans-patterns rules and systematically checks grain design, concurrency, communication, streams, and serialization
 ---
 

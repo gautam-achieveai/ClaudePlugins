@@ -32,15 +32,30 @@ to merge.
 6. **Push and repeat** -- Commit fixes, push, and re-check. Continue until all
    threads are resolved and builds are green.
 
+## Exit Conditions
+
+<exit_conditions>
+Stop when:
+- PR is merged or approved with green builds
+- All comment threads resolved and CI passing
+- User says "stop"
+</exit_conditions>
+
 ## Guidelines
 
+<error_handling>
+- If ADO tools return errors, retry once. If still failing, inform user.
+- If push fails (e.g., conflict), stop and explain the situation.
+</error_handling>
 - Always confirm before making code changes
 - Every reply posted with `replyToComment` MUST be prefixed with
   `[<developer name>'s bot]` so reviewers know this is an automated response.
   Determine the developer name from the PR author or git config
   (`git config user.name`).
 - Reply to reviewer comments after addressing them
-- Do NOT resolve comment threads -- let the reviewer resolve them
+<do_not_resolve>
+Do NOT resolve comment threads — let the reviewer resolve them.
+</do_not_resolve>
 - If you cannot determine how to fix something, explain the issue and ask the
   user for guidance
 - Track which comments you have already addressed to avoid redundant work
