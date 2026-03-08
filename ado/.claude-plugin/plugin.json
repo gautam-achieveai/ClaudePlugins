@@ -1,5 +1,5 @@
 {
   "name": "ado",
   "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and end-to-end work item implementation skills, plus a DevOps workflow assistant agent.",
-  "version": "1.3.1"
+  "version": "1.4.0"
 }

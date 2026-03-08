@@ -1,8 +1,11 @@
 ---
-description: Pick up an Azure DevOps work item and implement it end-to-end — read the item, design a solution, plan, implement, verify, and publish a PR
+description: >
+  Pick up an Azure DevOps work item — first run analyzes the problem and posts
+  an implementation plan to the work item for review. Subsequent runs incorporate
+  feedback or execute the approved plan autonomously, publishing a PR when done.
 argument-hint: "<work-item-number>"
 ---
 
-Load and execute the **work-on** skill (`skills/work-on/SKILL.md`). Follow its full workflow — read the work item, design a solution, create a plan, implement in an isolated worktree, verify, and publish a PR back to ADO.
+Load and execute the **work-on** skill (`skills/work-on/SKILL.md`).
 
 $ARGUMENTS

@@ -1,19 +1,29 @@
 ---
 name: work-on
 description: >
-  End-to-end development workflow driven by an Azure DevOps work item. Reads the
-  work item, designs a solution (debugging for bugs, brainstorming for features),
-  writes an implementation plan, sets up an isolated worktree, implements the
-  changes, verifies everything passes, and publishes a PR linked to the work item.
+  Autonomous two-phase development workflow driven by an Azure DevOps work item.
+  First run: analyzes the problem, designs a solution, creates a plan, and posts
+  it to the work item for review. Subsequent runs: incorporates feedback or
+  executes the approved plan — implements, verifies, and publishes a PR. Feedback
+  flows through ADO work item comments, not interactive prompts.
   Use when the user says "work on <number>", "implement work item <number>",
   "pick up <number>", or provides an ADO work item to implement.
 ---
 
-# Work On
+# Work On (Autonomous)
 
-You are an end-to-end development orchestrator. Given an Azure DevOps work item
-number, you guide the entire lifecycle from understanding the problem through
-publishing a reviewed PR.
+You are an autonomous development orchestrator. Given an Azure DevOps work item
+number, you operate in two phases:
+
+- **Part 1 — Plan & Post**: Understand the problem, design a solution, create a
+  plan, post it to the work item as a comment. Then STOP.
+- **Part 2 — Execute & Deliver**: Check for feedback on the plan. If feedback
+  exists, revise and repost. If the plan is approved, implement it, verify, and
+  publish a PR. Then STOP.
+
+The same `/work-on <id>` command auto-detects which part to run based on the
+work item's comment history. No interactive prompts — feedback comes through
+ADO work item comments.
 
 This skill orchestrates existing skills — invoke each via the **Skill** tool
 when you reach the corresponding phase.
@@ -31,11 +41,37 @@ If no number is found, ask the user for one and stop until provided.
 
 ---
 
-## Phase 1 — Read & Understand the Work Item
+## Phase 1 — Auto-Detect Mode
 
-### Step 1.1: Fetch the Work Item
+Fetch the work item and determine which part to run.
 
-Use the ADO MCP tool `getWorkItem` to retrieve the work item by ID. Extract:
+<auto_detect_logic>
+1. Fetch work item with `getWorkItemById` — extract details and comments.
+2. Determine `<dev name>` from `git config user.name`.
+3. Scan all comments for the `<!-- BOT-PLAN v` marker.
+4. **If NO plan comment found** → route to **PART 1** (Plan & Post).
+5. **If plan comment found**:
+   a. Find the latest plan comment (highest version number).
+   b. Check if version is `v3` or higher → route to **PART 2** (execute
+      regardless — revision cap reached).
+   c. Collect all human comments posted AFTER the latest plan comment.
+      Human comments = comments that do NOT contain `[bot]` in the text.
+   d. If NO human comments after the plan → **PART 2** (implicit approval).
+   e. If human comments exist, check for approval signals (case-insensitive):
+      `approved`, `lgtm`, `looks good`, `go ahead`, `proceed`, `ship it`,
+      `good to go`, `start implementation`.
+   f. If approval signal found AND no contradicting feedback → **PART 2**.
+   g. If feedback/questions/concerns found → **PART 1 (Revision Mode)**.
+   h. If ambiguous → default to **PART 1 (Revision Mode)** (safer).
+</auto_detect_logic>
+
+---
+
+## PART 1 — Plan & Post
+
+### Phase 1.1 — Fetch & Understand
+
+Use the ADO MCP tool `getWorkItemById` to retrieve the work item. Extract:
 - **Type** (Bug, Task, User Story, Product Backlog Item, Requirement)
 - **Title**
 - **Description** / Repro Steps (for bugs)
@@ -45,82 +81,165 @@ Use the ADO MCP tool `getWorkItem` to retrieve the work item by ID. Extract:
 - **Area Path** and **Iteration Path**
 - **Links** (parent, related items)
 
-If the work item is not found, inform the user and stop.
+If the work item is not found, inform the user and STOP.
 
-### Step 1.2: Check State
+**State check:**
+- If state is **Done**, **Closed**, or **Removed** — warn the user and STOP.
+  Do not ask to reopen — the user can reopen manually and re-run.
+- If state is **Resolved** — warn that it appears already resolved, STOP.
 
-- If state is **Done**, **Closed**, or **Removed** — warn the user and ask
-  whether to proceed or reopen.
-- If state is **Resolved** — warn that it appears already resolved, ask to
-  confirm re-work.
-
-### Step 1.3: Confirm Understanding
-
-Present a summary to the user:
-
-> **Work Item #ID: Title**
-> - Type: `<type>`
-> - State: `<state>`
-> - Description: `<summary>`
-> - Acceptance Criteria: `<criteria or "none specified">`
->
-> **My understanding:** `<your interpretation of what needs to be done>`
->
-> Is this correct? Should I proceed?
-
-**Wait for user confirmation before continuing.**
-
-### Step 1.4: Set State to Active
-
-Update the work item state to Active (or equivalent — see
+**Set state to Active** (or equivalent — see
 `reference/ado-state-transitions.md`). Add a comment:
 
-`[<dev name>'s bot] Starting implementation.`
+`[<dev name>'s bot] Starting analysis.`
 
-Determine `<dev name>` from `git config user.name`.
+**Initialize decision log** — create the file using the **Write** tool:
 
----
+**Path:** `scratchpad/conversation_memories/<id>-<slugified-title>/decisions.md`
 
-## Phase 2 — Design the Approach
+```markdown
+# Decision Log — Work Item #<id>: <title>
+Date: <today>
+```
+
+### Phase 1.2 — Design Approach (Autonomous)
 
 Branch based on work item type:
 
-### For Bugs
+#### For Bugs
 
 Invoke the `superpowers:systematic-debugging` skill. Follow its full workflow
-to identify the root cause before moving to Phase 3.
+to identify the root cause. If the bug involves runtime behavior that needs log
+analysis, also invoke `debugging:debug-with-logs`.
 
-If the bug involves runtime behavior that needs log analysis, also invoke
-`debugging:debug-with-logs` to instrument and capture structured logs.
+Capture the root cause analysis for the plan.
 
-### For Features / Tasks / User Stories
+#### For Features / Tasks / User Stories
 
-Invoke the `superpowers:brainstorming` skill. Follow its full workflow to
-explore the design space, requirements, and approach.
+Do NOT invoke `superpowers:brainstorming` — its workflow requires interactive
+user approval which conflicts with autonomous execution.
 
-Present the chosen design to the user for approval before continuing.
+Instead, perform inline autonomous design:
 
-**User override**: If the user says "skip" or provides their own approach
-directly, accept it and move on.
+<autonomous_design>
+1. **Requirements extraction** — List all functional requirements from the work
+   item description and acceptance criteria. Note any ambiguities.
+2. **Codebase reconnaissance** — Use Grep/Glob/Read to understand the relevant
+   code area. Identify:
+   - Existing patterns to follow (how similar features are implemented)
+   - Files that will need modification
+   - Related tests and test patterns
+   - Potential impact areas (callers, consumers, downstream effects)
+3. **Approach formulation** — Propose 2-3 approaches. For each:
+   - Describe the approach in 1-2 sentences
+   - List pros and cons
+   - Estimate complexity (files touched, risk level)
+4. **Selection** — Choose the approach that best balances simplicity,
+   consistency with existing patterns, and completeness. Document the
+   reasoning.
+5. **Log the decision** — Append to `decisions.md`:
+   ```markdown
+   ## Part 1 — Design
+   - **Chosen approach**: <approach description>
+   - **Rationale**: <why this over alternatives>
+   - **Alternatives rejected:**
+     - <alternative>: <why rejected>
+   ```
+</autonomous_design>
 
----
+### Phase 1.3 — Create Implementation Plan
 
-## Phase 3 — Create Implementation Plan
-
-Invoke the `superpowers:writing-plans` skill. Use the output from Phase 2
-(root cause analysis or approved design) as input.
+Invoke the `superpowers:writing-plans` skill. Use the output from Phase 1.2
+(root cause analysis or design approach) as input.
 
 The plan should cover:
 - Files to create/modify
+- Implementation steps (ordered)
 - Test strategy
 - Verification steps
 - Rollback considerations (if any)
 
-**Wait for user approval of the plan before continuing.**
+### Phase 1.4 — Post Plan to ADO
+
+Format the plan using the template in
+[reference/plan-comment-format.md](reference/plan-comment-format.md).
+
+Post as a work item comment using `addWorkItemComment`:
+- Include `<!-- BOT-PLAN v1 status:PENDING_REVIEW -->` opening marker
+- Include `<!-- /BOT-PLAN -->` closing marker
+- Include human-readable CTA at the bottom
+
+### Phase 1.5 — Save & Stop
+
+<exit_conditions>
+1. Save design context and plan summary to the decision log at
+   `scratchpad/conversation_memories/<id>-<slug>/decisions.md`.
+2. Report to user: "Plan posted to work item #<id>. Review on ADO, then
+   re-run `/work-on <id>` when ready."
+3. STOP. Do not proceed to implementation.
+</exit_conditions>
 
 ---
 
-## Phase 4 — Set Up Worktree
+## PART 1 (Revision Mode) — Revise & Repost
+
+When auto-detect finds a plan with unaddressed feedback.
+
+<revision_cap>
+Max 3 revision cycles. After 3 revisions (v3), post the final plan with a note:
+"This is the final revision (v3). Implementation will proceed on the next run."
+On the next invocation, treat as approved regardless of further feedback.
+</revision_cap>
+
+### Phase R.1 — Parse Feedback
+
+1. Read all human comments posted after the latest BOT-PLAN comment.
+2. Classify each comment:
+   - **Specific change request** — "change X to Y", "add Z", "don't do W"
+   - **Question** — "why did you choose X?", "what about Y?"
+   - **Concern** — "I'm worried about X", "this might break Y"
+   - **Approval** — (should have been caught by auto-detect, but handle gracefully)
+3. Summarize feedback into actionable items.
+
+### Phase R.2 — Revise Plan
+
+1. Read the previous plan from the work item comment (parse between markers).
+2. Read scratchpad context from `decisions.md`.
+3. Apply feedback to revise the plan:
+   - For **change requests**: apply them directly.
+   - For **questions**: answer them in the revised plan (add context to the
+     relevant section).
+   - For **concerns**: address them, or explain in the plan why the original
+     approach is better with supporting evidence.
+4. Update the decision log with revision notes.
+
+### Phase R.3 — Repost
+
+1. Post the revised plan as a NEW comment with incremented version:
+   `<!-- BOT-PLAN v<N+1> status:PENDING_REVIEW -->`.
+2. Reply to feedback comments acknowledging each point using `addWorkItemComment`:
+   - `[<dev name>'s bot] Addressed in plan v<N+1>: <summary of change>`
+   - `[<dev name>'s bot] Kept original approach: <rationale>`
+3. STOP — wait for next review cycle.
+
+---
+
+## PART 2 — Execute & Deliver
+
+Entry: plan is approved (explicit approval signal, implicit approval via no
+feedback, or revision cap reached).
+
+### Phase 2.1 — Restore Context
+
+1. Read the scratchpad decision log at
+   `scratchpad/conversation_memories/<id>-<slug>/decisions.md` to restore
+   design context from Part 1.
+2. Read the approved plan from the work item comment (parse between markers).
+3. Parse implementation steps, files to change, test strategy.
+4. Post a comment to the work item:
+   `[<dev name>'s bot] Plan approved. Starting implementation.`
+
+### Phase 2.2 — Set Up Worktree
 
 Invoke the `superpowers:using-git-worktrees` skill to create an isolated
 worktree for this work.
@@ -133,52 +252,38 @@ Example: Work item #4567 "Fix login timeout on slow networks"
 Slugify rules: lowercase, replace spaces/special chars with hyphens, max 60
 chars for the slug portion, strip trailing hyphens.
 
----
+### Phase 2.3 — Implement
 
-## Phase 5 — Implement
+**Auto-detect implementation mode** from the plan structure:
+- Count independent steps (touch different files/modules with no dependencies).
+- Count sequential steps (output of one feeds into another, or same files).
+- **3+ independent steps** → invoke `superpowers:subagent-driven-development`
+- **Otherwise** → invoke `superpowers:executing-plans`
 
-Ask the user which implementation mode they prefer:
-
-> **Implementation mode:**
-> 1. **Subagent-driven** — I'll dispatch parallel agents for independent tasks
->    (faster, less interactive)
-> 2. **Step-by-step** — I'll execute the plan one step at a time with review
->    checkpoints (more control)
->
-> Which do you prefer? (default: step-by-step)
-
-### Option 1: Subagent-driven
-
-Invoke `superpowers:subagent-driven-development` with the implementation plan
-from Phase 3.
-
-### Option 2: Step-by-step
-
-Invoke `superpowers:executing-plans` with the implementation plan from Phase 3.
-
-### Test-Driven Development
-
-For either mode, also invoke `superpowers:test-driven-development` to write
-tests before or alongside implementation. Auto-detect the test framework:
+**Test-Driven Development**: For either mode, also invoke
+`superpowers:test-driven-development` alongside. Auto-detect the test framework:
 - `.csproj` with test references → `dotnet test`
 - `package.json` with jest/vitest/mocha → the configured test runner
 - `pytest.ini` / `pyproject.toml` / `conftest.py` → `pytest`
-- If no test framework is detected, note this and rely on manual verification
-  in Phase 6.
+- If no test framework is detected, note this and rely on verification in
+  Phase 2.4.
 
-### Handling Failures
+**Handling failures:**
 
 If tests fail or implementation hits a wall:
 1. Invoke `superpowers:systematic-debugging` to diagnose
 2. Apply the fix and re-run tests
+
 <max_retries>
-3. If still failing after 3 debugging attempts, stop and present the situation
-   to the user with what you've tried and what you've learned
+If still failing after 3 debugging attempts:
+- Post a comment to the work item:
+  `[<dev name>'s bot] Implementation blocked after 3 fix attempts.`
+  Include: error messages, what was tried, hypothesis for root cause.
+- Update work item state back to Active.
+- STOP. Do not continue to verification.
 </max_retries>
 
----
-
-## Phase 6 — Verify
+### Phase 2.4 — Verify
 
 Invoke `superpowers:verification-before-completion`. This must confirm:
 - All tests pass
@@ -186,70 +291,97 @@ Invoke `superpowers:verification-before-completion`. This must confirm:
 - No regressions in existing functionality
 - The acceptance criteria from the work item are met
 
-Present verification results to the user:
+If verification fails, apply the fix and retry (up to 3 attempts per
+`<max_retries>` above). No user checkpoint — proceed automatically when green.
 
-> **Verification Results:**
-> - Build: PASS/FAIL
-> - Tests: X passed, Y failed
-> - Acceptance criteria: <status for each criterion>
->
-> Ready to publish PR?
+### Phase 2.5 — Finish & Publish
 
-**Wait for user confirmation before continuing.**
+#### Step 2.5.1: Finish the Branch
 
----
+Invoke `superpowers:finishing-a-development-branch`. Auto-select "push and
+create PR" — do not present options interactively.
 
-## Phase 7 — Finish & Publish
-
-### Step 7.1: Finish the Branch
-
-Invoke `superpowers:finishing-a-development-branch`. Follow its workflow to
-prepare the branch for PR.
-
-### Step 7.2: Publish the PR
+#### Step 2.5.2: Publish the PR
 
 Load and execute the **publish-pr** skill (`skills/publish-pr/SKILL.md`).
 Since the work item already exists (from Phase 1), **skip Phase 1 of
-publish-pr** — tell it the work item ID directly. The PR
-should:
+publish-pr** — pass the work item ID directly. The PR should:
 - Reference the work item with `AB#<id>` in the description
 - Link to the work item via `createLink`
+- Include a "Key Decisions" section in the PR description summarizing the 3-5
+  most important entries from the decision log
 
-### Step 7.3: Update Work Item to Resolved
+#### Step 2.5.3: Update Work Item
 
-After the PR is created, update the work item state to Resolved (or equivalent
-— see `reference/ado-state-transitions.md`). Add a comment:
+After the PR is created:
+- Update work item state to Resolved (or equivalent — see
+  `reference/ado-state-transitions.md`).
+- Add a comment:
+  `[<dev name>'s bot] Implementation complete. PR #<pr-id> created.`
 
-`[<dev name>'s bot] Implementation complete. PR #<pr-id> created.`
+### Phase 2.6 — Stop
+
+<exit_conditions>
+Report to user: "PR #<pr-id> created for work item #<id>. Link: <PR URL>"
+STOP.
+</exit_conditions>
 
 ---
 
 ## Error Handling
 
-- **Work item not found** → stop immediately with clear message
-- **Work item already Done/Closed** → warn, ask to reopen or abort
-- **Brainstorming stalls** → user can skip and provide approach directly
-- **Test failures** → `superpowers:systematic-debugging`, escalate after 3 attempts
-- **Build failures** → diagnose, fix, retry; escalate after 3 attempts
+<escalation_policy>
+### Part 1 Errors
+- **Work item not found** → STOP with clear message to user.
+- **Work item Done/Closed/Removed** → warn and STOP. Do not ask to reopen.
+- **Work item Resolved** → warn and STOP. User can re-run after reopening.
+- **ADO comment post fails** → retry once. If still fails, display the plan
+  locally and instruct user to post it manually.
+- **Codebase reconnaissance fails** → proceed with available info, note gaps
+  in the plan.
+
+### Part 2 Errors
+- **Build failures after 3 attempts** → post blocker comment to work item,
+  revert state to Active, STOP.
+- **Test failures after 3 attempts** → post blocker comment to work item,
+  revert state to Active, STOP.
+- **Worktree creation fails** → inform user locally (environment issue).
+  Do not post to ADO.
+- **PR creation fails** → check if PR already exists for this branch. If so,
+  update it. If not, inform user with the error.
 - **ADO state update fails** → try alternate state names per
-  `reference/ado-state-transitions.md`, warn user if all fail
+  `reference/ado-state-transitions.md`. If all fail, warn user but continue.
+</escalation_policy>
+
+---
 
 ## ADO Reference Conventions
 
-- Prefix all ADO comments with `[<dev name>'s bot]`
+<bot_identity>
+Every comment posted to Azure DevOps work items MUST be prefixed with
+`[<dev name>'s bot]` so others know this is an automated response.
+Determine `<dev name>` from `git config user.name`.
+</bot_identity>
+
 - Use `AB#<id>` in PR descriptions to auto-link work items
 - Use `#<id>` when referencing work items in comments
+- See `references/ado-mention-conventions.md` for full syntax reference
+
+---
 
 ## Decision Log
 
 Throughout the workflow, maintain a running decision log in the scratchpad at
 `scratchpad/conversation_memories/<work-item-id>-<slug>/decisions.md`. This
-log serves as reviewable evidence for PR reviewers and future debugging.
+log serves two purposes:
+1. **Bridge Part 1 → Part 2** — persists design context across separate
+   conversation sessions.
+2. **PR reviewer context** — key decisions are included in the PR description.
 
 ### Step D.0: Initialize the log
 
-At the start of Phase 1 (after extracting the work item ID and title), create
-the decision log file using the **Write** tool:
+At the start of Part 1 Phase 1.1 (after extracting the work item ID and title),
+create the decision log file using the **Write** tool:
 
 **Path:** `scratchpad/conversation_memories/<id>-<slugified-title>/decisions.md`
 
@@ -265,30 +397,25 @@ Use the **Edit** tool to append entries after each key decision point:
 
 | Phase | What to log |
 |-------|-------------|
-| 1 | Understanding of the work item, ambiguities resolved with user |
-| 2 | Root cause (bugs) or chosen design approach (features), alternatives considered with reasons for rejection |
-| 3 | Plan trade-offs — why certain files/approaches were chosen over others |
-| 5 | Implementation decisions — library choices, pattern selections, edge cases handled, deviations from plan with justification |
-| 5 (failures) | Each debugging attempt — what was tried, what was learned, what was ruled out |
-| 6 | Verification evidence — what passed, what was manually checked |
+| Part 1, Phase 1.1 | Understanding of the work item, ambiguities noted |
+| Part 1, Phase 1.2 | Root cause (bugs) or chosen design approach (features), alternatives considered with reasons for rejection |
+| Part 1, Phase 1.3 | Plan trade-offs — why certain files/approaches were chosen over others |
+| Part 1, Revision | Feedback received, how it was addressed, what was kept |
+| Part 2, Phase 2.3 | Implementation decisions — library choices, pattern selections, edge cases handled, deviations from plan with justification |
+| Part 2, Phase 2.3 (failures) | Each debugging attempt — what was tried, what was learned, what was ruled out |
+| Part 2, Phase 2.4 | Verification evidence — what passed, what was manually checked |
 
 **Entry format** (append under the relevant phase heading):
 ```markdown
-## Phase <N> — <Phase Name>
+## <Part> — <Phase Name>
 - **<decision>**: <rationale>
-```
-
-For Phase 2, also include:
-```markdown
-- **Alternatives rejected:**
-  - <alternative>: <why rejected>
 ```
 
 ### Step D.2: Include in PR description
 
-When creating the PR description (Phase 7), read the decision log file and
-include a "Key Decisions" section summarizing the 3-5 most important entries
-so reviewers have context without needing to find the log.
+When creating the PR description (Part 2, Phase 2.5), read the decision log
+file and include a "Key Decisions" section summarizing the 3-5 most important
+entries so reviewers have context without needing to find the log.
 
 ---
 
@@ -298,17 +425,19 @@ When a work item is large or complex (particularly bugs with multiple root
 causes or features with many components), decompose it into child tasks in ADO.
 
 **When to decompose:**
-- The implementation plan (Phase 3) has more than 5 distinct steps
+- The implementation plan has more than 5 distinct steps
 - A bug has multiple root causes or requires changes across 3+ areas
 - The work item has multiple acceptance criteria that can be verified independently
 
+**When to trigger:** After the plan is approved in Part 2 Phase 2.1, before
+implementation begins.
+
 **How to decompose:**
-1. After the plan is approved in Phase 3, create child Task work items under
-   the parent work item for each major checkpoint:
+1. Create child Task work items under the parent for each major checkpoint:
    - Use `createWorkItem` with type `Task` for each
    - Link each to the parent using `createLink` (parent-child relationship)
    - Title format: `[#<parent-id>] <checkpoint description>`
-2. As each task is completed during Phase 5, update its state to Done/Closed
+2. As each task is completed during Phase 2.3, update its state to Done/Closed
 3. Include task IDs in commit messages: `Completes task #<id>: <description>`
 
 **Example decomposition for a complex bug:**
@@ -317,19 +446,15 @@ causes or features with many components), decompose it into child tasks in ADO.
 - `[#4567] Add regression tests for timeout scenarios`
 - `[#4567] Verify fix against all acceptance criteria`
 
-This gives reviewers and stakeholders granular visibility into progress and
-creates an audit trail of what was done for each part of the fix.
-
 ---
 
 ## Guidelines
 
-<user_checkpoints>
-**Interactive checkpoints** — always wait for user confirmation at: understanding
-(Phase 1), design approval (Phase 2), plan approval (Phase 3), pre-PR review
-(Phase 6).
-</user_checkpoints>
-- **Autonomous execution** — between checkpoints, work autonomously without
-  unnecessary pauses
-- Use Azure DevOps MCP tools for all ADO operations, git/bash for local ops
-- Invoke skills via the **Skill** tool — do not inline their logic
+- **Autonomous execution** — work without interactive prompts. Feedback comes
+  through ADO work item comments, not conversation.
+- **Part 1 always STOPs after posting** — never proceed directly to implementation.
+  The plan must be reviewable on ADO before execution.
+- **Part 2 checks feedback first** — never execute a plan that has unaddressed
+  human feedback.
+- Use Azure DevOps MCP tools for all ADO operations, git/bash for local ops.
+- Invoke skills via the **Skill** tool — do not inline their logic.
