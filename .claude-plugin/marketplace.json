@@ -52,8 +52,8 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, design simplification, code simplification, and log review. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps.",
-      "version": "1.4.1",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, and log review. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps.",
+      "version": "1.6.0",
       "category": "development",
       "tags": [
         "review",

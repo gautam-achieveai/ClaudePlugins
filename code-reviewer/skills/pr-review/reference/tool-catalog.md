@@ -31,6 +31,8 @@
 - `duplicate-code-detector` - Exact/near duplicates, repeated patterns, structural duplication; suggests extractions
 - `euii-leak-detector` - EUII/PII leaks in logs, telemetry, error messages, HTTP logging
 - `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
+- `exception-handling-review` - Exception patterns: swallowed exceptions, broad catches, incorrect re-throws, missing logging, async pitfalls, flow control abuse
+- `test-coverage-review` - Test coverage adequacy, behavioral coverage, over-mocking, test-production pollution, missing regression tests, integration point coverage
 
 ## External Review Agents (dispatched conditionally in step 8)
 
