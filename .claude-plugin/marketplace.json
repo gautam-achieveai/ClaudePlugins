@@ -12,7 +12,7 @@
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and autonomous two-phase work item implementation (plan-then-execute via ADO comments), plus a DevOps workflow assistant agent.",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "category": "development",
       "tags": [
         "azure-devops",

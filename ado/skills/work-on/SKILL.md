@@ -254,10 +254,53 @@ chars for the slug portion, strip trailing hyphens.
 
 ### Phase 2.3 — Implement
 
-**Auto-detect implementation mode** from the plan structure:
-- Count independent steps (touch different files/modules with no dependencies).
-- Count sequential steps (output of one feeds into another, or same files).
-- **3+ independent steps** → invoke `superpowers:subagent-driven-development`
+#### Step 2.3.1: Create Task List
+
+Before writing any code, decompose the approved plan into a concrete task list.
+Each task should be small, clear, and independently verifiable.
+
+<task_list>
+Write the task list to `scratchpad/conversation_memories/<id>-<slug>/tasks.md`
+using the following format:
+
+```markdown
+# Implementation Tasks — Work Item #<id>
+
+## Tasks
+- [ ] Task 1: <clear description — what file, what change, what outcome>
+- [ ] Task 2: <clear description>
+- [ ] Task 3: <clear description>
+...
+
+## Completion Criteria
+- [ ] All tasks checked off
+- [ ] Build passes
+- [ ] All tests pass
+- [ ] Self-review complete (Phase 2.4)
+```
+
+**Task granularity rules:**
+- Each task should be completable in one focused step (one file or one logical
+  change)
+- Include test tasks explicitly — "Write test for X" is its own task, not
+  implicit
+- Include verification tasks — "Run build", "Run tests" after each logical
+  group
+- Order tasks by dependency — things that must happen first come first
+
+Update this file as tasks are completed: check off each task (`- [x]`) after
+it is done. This creates an audit trail of what was implemented and in what
+order.
+</task_list>
+
+#### Step 2.3.2: Execute Tasks
+
+Work through the task list one by one, checking off each as completed.
+
+**Auto-detect implementation mode** from the task structure:
+- Count independent tasks (touch different files/modules with no dependencies).
+- Count sequential tasks (output of one feeds into another, or same files).
+- **3+ independent tasks** → invoke `superpowers:subagent-driven-development`
 - **Otherwise** → invoke `superpowers:executing-plans`
 
 **Test-Driven Development**: For either mode, also invoke
@@ -266,7 +309,7 @@ chars for the slug portion, strip trailing hyphens.
 - `package.json` with jest/vitest/mocha → the configured test runner
 - `pytest.ini` / `pyproject.toml` / `conftest.py` → `pytest`
 - If no test framework is detected, note this and rely on verification in
-  Phase 2.4.
+  Phase 2.5.
 
 **Handling failures:**
 
@@ -280,10 +323,67 @@ If still failing after 3 debugging attempts:
   `[<dev name>'s bot] Implementation blocked after 3 fix attempts.`
   Include: error messages, what was tried, hypothesis for root cause.
 - Update work item state back to Active.
-- STOP. Do not continue to verification.
+- STOP. Do not continue to self-review.
 </max_retries>
 
-### Phase 2.4 — Verify
+### Phase 2.4 — Self-Review Loop
+
+After all implementation tasks are complete, the work is NOT done. Every change
+must pass a self-review cycle before it can be published.
+
+<self_review>
+Run a self-review loop that repeats until the code is clean:
+
+**Cycle 1 (and each subsequent cycle):**
+
+1. **Review** — Invoke the `code-reviewer:pr-review` skill in **local branch
+   review mode** (no PR number — review current branch against base). This runs
+   the full review workflow: code alignment, code quality, performance, security,
+   domain-specific agents (exception handling, test coverage, etc.), and produces
+   structured findings with severity ratings.
+
+2. **Assess findings** — Collect all findings from the review. Categorize:
+   - **Must fix** (HIGH / CRITICAL): bugs, security issues, missing tests for
+     new behavior, incorrect exception handling, data loss risks
+   - **Should fix** (MEDIUM): code quality, missing edge case tests,
+     over-mocking, fragile tests, performance concerns
+   - **Skip** (LOW / informational): naming suggestions, style preferences,
+     documentation — do not fix these in the self-review loop
+
+3. **Fix** — Address all Must Fix and Should Fix findings. For each fix:
+   - Make the code change
+   - Run the build and tests to confirm the fix doesn't break anything
+   - Check off any related tasks in the task list
+
+4. **Re-review** — Run `code-reviewer:pr-review` again on the updated code.
+   Check whether the previous findings are resolved and whether the fixes
+   introduced new issues.
+
+5. **Repeat or exit:**
+   - If new Must Fix or Should Fix findings exist → repeat the cycle
+   - If only LOW/informational findings remain → exit the loop
+   - **Hard cap: 3 review cycles maximum.** After 3 cycles, proceed to
+     verification regardless. Log any remaining findings in the decision log.
+
+**What the self-review covers (via pr-review skill):**
+- Code alignment with project patterns and conventions
+- SOLID principles, code smells, duplication
+- Security (OWASP Top 10)
+- Performance (N+1 queries, memory, efficiency)
+- Exception handling patterns (swallowed exceptions, incorrect re-throws)
+- Test coverage (missing tests, tests that don't cover the actual change)
+- Temporary code, debug artifacts, hardcoded hacks
+
+**What to log:** After each cycle, append to `decisions.md`:
+```markdown
+## Part 2 — Self-Review Cycle <N>
+- Findings: <count> HIGH, <count> MEDIUM, <count> LOW
+- Fixed: <list of fixes applied>
+- Remaining: <list of items deferred or skipped with rationale>
+```
+</self_review>
+
+### Phase 2.5 — Verify
 
 Invoke `superpowers:verification-before-completion`. This must confirm:
 - All tests pass
@@ -292,16 +392,16 @@ Invoke `superpowers:verification-before-completion`. This must confirm:
 - The acceptance criteria from the work item are met
 
 If verification fails, apply the fix and retry (up to 3 attempts per
-`<max_retries>` above). No user checkpoint — proceed automatically when green.
+`<max_retries>` in Phase 2.3). No user checkpoint — proceed automatically when green.
 
-### Phase 2.5 — Finish & Publish
+### Phase 2.6 — Finish & Publish
 
-#### Step 2.5.1: Finish the Branch
+#### Step 2.6.1: Finish the Branch
 
 Invoke `superpowers:finishing-a-development-branch`. Auto-select "push and
 create PR" — do not present options interactively.
 
-#### Step 2.5.2: Publish the PR
+#### Step 2.6.2: Publish the PR
 
 Load and execute the **publish-pr** skill (`skills/publish-pr/SKILL.md`).
 Since the work item already exists (from Phase 1), **skip Phase 1 of
@@ -311,7 +411,7 @@ publish-pr** — pass the work item ID directly. The PR should:
 - Include a "Key Decisions" section in the PR description summarizing the 3-5
   most important entries from the decision log
 
-#### Step 2.5.3: Update Work Item
+#### Step 2.6.3: Update Work Item
 
 After the PR is created:
 - Update work item state to Resolved (or equivalent — see
@@ -319,7 +419,7 @@ After the PR is created:
 - Add a comment:
   `[<dev name>'s bot] Implementation complete. PR #<pr-id> created.`
 
-### Phase 2.6 — Stop
+### Phase 2.7 — Stop
 
 <exit_conditions>
 Report to user: "PR #<pr-id> created for work item #<id>. Link: <PR URL>"
@@ -403,7 +503,8 @@ Use the **Edit** tool to append entries after each key decision point:
 | Part 1, Revision | Feedback received, how it was addressed, what was kept |
 | Part 2, Phase 2.3 | Implementation decisions — library choices, pattern selections, edge cases handled, deviations from plan with justification |
 | Part 2, Phase 2.3 (failures) | Each debugging attempt — what was tried, what was learned, what was ruled out |
-| Part 2, Phase 2.4 | Verification evidence — what passed, what was manually checked |
+| Part 2, Phase 2.4 | Self-review findings per cycle, fixes applied, items deferred |
+| Part 2, Phase 2.5 | Verification evidence — what passed, what was manually checked |
 
 **Entry format** (append under the relevant phase heading):
 ```markdown
@@ -413,7 +514,7 @@ Use the **Edit** tool to append entries after each key decision point:
 
 ### Step D.2: Include in PR description
 
-When creating the PR description (Part 2, Phase 2.5), read the decision log
+When creating the PR description (Part 2, Phase 2.6), read the decision log
 file and include a "Key Decisions" section summarizing the 3-5 most important
 entries so reviewers have context without needing to find the log.
 
