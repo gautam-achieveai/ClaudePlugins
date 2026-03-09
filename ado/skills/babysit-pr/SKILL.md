@@ -1,14 +1,19 @@
 ---
 name: babysit-pr
-description: Autonomously monitor an Azure DevOps pull request — polls every 15+ minutes, fixes build breaks, test failures, and code coverage gaps, categorizes review comments as Won't Fix or Needs Addressing, and self-reviews all changes before pushing.
+description: >
+  This skill should be used when the user asks to "babysit a PR", "babysit my
+  pull request", "monitor my PR", "watch my pull request", "keep my PR green",
+  "fix PR build failures automatically", "handle PR review comments", or wants
+  autonomous Azure DevOps PR monitoring that fixes build breaks, test failures,
+  code coverage gaps, and review comments on a polling loop.
 ---
 
 # Babysit PR
 
-You are an autonomous PR babysitter. You monitor an Azure DevOps pull request in
-a continuous loop, collecting issues and delegating fixes to the
-`babysit-pr-worker` agent each iteration. You do NOT ask for user confirmation
-on individual fixes — you act, push, and re-check.
+Autonomous PR babysitter. Monitor an Azure DevOps pull request in a continuous
+loop, collecting issues and delegating fixes to the `babysit-pr-worker` agent
+each iteration. Act without asking for user confirmation on individual fixes —
+fix, push, and re-check.
 
 ## Entry
 
@@ -64,7 +69,7 @@ Gather every actionable issue into a structured list:
 - Use `getPullRequestComments` to fetch all comment threads
 - Filter to **active (unresolved)** threads only
 - For each thread, capture: comment text, file path, line number, reviewer name
-- Skip threads you have already replied to in a previous iteration
+- Skip threads already replied to in a previous iteration
 - For each new thread, check for the `[BLOCKER]` tag from the reviewer
   (absence means non-blocking). Apply stricter criteria to BLOCKERs: Won't
   Fix on a BLOCKER requires stronger justification.
@@ -73,10 +78,55 @@ Gather every actionable issue into a structured list:
   check) and `references/review-thread-state-machine.md` for state transitions.
   Flag as Won't Fix or Needs Addressing.
 
-### Step 3: Delegate to Worker Agent
+### Step 3: Plan the Iteration
 
-If there are any issues to address, spawn the `babysit-pr-worker` agent with:
-- The collected issue list (build breaks, test failures, coverage gaps, comments)
+<planning_gate>
+**Do NOT proceed to fixes until this planning step is complete.** The plan is
+the single source of truth for what the worker agent will do this iteration.
+</planning_gate>
+
+Convert all collected issues into a concrete, trackable plan using TodoWrite.
+Create one todo item per actionable unit of work. Each todo must be specific
+enough that progress can be verified after the worker finishes.
+
+#### Todo format by issue type
+
+**Build breaks:**
+```
+[ ] Fix build: <root cause summary> (e.g., "Fix build: missing using for System.Linq in UserService.cs")
+```
+
+**Test failures** — one todo per failing test:
+```
+[ ] Fix test: <FullyQualifiedTestName> — <brief error> (e.g., "Fix test: PaymentTests.ChargeCard_InvalidCvv — expected 400 got 500")
+```
+
+**Code coverage gaps** — one todo per uncovered block:
+```
+[ ] Add coverage: <method or file> (e.g., "Add coverage: OrderProcessor.HandleRefund — lines 45-62")
+```
+
+**Review comments** — one todo per active thread, stating the intended action:
+```
+[ ] Comment thread <ID>: Needs Addressing — <what to fix> (e.g., "Comment thread 42: Needs Addressing — add null check on userInput per reviewer")
+[ ] Comment thread <ID>: Won't Fix — <rationale> (e.g., "Comment thread 58: Won't Fix — style preference, no functional impact")
+```
+
+#### Planning checklist
+
+1. Create all todo items via TodoWrite before continuing.
+2. Review the full plan — verify no issues were missed, no threads skipped
+   without reason, and priorities are correct (BLOCKERs first, then build
+   breaks, then tests, then coverage, then non-blocking comments).
+3. Display the plan to the conversation as a numbered summary so progress is
+   visible.
+
+Only after the plan is finalized, proceed to Step 4.
+
+### Step 4: Delegate to Worker Agent
+
+Spawn the `babysit-pr-worker` agent with:
+- The todo plan from Step 3 (the full list of items to address)
 - PR number and branch name
 - Detected build/test commands
 - List of previously addressed comment thread IDs (to avoid re-work)
@@ -86,17 +136,21 @@ If there are any issues to address, spawn the `babysit-pr-worker` agent with:
 `references/review-reception-protocol.md` in autonomous mode (no user
 confirmation). Pass the pre-classification notes so the worker can act on them.
 
-The worker agent handles all fixes, self-review, build verification, commit, and
-push for this iteration. Wait for it to complete and record which issues it
-addressed.
+The worker agent addresses each todo item, performs self-review, build
+verification, commit, and push for this iteration. Wait for it to complete.
+
+After the worker finishes, update each todo item's status (completed or failed)
+based on the worker's report. Log any items that could not be resolved with the
+worker's explanation.
 
 If there are no issues (everything is green but awaiting reviewer action), skip
-to Step 4.
+to Step 5.
 
-### Step 4: Wait & Re-poll
+### Step 5: Wait & Re-poll
 
-Report a brief status summary of what was done (or that everything is clean and
-waiting on reviewers). Then wait **15 minutes** before looping back to Step 1.
+Report a brief status summary: which todos were completed, which failed, and
+what is still pending (or that everything is clean and waiting on reviewers).
+Then wait **15 minutes** before looping back to Step 1.
 
 ---
 
@@ -106,7 +160,7 @@ waiting on reviewers). Then wait **15 minutes** before looping back to Step 1.
 Stop the loop when:
 - PR is merged, completed, or abandoned
 - All builds green + all comment threads resolved + reviewer approved
-- All remaining issues were classified as Won't Fix with no new issues for two
+- All remaining issues classified as Won't Fix with no new issues for two
   consecutive iterations (nothing left to act on — waiting on reviewer action)
 - User interrupts with "stop" or "enough"
 - After 20 iterations without full resolution, stop and report status to user
@@ -120,7 +174,7 @@ addressed, current PR status.
 ## ADO Reference Conventions
 
 Load and follow `references/ado-mention-conventions.md` for all mention syntax.
-Key rules for this skill:
+Key rules:
 - Use `#<id>` when referencing work items in comments or replies
 - Use `!<id>` when referencing PRs in work item discussions
 - Prefix all bot replies with `[<developer name>'s bot]`

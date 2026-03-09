@@ -13,7 +13,8 @@ Present findings in severity-grouped format:
 - Branch convention: OK / non-conforming
 
 ## Strengths
-What was done well (with file:line references)
+Genuinely good patterns worth noting (with file:line references).
+Only include if there are real strengths — do not manufacture praise.
 
 ## Critical Issues
 | # | File | Line | Blocker? | Issue | Fix |
@@ -42,20 +43,24 @@ Specific, actionable improvements
 
 ## Verdict
 **APPROVE** / **APPROVE WITH COMMENTS** / **REQUEST CHANGES**
-- APPROVE — No Critical or High issues, few or no Medium issues
-- APPROVE WITH COMMENTS — No Critical issues, some High/Medium issues that should be addressed
-- REQUEST CHANGES — Any Critical issues, or multiple High issues that must be fixed
+- APPROVE — No Critical/High/Medium issues, code genuinely improves the codebase
+- APPROVE WITH COMMENTS — No Critical/High issues, some Medium/Low issues that are non-blocking but should be addressed
+- REQUEST CHANGES — Any Critical/High issues, or a pattern of Medium issues that collectively indicate quality slippage
 ```
 
 ## Remember
 
-**Goal:** Catch bugs before production, improve code quality, share knowledge, maintain standards
+**Goal:** Guard the codebase — catch bugs before production, prevent quality
+erosion, ensure every merge leaves the codebase better than or equal to before.
 
 **Focus on:**
 
-1. **Correctness** (bugs, security)
-2. **Maintainability** (future developers)
-3. **Performance** (user experience)
-4. **Testing** (confidence in changes)
+1. **Correctness** (bugs, security — the code must be right)
+2. **Maintainability** (future developers inherit what merges today)
+3. **Performance** (problems compound — an N+1 in a hot path today is a P1 next quarter)
+4. **Testing** (untested code is unverified code — it's a liability, not an asset)
+5. **Pattern integrity** (bad patterns get copied — one bad example becomes ten)
 
-Be thorough but pragmatic. **Be specific, actionable, balanced, and professional.**
+Be thorough and direct. **Be specific, actionable, and honest.** Acknowledge
+good work when it's genuinely good. Do not soften findings — a clear finding
+now prevents a production incident later.
