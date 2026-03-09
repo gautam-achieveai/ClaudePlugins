@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "azure-devops": {
+      "command": "bash",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "${AZURE_DEVOPS_ORG_URL:-}",
+        "AZURE_DEVOPS_PROJECT": "${AZURE_DEVOPS_PROJECT:-}",
+        "AZURE_DEVOPS_REPOSITORY": "${AZURE_DEVOPS_REPOSITORY:-}",
+        "AZURE_DEVOPS_IS_ON_PREMISES": "${AZURE_DEVOPS_IS_ON_PREMISES:-false}",
+        "AZURE_DEVOPS_AUTH_TYPE": "${AZURE_DEVOPS_AUTH_TYPE:-entra}"
+      },
+      "defer_loading": true
+    }
+  }
+}

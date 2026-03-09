@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "azure-devops": {
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@achieveai/azuredevops-mcp"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "https://dev.azure.com/your-organization",
+        "AZURE_DEVOPS_PROJECT": "Your Project",
+        "AZURE_DEVOPS_IS_ON_PREMISES": "false",
+        "AZURE_DEVOPS_AUTH_TYPE": "entra"
+      },
+      "tools": [
+        "*"
+      ]
+    }
+  }
+}
