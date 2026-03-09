@@ -123,13 +123,13 @@ Before entering, ask:
 >
 > - Say **yes** to start interactive tending (I'll confirm each change with you).
 > - Say **babysit** to hand off to the autonomous `babysit-pr` skill instead
->   (it will fix issues and push without asking — see `skills/babysit-pr/SKILL.md`).
+>   (it will fix issues and push without asking — see `ado:babysit-pr`).
 > - Say **no** to stop here.
 
 If the user declines, the skill ends. If the user chooses babysit, load and
-execute `skills/babysit-pr/SKILL.md` with the PR number.
+execute `ado:babysit-pr` with the PR number.
 
-For interactive tending, delegate to the `pr-tender` agent. Pass:
+For interactive tending, delegate to the `ado:pr-tender` agent. Pass:
 - PR number from Phase 2
 - "Interactive mode" (confirm changes with user)
 

@@ -7,7 +7,7 @@ mkdir -p "$DEST"
 cd "$DEST"
 
 repos=(
-  "https://github.com/anthropics/claude-code.git"
+  #"https://github.com/anthropics/claude-code.git"
   "https://github.com/gautam-msft/claude-plugin-mp.git"
   "https://github.com/anthropics/claude-plugins-official.git"
   "https://github.com/anthropics/knowledge-work-plugins.git"

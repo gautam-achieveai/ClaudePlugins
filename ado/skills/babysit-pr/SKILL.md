@@ -125,7 +125,7 @@ Only after the plan is finalized, proceed to Step 4.
 
 ### Step 4: Delegate to Worker Agent
 
-Spawn the `babysit-pr-worker` agent with:
+Spawn the `ado:babysit-pr-worker` agent with:
 - The todo plan from Step 3 (the full list of items to address)
 - PR number and branch name
 - Detected build/test commands

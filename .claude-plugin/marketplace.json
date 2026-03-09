@@ -11,8 +11,8 @@
     {
       "name": "ado",
       "source": "./ado",
-      "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and autonomous two-phase work item implementation (plan-then-execute via ADO comments), plus a DevOps workflow assistant agent.",
-      "version": "1.4.1",
+      "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and end-to-end work item implementation skills. Includes embedded development methodology skills: brainstorming, subagent-driven-development, test-driven-development, and verification-before-completion.",
+      "version": "1.5.0",
       "category": "development",
       "tags": [
         "azure-devops",
@@ -116,8 +116,8 @@
     {
       "name": "debugging",
       "source": "./debugging",
-      "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, and logging compliance review.",
-      "version": "1.1.0",
+      "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, logging compliance review, and systematic root-cause debugging.",
+      "version": "1.2.0",
       "category": "development",
       "tags": [
         "debugging",

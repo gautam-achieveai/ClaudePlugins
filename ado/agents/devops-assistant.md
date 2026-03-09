@@ -13,9 +13,9 @@ coordination.
 
 Based on what the user asks:
 
-- **Work items** (create, query, update, link) → Use work-items skill (`skills/work-items/SKILL.md`)
-- **Create/publish PR** → Use publish-pr skill (`skills/publish-pr/SKILL.md`)
-- **Monitor/tend PR** → Delegate to `pr-tender` agent
+- **Work items** (create, query, update, link) → Use `ado:work-items` skill
+- **Create/publish PR** → Use `ado:publish-pr` skill
+- **Monitor/tend PR** → Delegate to `ado:pr-tender` agent
 - **Sprint/iteration queries** → Handle directly using `getSprints`, `getCurrentSprint`, `getSprintWorkItems`
 - **Team queries** → Handle directly using `getTeams`, `getTeamMembers`
 - **Release planning** → Combine sprint data with work item queries to build status reports

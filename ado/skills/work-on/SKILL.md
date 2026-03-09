@@ -108,7 +108,7 @@ Branch based on work item type:
 
 #### For Bugs
 
-Invoke the `superpowers:systematic-debugging` skill. Follow its full workflow
+Invoke the `debugging:systematic-debugging` skill. Follow its full workflow
 to identify the root cause. If the bug involves runtime behavior that needs log
 analysis, also invoke `debugging:debug-with-logs`.
 
@@ -116,7 +116,7 @@ Capture the root cause analysis for the plan.
 
 #### For Features / Tasks / User Stories
 
-Do NOT invoke `superpowers:brainstorming` — its workflow requires interactive
+Do NOT invoke `ado:brainstorming` — its workflow requires interactive
 user approval which conflicts with autonomous execution.
 
 Instead, perform inline autonomous design:
@@ -149,8 +149,8 @@ Instead, perform inline autonomous design:
 
 ### Phase 1.3 — Create Implementation Plan
 
-Invoke the `superpowers:writing-plans` skill. Use the output from Phase 1.2
-(root cause analysis or design approach) as input.
+Read `reference/writing-plans-guide.md` and follow its methodology. Use the
+output from Phase 1.2 (root cause analysis or design approach) as input.
 
 The plan should cover:
 - Files to create/modify
@@ -241,8 +241,8 @@ feedback, or revision cap reached).
 
 ### Phase 2.2 — Set Up Worktree
 
-Invoke the `superpowers:using-git-worktrees` skill to create an isolated
-worktree for this work.
+Read `reference/git-worktrees-guide.md` and follow its process to create an
+isolated worktree for this work.
 
 **Branch naming convention**: `work-item/<id>-<slugified-title>`
 
@@ -300,11 +300,11 @@ Work through the task list one by one, checking off each as completed.
 **Auto-detect implementation mode** from the task structure:
 - Count independent tasks (touch different files/modules with no dependencies).
 - Count sequential tasks (output of one feeds into another, or same files).
-- **3+ independent tasks** → invoke `superpowers:subagent-driven-development`
-- **Otherwise** → invoke `superpowers:executing-plans`
+- **3+ independent tasks** → invoke `ado:subagent-driven-development`
+- **Otherwise** → read `reference/executing-plans-guide.md` and follow it
 
 **Test-Driven Development**: For either mode, also invoke
-`superpowers:test-driven-development` alongside. Auto-detect the test framework:
+`ado:test-driven-development` alongside. Auto-detect the test framework:
 - `.csproj` with test references → `dotnet test`
 - `package.json` with jest/vitest/mocha → the configured test runner
 - `pytest.ini` / `pyproject.toml` / `conftest.py` → `pytest`
@@ -314,7 +314,7 @@ Work through the task list one by one, checking off each as completed.
 **Handling failures:**
 
 If tests fail or implementation hits a wall:
-1. Invoke `superpowers:systematic-debugging` to diagnose
+1. Invoke `debugging:systematic-debugging` to diagnose
 2. Apply the fix and re-run tests
 
 <max_retries>
@@ -385,7 +385,7 @@ Run a self-review loop that repeats until the code is clean:
 
 ### Phase 2.5 — Verify
 
-Invoke `superpowers:verification-before-completion`. This must confirm:
+Invoke `ado:verification-before-completion`. This must confirm:
 - All tests pass
 - Build succeeds
 - No regressions in existing functionality
@@ -398,12 +398,12 @@ If verification fails, apply the fix and retry (up to 3 attempts per
 
 #### Step 2.6.1: Finish the Branch
 
-Invoke `superpowers:finishing-a-development-branch`. Auto-select "push and
-create PR" — do not present options interactively.
+Read `reference/branch-completion-guide.md` and follow it. Auto-select "push
+and create PR" — do not present options interactively.
 
 #### Step 2.6.2: Publish the PR
 
-Load and execute the **publish-pr** skill (`skills/publish-pr/SKILL.md`).
+Load and execute the `ado:publish-pr` skill.
 Since the work item already exists (from Phase 1), **skip Phase 1 of
 publish-pr** — pass the work item ID directly. The PR should:
 - Reference the work item with `AB#<id>` in the description
