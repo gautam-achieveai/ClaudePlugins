@@ -186,4 +186,4 @@ git worktree remove <worktree-path>
 ## Integration
 
 **Pairs with:**
-- **`reference/git-worktrees-guide.md`** - Cleans up worktree created by that skill
+- **`development/reference/git-worktrees-guide.md`** - Cleans up worktree created by that skill

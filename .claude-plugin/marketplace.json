@@ -11,8 +11,8 @@
     {
       "name": "ado",
       "source": "./ado",
-      "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and end-to-end work item implementation skills. Includes embedded development methodology skills: brainstorming, subagent-driven-development, test-driven-development, and verification-before-completion.",
-      "version": "1.5.0",
+      "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, and autonomous work item implementation. Orchestrates development methodology skills via the development plugin.",
+      "version": "2.0.0",
       "category": "development",
       "tags": [
         "azure-devops",
@@ -28,6 +28,30 @@
         "publish-pr",
         "babysit-pr",
         "work-on"
+      ]
+    },
+    {
+      "name": "development",
+      "source": "./development",
+      "description": "Development methodology toolkit: design-first brainstorming, autonomous design, test-driven development, parallel subagent-driven execution with review gates, and evidence-based completion verification. Includes planning, execution, and git workflow reference guides.",
+      "version": "1.0.0",
+      "category": "development",
+      "tags": [
+        "methodology",
+        "tdd",
+        "brainstorming",
+        "subagents",
+        "verification"
+      ],
+      "keywords": [
+        "brainstorming",
+        "autonomous-design",
+        "test-driven-development",
+        "tdd",
+        "subagent-driven-development",
+        "verification-before-completion",
+        "planning",
+        "git-worktrees"
       ]
     },
     {
@@ -117,7 +141,7 @@
       "name": "debugging",
       "source": "./debugging",
       "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, logging compliance review, and systematic root-cause debugging.",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "category": "development",
       "tags": [
         "debugging",

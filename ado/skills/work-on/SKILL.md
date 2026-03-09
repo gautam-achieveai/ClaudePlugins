@@ -116,40 +116,15 @@ Capture the root cause analysis for the plan.
 
 #### For Features / Tasks / User Stories
 
-Do NOT invoke `ado:brainstorming` — its workflow requires interactive
-user approval which conflicts with autonomous execution.
+Invoke the `development:autonomous-design` skill. It performs non-interactive
+design: requirements extraction, codebase reconnaissance, approach formulation,
+auto-selection, and decision logging — without requiring user approval.
 
-Instead, perform inline autonomous design:
-
-<autonomous_design>
-1. **Requirements extraction** — List all functional requirements from the work
-   item description and acceptance criteria. Note any ambiguities.
-2. **Codebase reconnaissance** — Use Grep/Glob/Read to understand the relevant
-   code area. Identify:
-   - Existing patterns to follow (how similar features are implemented)
-   - Files that will need modification
-   - Related tests and test patterns
-   - Potential impact areas (callers, consumers, downstream effects)
-3. **Approach formulation** — Propose 2-3 approaches. For each:
-   - Describe the approach in 1-2 sentences
-   - List pros and cons
-   - Estimate complexity (files touched, risk level)
-4. **Selection** — Choose the approach that best balances simplicity,
-   consistency with existing patterns, and completeness. Document the
-   reasoning.
-5. **Log the decision** — Append to `decisions.md`:
-   ```markdown
-   ## Part 1 — Design
-   - **Chosen approach**: <approach description>
-   - **Rationale**: <why this over alternatives>
-   - **Alternatives rejected:**
-     - <alternative>: <why rejected>
-   ```
-</autonomous_design>
+Capture the design output for the plan.
 
 ### Phase 1.3 — Create Implementation Plan
 
-Read `reference/writing-plans-guide.md` and follow its methodology. Use the
+Read `development/reference/writing-plans-guide.md` and follow its methodology. Use the
 output from Phase 1.2 (root cause analysis or design approach) as input.
 
 The plan should cover:
@@ -241,7 +216,7 @@ feedback, or revision cap reached).
 
 ### Phase 2.2 — Set Up Worktree
 
-Read `reference/git-worktrees-guide.md` and follow its process to create an
+Read `development/reference/git-worktrees-guide.md` and follow its process to create an
 isolated worktree for this work.
 
 **Branch naming convention**: `work-item/<id>-<slugified-title>`
@@ -300,11 +275,11 @@ Work through the task list one by one, checking off each as completed.
 **Auto-detect implementation mode** from the task structure:
 - Count independent tasks (touch different files/modules with no dependencies).
 - Count sequential tasks (output of one feeds into another, or same files).
-- **3+ independent tasks** → invoke `ado:subagent-driven-development`
-- **Otherwise** → read `reference/executing-plans-guide.md` and follow it
+- **3+ independent tasks** → invoke `development:subagent-driven-development`
+- **Otherwise** → read `development/reference/executing-plans-guide.md` and follow it
 
 **Test-Driven Development**: For either mode, also invoke
-`ado:test-driven-development` alongside. Auto-detect the test framework:
+`development:test-driven-development` alongside. Auto-detect the test framework:
 - `.csproj` with test references → `dotnet test`
 - `package.json` with jest/vitest/mocha → the configured test runner
 - `pytest.ini` / `pyproject.toml` / `conftest.py` → `pytest`
@@ -385,7 +360,7 @@ Run a self-review loop that repeats until the code is clean:
 
 ### Phase 2.5 — Verify
 
-Invoke `ado:verification-before-completion`. This must confirm:
+Invoke `development:verification-before-completion`. This must confirm:
 - All tests pass
 - Build succeeds
 - No regressions in existing functionality
@@ -398,7 +373,7 @@ If verification fails, apply the fix and retry (up to 3 attempts per
 
 #### Step 2.6.1: Finish the Branch
 
-Read `reference/branch-completion-guide.md` and follow it. Auto-select "push
+Read `development/reference/branch-completion-guide.md` and follow it. Auto-select "push
 and create PR" — do not present options interactively.
 
 #### Step 2.6.2: Publish the PR

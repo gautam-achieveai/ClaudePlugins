@@ -82,7 +82,7 @@ digraph brainstorming {
 - Commit the design document to git
 
 **Implementation:**
-- Create a detailed implementation plan following the writing-plans methodology (see `skills/work-on/reference/writing-plans-guide.md`)
+- Create a detailed implementation plan following the writing-plans methodology (see `development/reference/writing-plans-guide.md`)
 - Do NOT invoke any other skill. Plan creation is the next step.
 
 ## Key Principles

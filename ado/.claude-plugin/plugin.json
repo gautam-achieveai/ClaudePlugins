@@ -1,5 +1,5 @@
 {
   "name": "ado",
-  "description": "Azure DevOps integration with work item management, PR publishing, iterative PR tending, and end-to-end work item implementation skills. Includes embedded development methodology skills: brainstorming, subagent-driven-development, test-driven-development, and verification-before-completion.",
-  "version": "1.5.0"
+  "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, and autonomous work item implementation. Orchestrates development methodology skills via the development plugin.",
+  "version": "2.0.0"
 }

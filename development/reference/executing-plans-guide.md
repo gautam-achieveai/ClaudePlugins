@@ -39,7 +39,7 @@ Based on feedback:
 
 After all tasks complete and verified:
 - Announce: "I'm using the branch-completion-guide to complete this work."
-- **REQUIRED SUB-SKILL:** Use `reference/branch-completion-guide.md`
+- **REQUIRED SUB-SKILL:** Use `development/reference/branch-completion-guide.md`
 - Follow that skill to verify tests, present options, execute choice
 
 ## When to Stop and Ask for Help
@@ -72,6 +72,6 @@ After all tasks complete and verified:
 ## Integration
 
 **Required workflow skills:**
-- **`reference/git-worktrees-guide.md`** - REQUIRED: Set up isolated workspace before starting
-- **`reference/writing-plans-guide.md`** - Creates the plan this skill executes
-- **`reference/branch-completion-guide.md`** - Complete development after all tasks
+- **`development/reference/git-worktrees-guide.md`** - REQUIRED: Set up isolated workspace before starting
+- **`development/reference/writing-plans-guide.md`** - Creates the plan this skill executes
+- **`development/reference/branch-completion-guide.md`** - Complete development after all tasks

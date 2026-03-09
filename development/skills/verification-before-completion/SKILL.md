@@ -133,7 +133,7 @@ From failure memories:
 ## Related Skills
 
 When working on tasks, combine verification with:
-- `ado:test-driven-development` - Verify red-green cycle for tests
+- `development:test-driven-development` - Verify red-green cycle for tests
 - `debugging:systematic-debugging` - Verify fixes before claiming bugs are resolved
 
 ## The Bottom Line

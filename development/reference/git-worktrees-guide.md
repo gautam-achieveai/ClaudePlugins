@@ -205,4 +205,4 @@ Ready to implement auth feature
 - Any skill needing isolated workspace
 
 **Pairs with:**
-- **`reference/branch-completion-guide.md`** - REQUIRED for cleanup after work complete
+- **`development/reference/branch-completion-guide.md`** - REQUIRED for cleanup after work complete
