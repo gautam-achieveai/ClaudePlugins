@@ -51,13 +51,40 @@ Resolve settings in this order:
 
 Only ask the user for input if both environment variables and git remote detection fail to produce the required org/project/repository values.
 
+6. **Detect platform**: Run `uname -s` or check the `$OS` variable to determine if the host is Windows (`MINGW*`, `MSYS*`, `CYGWIN*`, or `$OS` = `Windows_NT`) or Unix/macOS. This determines the `command`/`args` shape for MCP server entries.
+
 ### 2. Write or update Claude Code project MCP config
 
 Target file: `.mcp.json`
 
 - If `.mcp.json` does not exist, create it with a top-level `mcpServers` object.
 - If it exists, merge only the `mcpServers.azure-devops` entry and preserve all other servers.
-- Write the `azure-devops` server entry using the launch script from this plugin:
+- Write the `azure-devops` server entry. The `command` and `args` depend on the platform:
+
+**Windows** — Claude Code uses a bash shell, so MCP server processes must be launched via `cmd` to reach `npx` correctly:
+
+```json
+{
+  "mcpServers": {
+    "azure-devops": {
+      "command": "cmd",
+      "args": [
+        "/c", "npx", "-y", "@achieveai/azuredevops-mcp"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "resolved-org-url",
+        "AZURE_DEVOPS_PROJECT": "resolved-project",
+        "AZURE_DEVOPS_REPOSITORY": "resolved-repository",
+        "AZURE_DEVOPS_IS_ON_PREMISES": "false",
+        "AZURE_DEVOPS_AUTH_TYPE": "entra"
+      },
+      "defer_loading": true
+    }
+  }
+}
+```
+
+**macOS / Linux** — use the launch script, which also provides runtime auto-detection as a fallback:
 
 ```json
 {
@@ -68,8 +95,8 @@ Target file: `.mcp.json`
         "${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh"
       ],
       "env": {
-        "AZURE_DEVOPS_ORG_URL": "resolved-org-url-or-empty-string",
-        "AZURE_DEVOPS_PROJECT": "resolved-project-or-empty-string",
+        "AZURE_DEVOPS_ORG_URL": "resolved-org-url",
+        "AZURE_DEVOPS_PROJECT": "resolved-project",
         "AZURE_DEVOPS_REPOSITORY": "resolved-repository",
         "AZURE_DEVOPS_IS_ON_PREMISES": "false",
         "AZURE_DEVOPS_AUTH_TYPE": "entra"
@@ -83,7 +110,8 @@ Target file: `.mcp.json`
 Notes:
 
 - Always resolve `AZURE_DEVOPS_REPOSITORY` from the git remote URL. If detection fails, ask the user for the repository name rather than leaving it empty.
-- Use `${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh` so the config works regardless of where the plugin is installed.
+- On macOS/Linux, use `${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh` so the config works regardless of where the plugin is installed.
+- On Windows, call `npx` via `cmd /c` because Claude Code's bash environment cannot reliably spawn `npx` directly as an MCP server process.
 
 ### 3. Ensure Claude Code local settings enable the project MCP server
 
@@ -104,7 +132,35 @@ Target file: `~/.copilot/mcp-config.json`
 - Ensure the `~/.copilot` directory exists.
 - If the file does not exist, create it with a top-level `mcpServers` object.
 - If it exists, merge only the `mcpServers.azure-devops` entry and preserve all other servers.
-- Write the `azure-devops` server entry with this shape:
+- Write the `azure-devops` server entry. Use the same platform-aware `command`/`args` as step 2:
+
+**Windows:**
+
+```json
+{
+  "mcpServers": {
+    "azure-devops": {
+      "type": "local",
+      "command": "cmd",
+      "args": [
+        "/c", "npx", "-y", "@achieveai/azuredevops-mcp"
+      ],
+      "env": {
+        "AZURE_DEVOPS_ORG_URL": "resolved-org-url",
+        "AZURE_DEVOPS_PROJECT": "resolved-project",
+        "AZURE_DEVOPS_REPOSITORY": "resolved-repository",
+        "AZURE_DEVOPS_IS_ON_PREMISES": "false",
+        "AZURE_DEVOPS_AUTH_TYPE": "entra"
+      },
+      "tools": [
+        "*"
+      ]
+    }
+  }
+}
+```
+
+**macOS / Linux:**
 
 ```json
 {
