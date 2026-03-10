@@ -38,17 +38,18 @@ Resolve settings in this order:
    - `AZURE_DEVOPS_REPOSITORY`
    - `AZURE_DEVOPS_IS_ON_PREMISES`
    - `AZURE_DEVOPS_AUTH_TYPE`
-2. If org or project is still missing, inspect `git remote get-url origin`
+2. If org, project, **or repository** is still missing, inspect `git remote get-url origin`
 3. Parse the same remote formats supported by `scripts/launch-ado-mcp.sh`:
    - `https://{org}.visualstudio.com/{project}/_git/{repo}`
    - `https://dev.azure.com/{org}/{project}/_git/{repo}`
    - `git@ssh.dev.azure.com:v3/{org}/{project}/{repo}`
    - `{org}@vs-ssh.visualstudio.com:v3/{org}/{project}/{repo}`
-4. Defaults:
+4. **Always extract all three values** (org, project, and repository) from the git remote URL. The repository name is the segment after `/_git/` (HTTPS) or the last path segment (SSH).
+5. Defaults:
    - `AZURE_DEVOPS_IS_ON_PREMISES=false`
    - `AZURE_DEVOPS_AUTH_TYPE=entra`
 
-Only ask the user for input if both environment variables and git remote detection fail to produce the required org/project values.
+Only ask the user for input if both environment variables and git remote detection fail to produce the required org/project/repository values.
 
 ### 2. Write or update Claude Code project MCP config
 
@@ -69,7 +70,7 @@ Target file: `.mcp.json`
       "env": {
         "AZURE_DEVOPS_ORG_URL": "resolved-org-url-or-empty-string",
         "AZURE_DEVOPS_PROJECT": "resolved-project-or-empty-string",
-        "AZURE_DEVOPS_REPOSITORY": "resolved-repository-or-empty-string",
+        "AZURE_DEVOPS_REPOSITORY": "resolved-repository",
         "AZURE_DEVOPS_IS_ON_PREMISES": "false",
         "AZURE_DEVOPS_AUTH_TYPE": "entra"
       },
@@ -81,7 +82,7 @@ Target file: `.mcp.json`
 
 Notes:
 
-- If repository detection fails, keep `AZURE_DEVOPS_REPOSITORY` as an empty string rather than inventing a value.
+- Always resolve `AZURE_DEVOPS_REPOSITORY` from the git remote URL. If detection fails, ask the user for the repository name rather than leaving it empty.
 - Use `${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh` so the config works regardless of where the plugin is installed.
 
 ### 3. Ensure Claude Code local settings enable the project MCP server
@@ -118,6 +119,7 @@ Target file: `~/.copilot/mcp-config.json`
       "env": {
         "AZURE_DEVOPS_ORG_URL": "resolved-org-url",
         "AZURE_DEVOPS_PROJECT": "resolved-project",
+        "AZURE_DEVOPS_REPOSITORY": "resolved-repository",
         "AZURE_DEVOPS_IS_ON_PREMISES": "false",
         "AZURE_DEVOPS_AUTH_TYPE": "entra"
       },
@@ -131,7 +133,7 @@ Target file: `~/.copilot/mcp-config.json`
 
 Guidelines:
 
-- Include `AZURE_DEVOPS_REPOSITORY` only if you resolved a concrete value.
+- Always include `AZURE_DEVOPS_REPOSITORY` — it should have been resolved in step 1.
 - Keep `tools` as `["*"]` unless the user explicitly asked to narrow the tool list.
 
 ### 5. Validate every JSON file after writing

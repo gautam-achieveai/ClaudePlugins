@@ -55,14 +55,14 @@ detect_from_git_remote() {
 }
 
 # Auto-detect if any required variable is missing
-if [ -z "$AZURE_DEVOPS_ORG_URL" ] || [ -z "$AZURE_DEVOPS_PROJECT" ]; then
+if [ -z "$AZURE_DEVOPS_ORG_URL" ] || [ -z "$AZURE_DEVOPS_PROJECT" ] || [ -z "$AZURE_DEVOPS_REPOSITORY" ]; then
     if detect_from_git_remote; then
         export AZURE_DEVOPS_ORG_URL="${AZURE_DEVOPS_ORG_URL:-$_ORG_URL}"
         export AZURE_DEVOPS_PROJECT="${AZURE_DEVOPS_PROJECT:-$_PROJECT}"
         export AZURE_DEVOPS_REPOSITORY="${AZURE_DEVOPS_REPOSITORY:-$_REPOSITORY}"
     else
         echo "WARNING: Could not detect Azure DevOps configuration from git remote." >&2
-        echo "Set AZURE_DEVOPS_ORG_URL and AZURE_DEVOPS_PROJECT environment variables." >&2
+        echo "Set AZURE_DEVOPS_ORG_URL, AZURE_DEVOPS_PROJECT, and AZURE_DEVOPS_REPOSITORY environment variables." >&2
     fi
 fi
 
