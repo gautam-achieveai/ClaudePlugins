@@ -114,21 +114,40 @@ Launch a **Plan subagent** (`subagent_type: Plan`, `model: opus`) to analyze
 the work item and produce a complete implementation plan. The Plan agent uses
 extended thinking to reason deeply about the problem.
 
-**The Plan agent MUST call `EnterPlanMode` at the start.** This forces it into
-a read-only research phase — it can only explore the codebase and write to a
-plan file, preventing premature code changes. Once the plan is finalized, the
-agent calls `ExitPlanMode` and returns the plan.
+The agent operates in two stages:
+
+#### Stage A — Research (before plan mode)
+
+The agent has full access to all research tools. It should use them liberally
+before entering plan mode:
+
+- **Codebase**: `Read`, `Grep`, `Glob`, `LS` — search for existing patterns,
+  related implementations, test conventions, and the files that will need changes
+- **Web**: `WebSearch`, `WebFetch` — research APIs, libraries, best practices,
+  or error messages relevant to the work item
+- **Azure DevOps**: ADO MCP tools — fetch related work items (`getWorkItemById`),
+  check commit history (`getCommitHistory`), browse the repo (`browseRepository`,
+  `getFileContent`), review linked PRs, and understand prior decisions
+- **Git**: `Bash` (git log, git blame, git show) — trace how the relevant code
+  evolved and who last touched it
+
+For **Bugs**: identify the root cause first. If the bug involves runtime
+behavior, also consider log-based debugging (`debugging:debug-with-logs`).
+
+For **Features / Tasks / User Stories**: explore the codebase for existing
+patterns, formulate 2-3 approaches, and evaluate trade-offs.
+
+#### Stage B — Plan (in plan mode)
+
+Once research is complete, the agent calls **`EnterPlanMode`**. This locks it
+into read-only mode where it can only write to the plan file — no code changes.
+The agent synthesizes all research into a structured implementation plan, then
+calls **`ExitPlanMode`** to return it.
 
 **Provide the Plan agent with:**
 - The full work item details from Phase 1.1 (type, title, description, repro
   steps, acceptance criteria, area path, links)
 - The decision log path for recording decisions
-- For **Bugs**: instruct the agent to identify the root cause first, then plan
-  the fix. If the bug involves runtime behavior, also instruct it to consider
-  log-based debugging (`debugging:debug-with-logs`).
-- For **Features / Tasks / User Stories**: instruct the agent to explore the
-  codebase for existing patterns, formulate 2-3 approaches, and select the best
-  one based on simplicity and pattern consistency.
 
 **The Plan agent should produce:**
 - Files to create/modify
@@ -139,7 +158,7 @@ agent calls `ExitPlanMode` and returns the plan.
 - Any assumptions made due to ambiguity
 
 **If the Plan agent identifies blockers or ambiguities** that it cannot resolve
-from the codebase alone, proceed to Phase 1.3 (Questions) instead of Phase 1.4.
+from research alone, proceed to Phase 1.3 (Questions) instead of Phase 1.4.
 
 ### Phase 1.3 — Questions (if needed)
 
