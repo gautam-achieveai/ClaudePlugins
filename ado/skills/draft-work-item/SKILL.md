@@ -294,7 +294,8 @@ item ID. If option 2, loop back to Phase 0.
 ## Error Handling
 
 <error_handling>
-- **ADO connection failure** — inform the user and suggest running `/setup-ado-mcp`
+- **ADO connection failure** — follow the auto-setup rule in `ado/CLAUDE.md`
+  (invoke `/setup-ado-mcp` automatically, then retry)
 - **getTeams returns empty** — skip area path resolution, use project default
 - **getCurrentSprint returns nothing** — skip sprint assignment, use project default
 - **createWorkItem fails** — show the error; if it's a field validation issue,

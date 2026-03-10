@@ -21,9 +21,10 @@ Verify before starting:
 <prerequisites>
 1. The current directory is a git repo with an `origin` remote.
 2. There are local commits on a feature branch (not the base branch).
-3. Azure DevOps MCP tools are available.
+3. Azure DevOps MCP tools are available — if not, follow the auto-setup rule
+   in `ado/CLAUDE.md` (invoke `/setup-ado-mcp` automatically, then retry).
 
-If any prerequisite fails, explain what is missing and how to fix it.
+If prerequisites 1 or 2 fail, explain what is missing and how to fix it.
 </prerequisites>
 
 ---
