@@ -114,6 +114,11 @@ Launch a **Plan subagent** (`subagent_type: Plan`, `model: opus`) to analyze
 the work item and produce a complete implementation plan. The Plan agent uses
 extended thinking to reason deeply about the problem.
 
+**The Plan agent MUST call `EnterPlanMode` at the start.** This forces it into
+a read-only research phase — it can only explore the codebase and write to a
+plan file, preventing premature code changes. Once the plan is finalized, the
+agent calls `ExitPlanMode` and returns the plan.
+
 **Provide the Plan agent with:**
 - The full work item details from Phase 1.1 (type, title, description, repro
   steps, acceptance criteria, area path, links)
