@@ -132,35 +132,7 @@ Target file: `~/.copilot/mcp-config.json`
 - Ensure the `~/.copilot` directory exists.
 - If the file does not exist, create it with a top-level `mcpServers` object.
 - If it exists, merge only the `mcpServers.azure-devops` entry and preserve all other servers.
-- Write the `azure-devops` server entry. Use the same platform-aware `command`/`args` as step 2:
-
-**Windows:**
-
-```json
-{
-  "mcpServers": {
-    "azure-devops": {
-      "type": "local",
-      "command": "cmd",
-      "args": [
-        "/c", "npx", "-y", "@achieveai/azuredevops-mcp"
-      ],
-      "env": {
-        "AZURE_DEVOPS_ORG_URL": "resolved-org-url",
-        "AZURE_DEVOPS_PROJECT": "resolved-project",
-        "AZURE_DEVOPS_REPOSITORY": "resolved-repository",
-        "AZURE_DEVOPS_IS_ON_PREMISES": "false",
-        "AZURE_DEVOPS_AUTH_TYPE": "entra"
-      },
-      "tools": [
-        "*"
-      ]
-    }
-  }
-}
-```
-
-**macOS / Linux:**
+- Write the `azure-devops` server entry with this shape:
 
 ```json
 {
