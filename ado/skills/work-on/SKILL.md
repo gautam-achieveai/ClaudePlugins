@@ -49,7 +49,13 @@ Fetch the work item and determine which part to run.
 1. Fetch work item with `getWorkItemById` — extract details and comments.
 2. Determine `<dev name>` from `git config user.name`.
 3. Scan all comments for the `<!-- BOT-PLAN v` marker.
-4. **If NO plan comment found** → route to **PART 1** (Plan & Post).
+4. **If NO plan comment found**:
+   a. Check if the latest bot comment contains questions (from Phase 1.3).
+      - If questions found AND human answers exist after them → route to
+        **PART 1** (resume planning with answers as context).
+      - If questions found AND NO human answers → re-post a reminder comment
+        and **STOP**.
+   b. Otherwise → route to **PART 1** (Plan & Post, fresh start).
 5. **If plan comment found**:
    a. Find the latest plan comment (highest version number).
    b. Check if version is `v3` or higher → route to **PART 2** (execute
@@ -102,44 +108,64 @@ If the work item is not found, inform the user and STOP.
 Date: <today>
 ```
 
-### Phase 1.2 — Design Approach (Autonomous)
+### Phase 1.2 — Design & Plan (via Plan Subagent)
 
-Branch based on work item type:
+Launch a **Plan subagent** (`subagent_type: Plan`, `model: opus`) to analyze
+the work item and produce a complete implementation plan. The Plan agent uses
+extended thinking to reason deeply about the problem.
 
-#### For Bugs
+**Provide the Plan agent with:**
+- The full work item details from Phase 1.1 (type, title, description, repro
+  steps, acceptance criteria, area path, links)
+- The decision log path for recording decisions
+- For **Bugs**: instruct the agent to identify the root cause first, then plan
+  the fix. If the bug involves runtime behavior, also instruct it to consider
+  log-based debugging (`debugging:debug-with-logs`).
+- For **Features / Tasks / User Stories**: instruct the agent to explore the
+  codebase for existing patterns, formulate 2-3 approaches, and select the best
+  one based on simplicity and pattern consistency.
 
-Invoke the `debugging:systematic-debugging` skill. Follow its full workflow
-to identify the root cause. If the bug involves runtime behavior that needs log
-analysis, also invoke `debugging:debug-with-logs`.
-
-Capture the root cause analysis for the plan.
-
-#### For Features / Tasks / User Stories
-
-Invoke the `development:autonomous-design` skill. It performs non-interactive
-design: requirements extraction, codebase reconnaissance, approach formulation,
-auto-selection, and decision logging — without requiring user approval.
-
-Capture the design output for the plan.
-
-### Phase 1.3 — Create Implementation Plan
-
-Read `development/reference/writing-plans-guide.md` and follow its methodology. Use the
-output from Phase 1.2 (root cause analysis or design approach) as input.
-
-The plan should cover:
+**The Plan agent should produce:**
 - Files to create/modify
 - Implementation steps (ordered)
 - Test strategy
 - Verification steps
-- Rollback considerations (if any)
+- Alternatives considered with rationale for rejection
+- Any assumptions made due to ambiguity
+
+**If the Plan agent identifies blockers or ambiguities** that it cannot resolve
+from the codebase alone, proceed to Phase 1.3 (Questions) instead of Phase 1.4.
+
+### Phase 1.3 — Questions (if needed)
+
+If the Plan agent (Phase 1.2) identified blockers, ambiguities, or questions
+that cannot be resolved from the codebase alone:
+
+1. Format the questions clearly with context for each:
+   ```
+   [<dev name>'s bot] I have questions before I can finalize the plan for #<id>:
+
+   1. **<question>** — <why this matters for the plan>
+   2. **<question>** — <context>
+   ```
+2. Post as a NEW comment on the work item using `addWorkItemComment`.
+3. Save current progress to the decision log.
+4. Report to user: "Questions posted to work item #<id>. Answer them on ADO,
+   then re-run `/work-on <id>`."
+5. **STOP.** Do not proceed to planning or implementation.
+
+On the next `/work-on <id>` invocation, the auto-detect logic (Phase 1) will
+find the questions comment with no BOT-PLAN marker. It will:
+- Read the answers (human comments posted after the questions)
+- Resume Phase 1.2 with the answers as additional context
+- If no answers yet, re-post a reminder and STOP again
 
 ### Phase 1.4 — Post Plan to ADO
 
 Format the plan using the template in
 [reference/plan-comment-format.md](reference/plan-comment-format.md).
 
-Post as a work item comment using `addWorkItemComment`:
+Post as a NEW work item comment using `addWorkItemComment`:
 - Include `<!-- BOT-PLAN v1 status:PENDING_REVIEW -->` opening marker
 - Include `<!-- /BOT-PLAN -->` closing marker
 - Include human-readable CTA at the bottom
@@ -532,5 +558,13 @@ implementation begins.
   The plan must be reviewable on ADO before execution.
 - **Part 2 checks feedback first** — never execute a plan that has unaddressed
   human feedback.
+- **Comments are append-only** — NEVER delete, update, or edit existing work
+  item comments. Always post NEW comments. This preserves the full conversation
+  history and audit trail. Revised plans get a new comment with an incremented
+  version marker, not an edit to the old one.
+- **Ask and STOP** — when the bot encounters a question it cannot answer from
+  the codebase, post the question as a comment on the work item and STOP. Do
+  not guess or proceed with assumptions that could lead to wasted work. The
+  next `/work-on` invocation will pick up the answers.
 - Use Azure DevOps MCP tools for all ADO operations, git/bash for local ops.
 - Invoke skills via the **Skill** tool — do not inline their logic.

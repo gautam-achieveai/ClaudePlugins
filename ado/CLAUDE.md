@@ -15,3 +15,11 @@ or authentication failure):
 
 This applies to every skill in this plugin: `work-on`, `publish-pr`,
 `babysit-pr`, `work-items`, `draft-work-item`, and any future skills.
+
+## Comments Are Append-Only
+
+**NEVER delete, update, or edit existing Azure DevOps work item or PR comments.**
+Always post NEW comments. This preserves the full conversation history and audit
+trail. Revised plans, follow-up answers, and status updates are all new comments
+— never edits to previous ones. This rule applies to all skills and agents in
+this plugin.
