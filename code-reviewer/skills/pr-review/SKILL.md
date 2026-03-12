@@ -424,7 +424,108 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - **Merge the pull request** (optional): If the user requests it after approval, use `mcp__azure-devops__mergePullRequest` with the appropriate merge strategy (squash for feature branches, noFastForward for release branches). Always confirm merge strategy with the user first.
    </posting_rules>
 
-For re-review workflow, load [reference/re-review-workflow.md](reference/re-review-workflow.md).
+   After posting feedback, proceed to Step 11 to update tracking state.
+
+   For re-review workflow, load [reference/re-review-workflow.md](reference/re-review-workflow.md).
+
+11. **Update Review Tracking** (after posting feedback):
+
+   **Skip this step for Local Branch Reviews** (no PR number) — tracking only
+   applies to ADO pull requests.
+
+   Persist this review in the local tracking state so `code-reviewer:review-pending-prs` (and future runs of `code-reviewer:pr-review`) know this PR was reviewed.
+
+   ### 11a. Detect Storage Path
+
+   ```bash
+   # At the target repo root (not the plugin repo), check in priority order:
+   if [ -d ".claude" ]; then
+       STORAGE_PATH=".claude/.pull-requests"
+   elif [ -d ".copilot" ]; then
+       STORAGE_PATH=".copilot/.pull-requests"
+   else
+       STORAGE_PATH="scratchpad/pull-requests"
+   fi
+   ```
+
+   Create `$STORAGE_PATH` and `$STORAGE_PATH/reviews/` if they don't exist.
+
+   ### 11b. Load or Initialize `tracking.json`
+
+   Read `$STORAGE_PATH/tracking.json`. If it doesn't exist, initialize:
+
+   ```json
+   {
+     "version": 1,
+     "repository": "<AZURE_DEVOPS_REPOSITORY>",
+     "project": "<AZURE_DEVOPS_PROJECT>",
+     "orgUrl": "<AZURE_DEVOPS_ORG_URL>",
+     "lastRunAt": null,
+     "pullRequests": {}
+   }
+   ```
+
+   If it exists but `repository`/`project` don't match the current repo, rename to `tracking.json.bak` and reinitialize.
+
+   ### 11c. Update PR Entry in `tracking.json`
+
+   Update (or create) the entry for this PR number:
+
+   ```json
+   {
+     "prNumber": <number>,
+     "title": "<PR title>",
+     "sourceBranch": "<source branch without refs/heads/>",
+     "targetBranch": "<target branch without refs/heads/>",
+     "author": "<author display name>",
+     "status": "active",
+     "lastKnownPushAt": "<lastMergeSourceCommit.committer.date from ADO>",
+     "lastReviewedAt": "<current UTC time>",
+     "lastReviewVerdict": "<APPROVE|APPROVE_WITH_COMMENTS|REQUEST_CHANGES>",
+     "lastReviewStatus": "<completed|error>",
+     "reviewCount": <previous count + 1, or 1 if new>,
+     "createdAt": "<PR creationDate from ADO>"
+   }
+   ```
+
+   Do NOT update `lastRunAt` — that field is owned by the `code-reviewer:review-pending-prs`
+   batch orchestrator. Write the file.
+
+   ### 11d. Append to `reviews/pr-<number>.json`
+
+   If the file doesn't exist, create it:
+
+   ```json
+   {
+     "prNumber": <number>,
+     "title": "<PR title>",
+     "author": "<author>",
+     "reviews": []
+   }
+   ```
+
+   Append a new entry to the `reviews` array:
+
+   ```json
+   {
+     "reviewedAt": "<current UTC time>",
+     "reviewType": "<initial or re-review based on whether previous comments existed>",
+     "verdict": "<verdict from step 10>",
+     "status": "completed",
+     "sourceCommitId": "<HEAD commit of source branch>",
+     "findings": { "critical": <count>, "high": <count>, "medium": <count>, "low": <count> },
+     "commentsSummary": ["<top 5 findings, one-line each>"],
+     "blockerCount": <number of BLOCKER-tagged findings>
+   }
+   ```
+
+   Write the file.
+
+   ### 11e. Error Handling
+
+   If any tracking write fails: warn the user but do NOT fail the review. Tracking is best-effort — the review itself (posted to ADO) is the primary output.
+
+   For full tracking schema details, see the `code-reviewer:review-pending-prs` skill's [tracking-schema.md](code-reviewer/skills/review-pending-prs/reference/tracking-schema.md).
 
 ## Error Handling
 

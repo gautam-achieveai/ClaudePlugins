@@ -11,7 +11,7 @@ description: >
 # Babysit PR
 
 Autonomous PR babysitter. Monitor an Azure DevOps pull request in a continuous
-loop, collecting issues and delegating fixes to the `babysit-pr-worker` agent
+loop, collecting issues and delegating fixes to the `ado:babysit-pr-worker` agent
 each iteration. Act without asking for user confirmation on individual fixes —
 fix, push, and re-check.
 
@@ -29,6 +29,14 @@ fix, push, and re-check.
    - `pom.xml` → `mvn compile` / `mvn test`
    - `Makefile` → `make` / `make test`
    - None of the above → skip local build, rely on CI results only
+4. **Detect area path** (for deferred work item creation) — Resolve once at
+   entry so the worker can create work items without interactive prompts:
+   1. Check if the PR has linked work items (from `getPullRequest` response).
+      If yes, call `getWorkItemById` on one and extract its `System.AreaPath`.
+   2. If no linked work items, call `getTeams` and attempt to match team names
+      against the PR's changed file paths or branch name.
+   3. If no match, leave area path as `null` (project default will be used).
+   Store the resolved area path to pass to the worker agent in Step 4.
 
 ---
 
@@ -50,22 +58,41 @@ green, all comment threads are resolved, and at least one reviewer has approved.
 
 ### Step 2: Collect All Issues
 
-Gather every actionable issue into a structured list:
+Gather every actionable issue into a structured checklist. The checklist drives
+the entire iteration — nothing gets fixed unless it's on the list.
 
-#### 2a. Build Breaks
+#### 2a. Merge Conflicts
+- Check `getPullRequest` merge status for conflicts
+- If conflicts exist, identify which files are conflicting
+- This is the **highest priority** — nothing else can proceed until conflicts
+  are resolved
+
+#### 2b. PR Policy / Evaluation Checklist Failures
+- Check `getPullRequest` response for policy evaluation fields: `mergeStatus`,
+  `isDraft`, `autoCompleteSetBy`, reviewer vote counts, and any evaluation
+  criteria in the response. Also check for linked work items (work item linking
+  policy).
+- For each failing or incomplete policy, capture: policy name, current status,
+  what's needed
+- **Actionable** policies (create todos): work item linking (can link one),
+  comment resolution (address comments), draft status (can publish)
+- **Informational** policies (note but skip): needs more reviewers, needs
+  specific reviewer approval — these require human action
+
+#### 2c. Build Breaks
 - Check build/CI status from the PR
 - If failed, retrieve build logs and error messages
 - Summarize the core issue (compilation error, missing reference, config problem)
 
-#### 2b. Test Failures
+#### 2d. Test Failures
 - Check test run results from CI
 - For each failing test, capture: test name, error message, stack trace
 
-#### 2c. Code Coverage Gaps
+#### 2e. Code Coverage Gaps
 - Check if a coverage policy is failing on the PR
 - If so, identify which code blocks lack coverage from the coverage report
 
-#### 2d. Code Review Comments
+#### 2f. Code Review Comments
 - Use `getPullRequestComments` to fetch all comment threads
 - Filter to **active (unresolved)** threads only
 - For each thread, capture: comment text, file path, line number, reviewer name
@@ -76,7 +103,37 @@ Gather every actionable issue into a structured list:
 - Pre-classify before delegating using the evaluation steps in
   `references/review-reception-protocol.md` (verify, YAGNI check, context
   check) and `references/review-thread-state-machine.md` for state transitions.
-  Flag as Won't Fix or Needs Addressing.
+
+<comment_disposition>
+**For each comment, classify into one of three dispositions:**
+
+1. **Resolve** — The comment identifies a real issue. Fix the code, prioritizing
+   code quality and codebase health over ease. The fix should be what's best for
+   the codebase long-term, not the quickest way to make the comment go away.
+
+2. **Won't Fix (reply)** — The suggestion is out of scope, already addressed,
+   or would introduce a regression. Reply with a technical rationale explaining
+   why. Use when the issue is minor or the rationale is self-evident.
+
+3. **Won't Fix (defer with work item)** — The comment raises a valid concern
+   that **cannot be ignored** but is genuinely out of scope for this PR. The
+   worker creates a tracked work item via `createWorkItem` (using the area path
+   detected at entry), then replies with:
+   `Won't Fix: Deferred to #<work-item-id> for follow-up`.
+   Use this path when:
+   - The issue is a `[BLOCKER]` that you cannot address within the PR's scope
+   - The comment identifies a systemic problem (e.g., "this pattern is broken
+     everywhere") that needs its own PR
+   - The fix would require changes outside the files touched by this PR
+   - The reviewer flagged a pre-existing issue exposed by (but not caused by)
+     this PR
+   - The concern is architecturally significant and deserves dedicated attention
+
+**Disposition priority**: Default to **Resolve**. Only use Won't Fix when there
+is a clear, defensible technical reason. Between the two Won't Fix options,
+use "defer with work item" when the issue is important enough that dropping it
+would be negligent.
+</comment_disposition>
 
 ### Step 3: Plan the Iteration
 
@@ -90,6 +147,16 @@ Create one todo item per actionable unit of work. Each todo must be specific
 enough that progress can be verified after the worker finishes.
 
 #### Todo format by issue type
+
+**Merge conflicts** (highest priority):
+```
+[ ] Resolve merge conflict: <file path> (e.g., "Resolve merge conflict: src/Services/UserService.cs")
+```
+
+**PR policy failures** (only actionable ones):
+```
+[ ] Fix policy: <policy name> — <what's needed> (e.g., "Fix policy: work item linking — associate a work item to this PR")
+```
 
 **Build breaks:**
 ```
@@ -106,18 +173,27 @@ enough that progress can be verified after the worker finishes.
 [ ] Add coverage: <method or file> (e.g., "Add coverage: OrderProcessor.HandleRefund — lines 45-62")
 ```
 
-**Review comments** — one todo per active thread, stating the intended action:
+**Review comments** — one todo per active thread, stating the intended disposition:
 ```
-[ ] Comment thread <ID>: Needs Addressing — <what to fix> (e.g., "Comment thread 42: Needs Addressing — add null check on userInput per reviewer")
+[ ] Comment thread <ID>: Resolve — <what to fix> (e.g., "Comment thread 42: Resolve — add null check on userInput per reviewer")
 [ ] Comment thread <ID>: Won't Fix — <rationale> (e.g., "Comment thread 58: Won't Fix — style preference, no functional impact")
+[ ] Comment thread <ID>: Won't Fix (defer) — <issue summary> → create work item (e.g., "Comment thread 63: Won't Fix (defer) — systemic error handling gap across all controllers → create work item")
 ```
+
+<todo_specificity>
+**Every todo must be specific and actionable.** Each item should describe exactly
+what needs to happen — not "fix the issue" but "add null check for `user`
+parameter in `UserService.Process()` at line 45". The worker agent should be able
+to act on each todo without needing to re-analyze the problem.
+</todo_specificity>
 
 #### Planning checklist
 
 1. Create all todo items via TodoWrite before continuing.
 2. Review the full plan — verify no issues were missed, no threads skipped
-   without reason, and priorities are correct (BLOCKERs first, then build
-   breaks, then tests, then coverage, then non-blocking comments).
+   without reason, and priorities are correct:
+   **Merge conflicts → BLOCKERs → build breaks → test failures → coverage →
+   non-blocking comments**
 3. Display the plan to the conversation as a numbered summary so progress is
    visible.
 
@@ -127,10 +203,13 @@ Only after the plan is finalized, proceed to Step 4.
 
 Spawn the `ado:babysit-pr-worker` agent with:
 - The todo plan from Step 3 (the full list of items to address)
-- PR number and branch name
+- PR number, source branch name, and target branch name
 - Detected build/test commands
 - List of previously addressed comment thread IDs (to avoid re-work)
-- Pre-classification notes from Step 2d (YAGNI flags, context gaps, verification results)
+- Pre-classification notes from Step 2f (YAGNI flags, context gaps, verification results)
+- **ADO context**: project name, resolved area path (from Entry step 4, or
+  `null` if not resolved). The worker uses this to create work items for
+  deferred Won't Fix items without interactive prompts.
 
 **Worker review-reception rules** — instruct the worker to follow
 `references/review-reception-protocol.md` in autonomous mode (no user
@@ -195,5 +274,6 @@ Key rules:
 ## Tools
 
 - **Azure DevOps MCP**: `getPullRequest`, `getPullRequestComments`,
-  `getPullRequestFileChanges`, `listPullRequests`
-- **Agent**: `babysit-pr-worker` (spawned each iteration)
+  `getPullRequestFileChanges`, `listPullRequests`, `getWorkItemById`, `getTeams`
+- **Agent**: `ado:babysit-pr-worker` (spawned each iteration — uses `createWorkItem`
+  directly for deferred Won't Fix items)

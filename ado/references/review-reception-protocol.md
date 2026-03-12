@@ -120,13 +120,17 @@ Use when:
 
 Action: Reply with technical explanation and `[<developer name>'s bot]` prefix.
 
-### Needs Addressing
+### Needs Addressing (Resolve)
 Use when:
 - It's a real bug, security issue, or missing error handling
 - It's a meaningful improvement that benefits the codebase
 - It fixes a correctness issue
 
 Action: Fix the code, reply explaining the change with bot prefix.
+
+> **Terminology note**: The `babysit-pr-worker` agent uses "Resolve" for this
+> disposition. "Needs Addressing" and "Resolve" are interchangeable — both mean
+> "fix the code to address the reviewer's comment."
 
 **Default to addressing** — only classify as Won't Fix when there's a clear
 technical reason.
