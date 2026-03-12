@@ -56,7 +56,7 @@ demonstrates the risk is fully mitigated. "Will fix later" is not satisfactory.
   code path is unreachable, the reviewer misread the code, a test already
   covers the scenario)
 - "Out of scope", "will fix later", or a deferred work item are NOT acceptable
-- If the rationale does not prove the finding wrong → reopen
+- If the rationale does not prove the finding wrong → reopen (thread returns to ACTIVE state)
 
 **HIGH — Requires strong technical justification:**
 - The developer must provide specific technical reasoning showing why the issue

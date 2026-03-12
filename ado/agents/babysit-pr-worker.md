@@ -182,7 +182,7 @@ Reply format:
 - **Won't Fix (defer)** is the preferred alternative to reply-only for BLOCKERs
   that genuinely can't be fixed here — it ensures the issue is tracked.
 - For `[BLOCKER]` comments tagged as **security issues**, **always Resolve** —
-  do not Won't Fix without user approval.
+  Won't Fix is never acceptable for security findings in autonomous mode.
 </blocker_policy>
 
 **Important**: Do NOT resolve comment threads — let the reviewer resolve them.
