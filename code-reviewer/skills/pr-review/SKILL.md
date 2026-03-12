@@ -512,6 +512,50 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 - When the same issue appears in multiple files, flag every instance — not just
   the first one. Partial fixes create inconsistency.
 
+**6. Verify Symbols Before Flagging — Avoid False Positives**
+
+<symbol_verification>
+When reviewing code that references types, methods, constants, or interfaces,
+do NOT flag them as "non-existent" or "will not compile" unless you have
+**high-confidence evidence**. Grep/ripgrep on large repos is unreliable
+(timeouts, incomplete results).
+
+**Rule 1: Always search the PR's source branch, not just the target branch.**
+Symbols may be introduced by the PR itself or by a parent branch. Always use:
+```bash
+git grep -l "SymbolName" origin/<source-branch> -- "*.cs"
+```
+Never rely solely on searching `origin/dev` or the local working directory.
+
+**Rule 2: Scope searches to avoid timeouts on large repos.**
+If the repo is large (>10k files), do NOT search from the repo root.
+Search within the relevant subtree:
+```bash
+# Good — scoped to the code directory
+git grep "SymbolName" origin/<branch> -- "clr/src/**/*.cs"
+
+# Bad — searches everything, will timeout
+rg "SymbolName" --glob "*.cs"
+```
+
+**Rule 3: Check the PR diff itself before flagging missing symbols.**
+If a file references `FooConstants.Bar`, check whether `FooConstants.cs`
+is in the PR's own changed files first. The definition may be part of the
+same PR.
+
+**Rule 4: If the build passes, do not claim compilation errors.**
+If Merge Status: Succeeded or the CI build is green, the code compiles.
+Do not override this evidence with grep results. If grep can't find a
+symbol but the build passes, assume your search was incomplete — not that
+the code is broken.
+
+**Rule 5: Escalate to deep review when symbol verification is critical.**
+If you need to verify cross-project references, shared utilities, or
+generated code, switch to a deep review with worktree checkout rather
+than attempting grep from a lightweight review. The worktree gives you the
+full source tree at the PR's commit, making searches reliable.
+</symbol_verification>
+
 ## Quick Reference Checklist
 
 Start with [Code Alignment Guide](reference/code-project-alignment-guide.md) — verifying project patterns, duplication, and framework usage is the highest-priority check.
