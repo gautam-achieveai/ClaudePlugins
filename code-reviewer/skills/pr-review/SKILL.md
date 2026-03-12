@@ -1,7 +1,7 @@
 ---
 name: pr-review
 description: Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works with PR numbers, branch names, or Azure DevOps URLs. NOT for developer performance reviews over time.
-allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__azure-devops__*
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, mcp__azure-devops__*
 ---
 # Pull Request Code Reviewer
 
@@ -433,99 +433,40 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    **Skip this step for Local Branch Reviews** (no PR number) — tracking only
    applies to ADO pull requests.
 
-   Persist this review in the local tracking state so `code-reviewer:review-pending-prs` (and future runs of `code-reviewer:pr-review`) know this PR was reviewed.
+   Persist this review in the local tracking state so `code-reviewer:review-pending-prs`
+   (and future runs of `code-reviewer:pr-review`) know this PR was reviewed.
 
-   ### 11a. Detect Storage Path
+   Invoke the shared tracking skill:
 
-   ```bash
-   # At the target repo root (not the plugin repo), check in priority order:
-   if [ -d ".claude" ]; then
-       STORAGE_PATH=".claude/.pull-requests"
-   elif [ -d ".copilot" ]; then
-       STORAGE_PATH=".copilot/.pull-requests"
-   else
-       STORAGE_PATH="scratchpad/pull-requests"
-   fi
+   ```
+   skill: "code-reviewer:update-pr-tracking"
    ```
 
-   Create `$STORAGE_PATH` and `$STORAGE_PATH/reviews/` if they don't exist.
+   Pass the following context from this review:
 
-   ### 11b. Load or Initialize `tracking.json`
+   | Field | Source |
+   |-------|--------|
+   | `prNumber` | PR number from Step 1 |
+   | `title` | PR title from ADO |
+   | `sourceBranch` | Source branch (without `refs/heads/`) |
+   | `targetBranch` | Target branch (without `refs/heads/`) |
+   | `author` | `createdBy.displayName` from ADO |
+   | `createdAt` | PR `creationDate` from ADO |
+   | `lastKnownPushAt` | `lastMergeSourceCommit.committer.date` from ADO |
+   | `verdict` | Verdict from Step 10 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
+   | `status` | `completed` (or `error` if review failed) |
+   | `reviewType` | `initial` or `re-review` (based on whether previous comments existed) |
+   | `sourceCommitId` | HEAD commit of source branch |
+   | `findings` | `{ critical, high, medium, low }` counts from review |
+   | `commentsSummary` | Top 5 findings (one-line each) |
+   | `blockerCount` | Number of `[BLOCKER]`-tagged findings |
 
-   Read `$STORAGE_PATH/tracking.json`. If it doesn't exist, initialize:
+   The `code-reviewer:update-pr-tracking` skill handles all storage path detection,
+   `tracking.json` management, and per-PR review history. See its
+   [SKILL.md](../update-pr-tracking/SKILL.md) for full details.
 
-   ```json
-   {
-     "version": 1,
-     "repository": "<AZURE_DEVOPS_REPOSITORY>",
-     "project": "<AZURE_DEVOPS_PROJECT>",
-     "orgUrl": "<AZURE_DEVOPS_ORG_URL>",
-     "lastRunAt": null,
-     "pullRequests": {}
-   }
-   ```
-
-   If it exists but `repository`/`project` don't match the current repo, rename to `tracking.json.bak` and reinitialize.
-
-   ### 11c. Update PR Entry in `tracking.json`
-
-   Update (or create) the entry for this PR number:
-
-   ```json
-   {
-     "prNumber": <number>,
-     "title": "<PR title>",
-     "sourceBranch": "<source branch without refs/heads/>",
-     "targetBranch": "<target branch without refs/heads/>",
-     "author": "<author display name>",
-     "status": "active",
-     "lastKnownPushAt": "<lastMergeSourceCommit.committer.date from ADO>",
-     "lastReviewedAt": "<current UTC time>",
-     "lastReviewVerdict": "<APPROVE|APPROVE_WITH_COMMENTS|REQUEST_CHANGES>",
-     "lastReviewStatus": "<completed|error>",
-     "reviewCount": <previous count + 1, or 1 if new>,
-     "createdAt": "<PR creationDate from ADO>"
-   }
-   ```
-
-   Do NOT update `lastRunAt` — that field is owned by the `code-reviewer:review-pending-prs`
-   batch orchestrator. Write the file.
-
-   ### 11d. Append to `reviews/pr-<number>.json`
-
-   If the file doesn't exist, create it:
-
-   ```json
-   {
-     "prNumber": <number>,
-     "title": "<PR title>",
-     "author": "<author>",
-     "reviews": []
-   }
-   ```
-
-   Append a new entry to the `reviews` array:
-
-   ```json
-   {
-     "reviewedAt": "<current UTC time>",
-     "reviewType": "<initial or re-review based on whether previous comments existed>",
-     "verdict": "<verdict from step 10>",
-     "status": "completed",
-     "sourceCommitId": "<HEAD commit of source branch>",
-     "findings": { "critical": <count>, "high": <count>, "medium": <count>, "low": <count> },
-     "commentsSummary": ["<top 5 findings, one-line each>"],
-     "blockerCount": <number of BLOCKER-tagged findings>
-   }
-   ```
-
-   Write the file.
-
-   ### 11e. Error Handling
-
-   If any tracking write fails: warn the user but do NOT fail the review. Tracking is best-effort — the review itself (posted to ADO) is the primary output.
-
-   For full tracking schema details, see the `code-reviewer:review-pending-prs` skill's [tracking-schema.md](code-reviewer/skills/review-pending-prs/reference/tracking-schema.md).
+   **Error handling**: If tracking fails, the skill warns but does NOT fail the
+   review. Tracking is best-effort — the review posted to ADO is the primary output.
 
 ## Error Handling
 

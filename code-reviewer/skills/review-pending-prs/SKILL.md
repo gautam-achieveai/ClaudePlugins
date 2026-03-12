@@ -202,51 +202,33 @@ After each review completes, immediately proceed to Step 8 before starting the n
 
 ## Step 8: Verify Tracking & Update Todo (after each review)
 
-The `code-reviewer:pr-review` skill (Step 11) already writes tracking data (`tracking.json` and `reviews/pr-<number>.json`) after each review. This step verifies that happened and handles edge cases.
+The `code-reviewer:pr-review` skill (Step 11) invokes `code-reviewer:update-pr-tracking`
+to write tracking data after each review. This step verifies that happened, handles
+fallback, updates `lastRunAt`, and marks the todo item.
 
 ### 8a. Verify Tracking Was Updated
 
-Read `$STORAGE_PATH/tracking.json` and confirm the PR entry was updated by `code-reviewer:pr-review`:
+Read `$STORAGE_PATH/tracking.json` and confirm the PR entry was updated by
+`code-reviewer:pr-review`:
 - `lastReviewedAt` should be recent (within the last few minutes)
 - `lastReviewVerdict` should be set
 
-If `code-reviewer:pr-review` **did not** update tracking (e.g., it errored before reaching Step 11), perform the update here as a fallback:
+If `code-reviewer:pr-review` **did not** update tracking (e.g., it errored before
+reaching Step 11), invoke the shared tracking skill as a fallback:
 
-```json
-{
-  "prNumber": <number>,
-  "title": "<title>",
-  "sourceBranch": "<source>",
-  "targetBranch": "<target>",
-  "author": "<author>",
-  "status": "active",
-  "lastKnownPushAt": "<latestPush from ADO>",
-  "lastReviewedAt": "<now>",
-  "lastReviewVerdict": null,
-  "lastReviewStatus": "error",
-  "reviewCount": <previous + 1>,
-  "createdAt": "<creationDate from ADO>"
-}
+```
+skill: "code-reviewer:update-pr-tracking"
 ```
 
-Similarly, append an error entry to `reviews/pr-<number>.json` if `code-reviewer:pr-review` didn't:
-
-```json
-{
-  "reviewedAt": "<now>",
-  "reviewType": "<initial|re-review>",
-  "verdict": null,
-  "status": "error",
-  "sourceCommitId": null,
-  "findings": { "critical": 0, "high": 0, "medium": 0, "low": 0 },
-  "commentsSummary": ["Review failed: <error reason>"],
-  "blockerCount": 0
-}
-```
+Pass the PR data from Step 2 with `status: "error"`, `verdict: null`, and
+`errorReason` describing why the review failed. The tracking skill handles all
+storage path detection, file initialization, and write logic.
 
 ### 8b. Update `lastRunAt`
 
 Set `tracking.json` → `lastRunAt` to current UTC time after each review.
+This field is owned by this batch orchestrator — `code-reviewer:update-pr-tracking`
+does NOT update it.
 
 ### 8c. Update Todo
 

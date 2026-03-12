@@ -44,18 +44,42 @@ the [Review Thread State Machine](../references/review-thread-state-machine.md):
 5. If the fix is insufficient → reply with `replyToComment` explaining what is
    still wrong or missing. The thread stays Active.
 
-<blocker_policy>
-**WON'T FIX threads** — evaluate the developer's rationale:
-1. Read the developer's `Won't Fix:` reply
-2. For non-blocking items (no `[BLOCKER]` tag): accept if the rationale is reasonable → close
-3. For `[BLOCKER]` items: accept only if the rationale is technically sound and
-   the risk is mitigated → close. Otherwise, reply explaining why the rationale
-   is insufficient and reopen.
-4. For security `[BLOCKER]` items: default is to reopen unless the justification
-   is compelling. Security issues require the highest bar for Won't Fix.
-</blocker_policy>
+<severity_enforcement>
+**WON'T FIX threads** — evaluate by severity:
 
-**ACTIVE threads** — escalate:
+The guardian does not let CRITICAL, HIGH, or MEDIUM issues slide. The developer's
+reply must be **satisfactory** — meaning it proves the finding was wrong, or
+demonstrates the risk is fully mitigated. "Will fix later" is not satisfactory.
+
+**CRITICAL — Won't Fix is almost never acceptable:**
+- Accept ONLY if the developer proves the finding is factually incorrect (the
+  code path is unreachable, the reviewer misread the code, a test already
+  covers the scenario)
+- "Out of scope", "will fix later", or a deferred work item are NOT acceptable
+- If the rationale does not prove the finding wrong → reopen
+
+**HIGH — Requires strong technical justification:**
+- The developer must provide specific technical reasoning showing why the issue
+  does not apply or is already mitigated in this PR
+- A deferred work item is acceptable ONLY if the risk is mitigated in this PR
+  (guard clause, feature flag, documented known limitation)
+- "Will fix in follow-up" without mitigation → reopen
+
+**MEDIUM — Requires reasonable technical rationale:**
+- The developer must explain why the suggestion doesn't apply or would be
+  net-negative for the codebase
+- A deferred work item with brief justification is acceptable
+- Bare "won't fix" or "style preference" without reasoning → reopen
+
+**LOW — Accept readily:**
+- Any reasonable one-line explanation suffices → close
+
+**Security issues (any severity) — strictest bar:**
+- Always reopen unless the developer proves the finding is factually incorrect
+- "Out of scope" is never acceptable for security findings
+</severity_enforcement>
+
+**ACTIVE threads** (no developer reply at all) — escalate:
 1. Reply with `replyToComment`: "This issue is still outstanding — please address
    or provide a rationale for Won't Fix."
 2. The thread stays Active.
@@ -67,6 +91,23 @@ the [Review Thread State Machine](../references/review-thread-state-machine.md):
 - Look for regressions: Did fixing issue A break something else?
 
 ## Step 5: Post re-review summary
+
+<verdict_gate>
+**Before determining the verdict, apply the unresolved gate:**
+
+If ANY CRITICAL, HIGH, or MEDIUM thread is still ACTIVE (unresolved or Won't Fix
+rejected) → the verdict MUST be **REQUEST CHANGES**. No exceptions. The guardian
+does not approve PRs with unresolved substantive issues regardless of how many
+iterations have passed or how long the PR has been open.
+
+Only when every CRITICAL, HIGH, and MEDIUM thread is satisfactorily resolved or
+has an accepted Won't Fix rationale (meeting the severity bar above) can the
+verdict be APPROVE or APPROVE WITH COMMENTS.
+
+The verdict is the MORE restrictive of:
+- The unresolved gate result (from CRITICAL/HIGH/MEDIUM thread status)
+- The delta review result (new issues found in Step 4)
+</verdict_gate>
 
 Use a structured format:
 
@@ -83,15 +124,26 @@ Use a structured format:
 
 ### Verdict
 APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
+
+### Unresolved Issues Blocking Approval (if any)
+- [List each CRITICAL/HIGH/MEDIUM thread still active]
 ```
 
 ## Re-review rules
 
 <re_review_rules>
-- **Max 3 re-review iterations** — after 3 re-review cycles, post a final summary and stop. If issues remain, note them as unresolved in the summary.
+- **Max 3 re-review iterations** — after 3 re-review cycles, post a final summary
+  and stop. If CRITICAL/HIGH/MEDIUM issues remain, the final verdict is still
+  REQUEST CHANGES — iteration count does not reduce severity or lower the bar.
 - **Don't re-litigate resolved issues** — if the author fixed it, acknowledge and move on
 - **Track DEFERRED items** — note them as "acknowledged, not blocking" but keep them visible
 - **Focus on the delta** — only flag new issues in the updated code
-- **When author replies "won't fix" with valid reasoning** — respect it and note as WONTFIX
+- **Won't Fix must meet the severity bar** — evaluate the developer's rationale
+  against the finding's severity tier (see Satisfaction Check). CRITICAL and HIGH
+  Won't Fix replies are challenged by default. Only accept when the developer
+  proves the finding was wrong or the risk is fully mitigated in this PR.
+- **Don't lower the bar over iterations** — the third re-review applies the same
+  standards as the first. Time pressure and iteration count are not reasons to
+  accept unresolved CRITICAL/HIGH/MEDIUM issues.
 - **Call out NEW issues** — clearly distinguish new findings from previous ones
 </re_review_rules>
