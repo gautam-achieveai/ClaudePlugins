@@ -220,9 +220,11 @@ reaching Step 11), invoke the shared tracking skill as a fallback:
 skill: "code-reviewer:update-pr-tracking"
 ```
 
-Pass the PR data from Step 2 with `status: "error"`, `verdict: null`, and
-`errorReason` describing why the review failed. The tracking skill handles all
-storage path detection, file initialization, and write logic.
+Pass the PR data from Step 2 with `status: "error"`, `verdict: null`,
+`reviewType: "initial"` (safe default when pr-review failed before determining
+re-review status), and `errorReason` describing why the review failed. The
+tracking skill handles all storage path detection, file initialization, and
+write logic.
 
 ### 8b. Update `lastRunAt`
 

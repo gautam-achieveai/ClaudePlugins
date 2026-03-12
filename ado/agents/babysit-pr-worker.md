@@ -138,21 +138,16 @@ interactive and will stall in autonomous mode):
 <work_item_creation>
 **Step 1: Resolve Area Path**
 
-The area path determines which team owns the work item. Resolve it in priority
-order:
+The area path determines which team owns the work item. The `ado:babysit-pr`
+skill resolves the area path at entry (from linked work items or team matching)
+and passes it as part of the ADO context. Use it directly:
 
-1. **From the PR's linked work items** — If the PR has linked work items (from
-   `getPullRequest` response), use `getWorkItemById` to read one and copy its
-   `System.AreaPath`. This is the most reliable method — it matches the team
-   that owns this PR's feature.
-2. **From the ADO context passed by the skill** — The `ado:babysit-pr` skill passes
-   an area path hint detected from the repo or PR context. Use it if available.
-3. **From team list** — Call `getTeams` to list all teams. Match the changed
-   file paths against team names (e.g., files under `src/Client/` → a
-   "Client" team, files under `src/Server/Orleans/` → an "Orleans" team).
-   Use `<Project>\<TeamName>` as the area path.
-4. **Fallback** — Omit `areaPath` entirely. The work item will use the project
-   default area path. This is acceptable — it can be triaged later.
+1. **From the ADO context passed by the skill** — Use the area path hint if
+   provided. This is already resolved from linked work items or team matching
+   by the orchestrator skill.
+2. **Fallback** — If the skill passed `null` (couldn't resolve), omit `areaPath`
+   entirely. The work item will use the project default area path. This is
+   acceptable — it can be triaged later.
 
 **Step 2: Create the Work Item**
 
@@ -262,7 +257,7 @@ After pushing (or if nothing needed fixing), report back to the skill:
 
 - **Azure DevOps MCP**: `getPullRequest`, `getPullRequestComments`,
   `getPullRequestFileChanges`, `getAllPullRequestChanges`, `replyToComment`,
-  `listPullRequests`, `getWorkItemById`, `getTeams`, `createWorkItem`
+  `listPullRequests`, `createWorkItem`
 - **Bash**: git operations (`diff`, `add`, `commit`, `push`, `merge`, `fetch`),
   build/test commands
 - **File tools**: Read, Edit, Write, Glob, Grep for code changes
