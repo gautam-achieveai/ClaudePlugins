@@ -159,8 +159,8 @@ until the PR is ready to merge or the user says "stop".
 
 ## ADO Reference Conventions
 
-Load and follow `references/ado-mention-conventions.md` for all mention syntax.
-Key rules for this skill:
+Invoke the `ado:ado-mentions` skill before composing any PR description, comment,
+or reply. It loads the full mention syntax reference. Key rules for this skill:
 - Use `AB#<id>` in PR descriptions to auto-link work items
 - Use `#<id>` when referencing work items in comments
 - Use state transition keywords (`Fixes #123`) when appropriate

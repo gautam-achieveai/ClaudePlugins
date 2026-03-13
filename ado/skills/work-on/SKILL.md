@@ -482,6 +482,9 @@ STOP.
 
 ## ADO Reference Conventions
 
+Invoke the `ado:ado-mentions` skill before composing any comment, PR description,
+or work item update. It loads the full mention syntax reference.
+
 <bot_identity>
 Every comment posted to Azure DevOps work items MUST be prefixed with
 `[<dev name>'s bot]` so others know this is an automated response.
@@ -490,7 +493,6 @@ Determine `<dev name>` from `git config user.name`.
 
 - Use `AB#<id>` in PR descriptions to auto-link work items
 - Use `#<id>` when referencing work items in comments
-- See `references/ado-mention-conventions.md` for full syntax reference
 
 ---
 

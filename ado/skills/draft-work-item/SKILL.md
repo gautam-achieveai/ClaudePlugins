@@ -305,6 +305,12 @@ item ID. If option 2, loop back to Phase 0.
 
 ---
 
+## ADO Reference Conventions
+
+Invoke the `ado:ado-mentions` skill before composing work item descriptions or
+comments. It loads the full mention syntax reference (`#ID` for work items,
+`@alias` for users, bot comment prefix, etc.).
+
 ## Guidelines
 
 - **One question at a time.** Never present a form or ask multiple questions

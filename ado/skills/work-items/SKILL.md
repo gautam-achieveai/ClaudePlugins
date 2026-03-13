@@ -49,6 +49,12 @@ Branch based on what the user wants:
 - "Move item 1234 to the current sprint"
 - "Link work item 5678 to PR #42"
 
+## ADO Reference Conventions
+
+Invoke the `ado:ado-mentions` skill before composing work item descriptions,
+comments, or link references. It loads the full mention syntax (`#ID` for work
+items, `!ID` for PRs, `@alias` for users, bot comment prefix, etc.).
+
 ## Guidelines
 
 - Always confirm before making changes to work items

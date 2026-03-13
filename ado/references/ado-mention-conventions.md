@@ -1,7 +1,7 @@
 # Azure DevOps Mention & Reference Conventions
 
-> **Synced copy** — the canonical version lives in the `code-reviewer` plugin at
-> `code-reviewer/references/ado-mention-conventions.md`. Keep both in sync.
+> **Loaded by** the `ado:ado-mentions` skill. Invoke the skill rather than
+> reading this file directly.
 
 Use these conventions when writing PR descriptions, commit messages, work item
 comments, wiki pages, and bot replies in Azure DevOps.
@@ -127,11 +127,26 @@ When creating PRs that link work items, use `AB#ID` in the description body:
 AB#<work_item_id>
 ```
 
+## Full URL Patterns (No Shorthand)
+
+For artifacts without shorthand mention syntax, use explicit URLs:
+
+| Artifact | URL Pattern |
+|----------|------------|
+| Build / pipeline run | `https://dev.azure.com/{org}/{project}/_build/results?buildId={id}` |
+| Release | `https://dev.azure.com/{org}/{project}/_release?releaseId={id}` |
+| Pipeline definition | `https://dev.azure.com/{org}/{project}/_build?definitionId={id}` |
+| Build artifacts | `https://dev.azure.com/{org}/{project}/_build/results?buildId={id}&view=artifacts` |
+| Wiki page | `/{project}/_wiki/wikis/{wikiName}?pagePath=/PageName` |
+| Repo file | `https://dev.azure.com/{org}/{project}/_git/{repo}?path=/file.cs` |
+| Specific commit | `https://dev.azure.com/{org}/{project}/_git/{repo}/commit/{sha}` |
+
 ## Usage in Skills
 
 Any skill that writes to Azure DevOps (PR descriptions, comments, work item
-updates) should follow these conventions. Reference this document when:
+updates) should invoke the `ado:ado-mentions` skill, which loads this document.
+Applicable skills:
 - Composing PR descriptions (`publish-pr`)
-- Posting review comments (`review-pr`)
-- Replying to reviewer feedback (`publish-pr` Phase 3, `babysit-pr`)
-- Creating or updating work items (`work-items`)
+- Posting review comments (`review-pr`, `babysit-pr`, `pr-tender`)
+- Creating or updating work items (`work-items`, `draft-work-item`)
+- Posting comments to work items (`work-on`)
