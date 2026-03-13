@@ -1,14 +1,19 @@
 ---
 name: euii-leak-detector
 description: Detects End User Identifiable Information (EUII) leaks in log statements, telemetry, error messages, and other output channels.
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Skill
+skills:
+  - codebase-search-discipline
 ---
 
-<codebase_search_discipline>
-Before claiming code "doesn't exist", "won't compile", or "has no callers",
-follow the [Codebase Search Discipline](../references/codebase-search-discipline.md):
-search the source branch (not just target), scope searches to avoid timeouts,
-check the PR diff for definitions, and never contradict a green build.
-</codebase_search_discipline>
+Before making claims about what exists in the codebase, invoke:
+```
+skill: "code-reviewer:codebase-search-discipline"
+```
 
 # EUII Leak Detector
 
