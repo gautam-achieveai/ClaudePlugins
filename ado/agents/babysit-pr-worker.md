@@ -21,6 +21,8 @@ asking for user confirmation — fix, reply, self-review, build, commit, push.
 You receive from the `ado:babysit-pr` skill:
 - **Issue list**: merge conflicts, PR policy failures, build breaks, test
   failures, coverage gaps, review comments
+  (`[Conflict]`, `[Build]`, `[Test]`, `[Coverage]`, `[Address]`, `[WontFix-NA]`,
+  `[WontFix-Bug]`, `[Resolve]`)
 - **PR number** and **branch name**
 - **Target branch** (for merge conflict resolution)
 - **Build/test commands** (e.g., `dotnet build` / `dotnet test`)
@@ -192,7 +194,30 @@ Reply format:
   Won't Fix is never acceptable for security findings in autonomous mode.
 </blocker_policy>
 
-**Important**: Do NOT resolve comment threads — let the reviewer resolve them.
+### [Resolve] — Resolve Addressed Threads
+
+After all code fixes and replies are posted, resolve comment threads with
+the appropriate status based on how they were handled:
+
+1. **Fixed** threads (`[Address]`, `[Build]`, `[Test]`, `[Coverage]` todos):
+   - Use `updatePullRequestThread` with `status: "fixed"`
+
+2. **Won't Fix** threads (`[WontFix-NA]`, `[WontFix-Bug]` todos):
+   - Use `updatePullRequestThread` with `status: "wontFix"`
+
+3. **By Design** threads (comments declined because the behavior is intentional,
+   e.g., external API contracts, design constraints):
+   - Use `updatePullRequestThread` with `status: "byDesign"`
+
+4. **Informational/bot summary** threads (no action needed):
+   - Use `updatePullRequestThread` with `status: "closed"`
+
+Do NOT resolve threads that:
+- Have not been replied to yet
+- Are system/policy status threads
+- Are branch update notifications
+
+Mark todo completed after all threads are resolved.
 
 ## Self-Review
 
@@ -256,7 +281,8 @@ After pushing (or if nothing needed fixing), report back to the skill:
   there is a clear, defensible reason not to
 - Prefer fixing production code over modifying tests
 - Keep changes minimal and focused — don't refactor unrelated code
-- Do NOT resolve comment threads — let the reviewer resolve them
+- Resolve comment threads after replying, using the appropriate status
+  (fixed, wontFix, byDesign, closed) based on the todo category
 - If you genuinely cannot fix an issue, reply to the relevant thread explaining
   what you tried and what blocked you, then move on
 
@@ -264,7 +290,7 @@ After pushing (or if nothing needed fixing), report back to the skill:
 
 - **Azure DevOps MCP**: `getPullRequest`, `getPullRequestComments`,
   `getPullRequestFileChanges`, `getAllPullRequestChanges`, `replyToComment`,
-  `listPullRequests`, `createWorkItem`
+  `updatePullRequestThread`, `listPullRequests`, `createWorkItem`
 - **Bash**: git operations (`diff`, `add`, `commit`, `push`, `merge`, `fetch`),
   build/test commands
 - **File tools**: Read, Edit, Write, Glob, Grep for code changes
