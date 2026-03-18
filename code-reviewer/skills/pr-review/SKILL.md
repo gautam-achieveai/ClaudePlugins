@@ -293,6 +293,8 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
    - **`test-coverage-review`**: Dispatch when the PR modifies production code (any non-test `.cs`, `.js`, `.ts` file). Maps production changes to test changes, verifies tests cover the actual behavior being modified (not just adjacent code), checks for over-mocking, test-driven production pollution, fragile tests, and missing edge cases. For bug fixes, applies the litmus test: "Would this test have FAILED before the fix?" Focuses on behavioral coverage over line coverage, with a 1-10 criticality rating. Findings are HIGH-MEDIUM severity.
 
+   - **`architecture-review`**: Dispatch when PR introduces new services, classes, or projects; modifies `.csproj` project references; changes DI registrations; adds cross-layer dependencies; or restructures module/project boundaries. Reviews layer boundary violations (controller accessing DB directly), dependency direction in project references, god class/service detection, circular dependencies, DI anti-patterns (service locator, captive dependencies), cross-cutting concern mismanagement, and bounded context violations. **Do NOT dispatch** when PR only modifies method bodies, configuration values, or styling with no structural changes. Complements `class-design-simplifier` (which focuses on class-level complexity) by analyzing system-level architectural health.
+
    <mandatory_dispatch>
    **Dispatch rules:**
    - **`temp-code-review` is mandatory** — dispatch it for every PR regardless of domain
@@ -333,16 +335,16 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
    | Agent | Dispatch When | Skip When |
    |---|---|---|
-   | `architecture-reviewer` | PR introduces new classes/services, changes project structure, adds cross-layer dependencies, or modifies DI registration | PR only modifies method bodies, config, or styling |
    | `pr-review-toolkit:silent-failure-hunter` | PR contains try-catch blocks, error handling, fallback logic, `.catch()`, `Result<T>` | PR is purely additive with no error handling, or only config/styling |
    | `pr-review-toolkit:type-design-analyzer` | PR introduces NEW classes, records, structs, interfaces — especially data models, domain entities, DTOs | PR only modifies method bodies without changing type signatures |
    | `pr-review-toolkit:pr-test-analyzer` | PR includes test file changes OR adds new public methods that should have tests | PR is test-only with no source changes, or documentation-only |
    | `pr-review-toolkit:comment-analyzer` | PR adds/modifies XML doc comments, inline documentation blocks, or README content | PR has no comment changes |
    | `pr-review-toolkit:code-simplifier` | PR is LARGE (20+ files) AND introduces complex new logic (deep nesting, long methods) | PR is small/medium or straightforward changes |
 
-   **Agents excluded by default (overlap with steps 4-6):**
+   **Agents excluded by default (overlap with steps 4-7):**
    - `pr-review-toolkit:code-reviewer` — Steps 4-5 already cover general code quality with project-specific reference guides
    - `feature-dev:code-reviewer` — Same overlap with steps 4-5
+   - `architecture-reviewer` — Step 7's `architecture-review` agent covers architectural issues with project-specific context; skip the external `architecture-reviewer`
    - **Exception**: Dispatch `feature-dev:code-reviewer` as a second-opinion safety net when PR is **30+ files** OR touches **security-sensitive code** (auth, crypto, payment)
 
    <dispatch_heuristics>
@@ -375,9 +377,46 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - Existing tests were modified but not in a way that covers the new behavior
    - Test methods lack `[TestCategory("CI")]` for CI pipeline inclusion
 
-10. **Provide Feedback**: `<Post comments via Azure DevOps MCP tools>`
+10. **Severity Grading — Quality Gate**: `<Dispatch review-grader agent>`
 
-   Consolidate all findings from steps 4-9 (reference guide checks, domain agent results, external agent results, server-side checks, test coverage) and post them to the PR. When an external agent from step 8 flags the same issue already found in steps 4-7, keep the more detailed version and discard the duplicate.
+   Before determining the verdict, dispatch the `review-grader` agent to re-evaluate all
+   findings through 10 impact dimensions. This is **mandatory for every review** — the grader
+   catches findings that domain agents classified too softly, especially code health,
+   convention, and completeness issues.
+
+   **How to dispatch:**
+
+   1. Consolidate all findings from steps 4-9 into a structured list
+   2. De-duplicate first: when multiple agents flag the same issue, keep the more detailed version
+   3. Format each finding as:
+      ```
+      ## Finding [N]
+      - Original Severity: [CRITICAL/HIGH/MEDIUM/LOW]
+      - Blocker: [Yes/No]
+      - Category: [e.g., Conventions, Architecture, Security, etc.]
+      - File: [path:line]
+      - Issue: [description]
+      - Suggestion: [proposed fix]
+      ```
+   4. Dispatch `review-grader` with the formatted findings list
+   5. When the grader returns, **use the graded severities** (not the originals) for verdict
+      determination in Step 11
+
+   **What the grader returns:**
+   - Escalated findings with dimension scores and rationale
+   - Confirmed findings (correctly graded, no change)
+   - Graded verdict recommendation (may differ from what original severities would imply)
+   - Pushback narrative (if the grader recommends a stricter verdict)
+
+   If the grader escalates any finding, note the escalation in the review summary so the PR
+   author understands why the severity differs from what a domain agent might suggest.
+
+11. **Provide Feedback**: `<Post comments via Azure DevOps MCP tools>`
+
+   Post the graded findings to the PR. Use the **graded severities** from Step 10 for all
+   severity labels and verdict determination. When an external agent from step 8 flags the
+   same issue already found in steps 4-7, keep the more detailed version and discard the
+   duplicate.
 
    **Comment posting priority (most specific first):**
 
@@ -424,11 +463,11 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - **Merge the pull request** (optional): If the user requests it after approval, use `mcp__azure-devops__mergePullRequest` with the appropriate merge strategy (squash for feature branches, noFastForward for release branches). Always confirm merge strategy with the user first.
    </posting_rules>
 
-   After posting feedback, proceed to Step 11 to update tracking state.
+   After posting feedback, proceed to Step 12 to update tracking state.
 
    For re-review workflow, load [reference/re-review-workflow.md](reference/re-review-workflow.md).
 
-11. **Update Review Tracking** (after posting feedback):
+12. **Update Review Tracking** (after posting feedback):
 
    **Skip this step for Local Branch Reviews** (no PR number) — tracking only
    applies to ADO pull requests.
@@ -453,7 +492,7 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    | `author` | `createdBy.displayName` from ADO |
    | `createdAt` | PR `creationDate` from ADO |
    | `lastKnownPushAt` | `lastMergeSourceCommit.committer.date` from ADO |
-   | `verdict` | Verdict from Step 10 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
+   | `verdict` | Verdict from Step 11 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
    | `status` | `completed` (or `error` if review failed) |
    | `reviewType` | `initial` or `re-review` (based on whether previous comments existed) |
    | `sourceCommitId` | HEAD commit of source branch |
