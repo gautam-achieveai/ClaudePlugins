@@ -123,7 +123,9 @@ remove the item from `state.work_items`.
 ### 1.1 — Classify Each Work Item
 
 For each work item, fetch full details with `getWorkItemById` and
-`getWorkItemComments` to inspect comments and linked PRs.
+`getWorkItemComments` to inspect comments and linked PRs. **Fetch all work
+items in parallel** — make concurrent `getWorkItemById` + `getWorkItemComments`
+calls for every item simultaneously to minimize classification time.
 
 **Classification logic** (check in this order):
 
@@ -196,7 +198,7 @@ Only pause if the user explicitly asked to be consulted.
 
 Process Stage 3 items first — they're closest to completion.
 
-### Concurrency: Up to 3 parallel agents
+### Concurrency: All items in parallel
 
 For each Stage 3 work item, check whether babysitting is actually needed before
 spawning an agent. A quick-check with `getPullRequest` can reveal:
@@ -205,8 +207,9 @@ spawning an agent. A quick-check with `getPullRequest` can reveal:
 - Otherwise → needs babysitting
 
 For items that need work, spawn the `ado:babysit-pr-worker` **agent** directly
-(not the full `babysit-pr` skill) for a **single pass**. Run up to 3 in
-parallel using background agents.
+(not the full `babysit-pr` skill) for a **single pass**. Each PR operates in
+its own worktree, so run **all babysit agents in parallel** using background
+agents — no cap needed since worktree isolation prevents conflicts.
 
 This is critical: the full `babysit-pr` skill runs a continuous polling loop
 that would block the backlog processor. Since `work-my-backlog` is itself run
@@ -234,38 +237,76 @@ After all Stage 3 agents complete:
 
 Process Stage 2 items next — they have momentum.
 
-### Concurrency: One at a time
+### Concurrency: Parallel by dependency group
 
-Stage 2 work items go through `ado:work-on`, which may involve heavy
-implementation work. Run these **one at a time**, respecting dependency order
-from Phase 1.2.
+Stage 2 work items go through `ado:work-on`. Since each work item operates in
+its own dedicated worktree (Phase 5), items that are **independent of each
+other** can safely run in parallel. Only items with direct dependency
+relationships (parent/child, predecessor/successor, or touching the same code
+area) must be sequenced.
 
-For each Stage 2 item (in dependency order):
+### 3.1 — Build Execution Groups
 
-1. **Determine if worktree is needed** — A worktree is only needed when
-   `work-on` will enter implementation (Part 2). Check the work item's comment
-   history to predict the mode:
-   - Plan has unaddressed feedback → **revision mode** (no worktree needed)
-   - Plan is approved / no feedback / at v3 cap → **implementation mode**
-     (worktree required)
-   - If a worktree already exists from a previous pass, reuse it regardless.
-2. **If implementation mode**: ensure worktree exists (see Phase 5), then
-   change to the worktree directory before invoking work-on.
-   **If revision mode**: invoke work-on from the main working directory — no
-   worktree needed since plan revision only posts comments to ADO.
-3. Invoke `ado:work-on <work-item-id>` via the Skill tool.
-4. `work-on` auto-detects the right action:
-   - Plan has feedback → revises the plan and reposts
-   - Plan is approved → implements, verifies, publishes PR
-   - Plan at v3 cap → implements regardless
-5. Wait for completion before moving to the next Stage 2 item.
-6. **Update state**: record what happened (plan revised, PR published, etc.),
-   update stage if it advanced (Stage 2 → Stage 3 after PR publish), record
-   branch name and PR ID if created.
+Using the dependency graph from Phase 1.2, partition Stage 2 items into
+**execution groups** — sets of items that can run concurrently:
 
-If `work-on` needs user clarification (posts questions to the work item), it
-will STOP. Note this in state (`last_action: "questions_posted"`) and move to
-the next item — the next loop pass will pick it up.
+1. **Identify independent items** — Items with NO dependency edges between
+   them (no parent/child, no predecessor/successor, not related) go into the
+   same execution group.
+2. **Sequence dependent chains** — If A must precede B, put A in an earlier
+   group. B goes in the next group (it runs after A's group completes).
+3. **Separate revision vs implementation** — Items in **revision mode** (plan
+   has unaddressed feedback) are lightweight (just posting a comment). These
+   can ALL run in a single parallel batch regardless of dependencies since
+   they don't touch code.
+
+**Example grouping:**
+```
+Revision batch (parallel — no code changes):
+  #1240 — has feedback, needs plan revision
+  #1243 — has feedback, needs plan revision
+
+Implementation group 1 (parallel — independent):
+  #1241 — approved, no deps
+  #1245 — approved, no deps to group-1 items
+
+Implementation group 2 (parallel — depends on group 1):
+  #1242 — predecessor #1241 finished in group 1
+```
+
+### 3.2 — Process Revision Batch
+
+For items in revision mode (plan has unaddressed feedback), spawn all as
+**parallel background agents** — each invokes `ado:work-on <id>` to revise
+the plan and repost. No worktrees needed. Run ALL revision items concurrently
+since they only post comments to ADO (no code changes, no conflicts).
+
+### 3.3 — Process Implementation Groups
+
+For each execution group (in dependency order):
+
+Spawn **parallel background agents** for all items in the group. For each:
+
+1. **Ensure worktree exists** (see Phase 5) — each item gets its own isolated
+   worktree so parallel agents never conflict.
+2. **Spawn a background agent** that:
+   - Changes to the work item's dedicated worktree directory
+   - Invokes `ado:work-on <work-item-id>` via the Skill tool
+   - `work-on` auto-detects the right action:
+     - Plan approved → implements, verifies, publishes PR
+     - Plan at v3 cap → implements regardless
+3. Wait for **all agents in this group** to complete before starting the next
+   group (dependencies require it).
+
+### 3.4 — Update State After All Groups
+
+After all groups complete:
+- **Update state** for each item: record what happened (plan revised, PR
+  published, etc.), update stage if it advanced (Stage 2 → Stage 3 after PR
+  publish), record branch name and PR ID if created.
+- If `work-on` needed user clarification (posted questions to the work item),
+  note this in state (`last_action: "questions_posted"`) — the next loop pass
+  will pick it up.
 
 ---
 
@@ -274,22 +315,25 @@ the next item — the next loop pass will pick it up.
 Process Stage 1 items last — planning is the bottleneck since it requires
 human review before implementation.
 
-### Concurrency: Parallel planning
+### Concurrency: All items in parallel
 
 Planning is read-only — no branches, no code changes, just codebase analysis
-and posting a plan comment. This means all Stage 1 items can be planned in
-parallel without risk of conflicts, and dependency ordering does not matter
+and posting a plan comment. This means **all Stage 1 items can be planned in
+parallel** without risk of conflicts, and dependency ordering does not matter
 here (it only matters at Stage 2 when code is being written).
 
-Spawn `ado:work-on <work-item-id>` for each Stage 1 item in parallel using
-background agents. No worktrees needed. Each will:
+Spawn **one background agent per Stage 1 work item** — all concurrently. Each
+agent invokes `ado:work-on <work-item-id>` and will:
 1. Analyze the work item
 2. Research the codebase
 3. Create an implementation plan
 4. Post the plan as a comment on the work item
 5. STOP (waiting for human review)
 
-After all complete, update state for each item:
+No worktrees needed — planning agents only read the codebase and post comments.
+No cap on parallel agents since there are no shared-state conflicts.
+
+After all agents complete, update state for each item:
 - `stage: 2` (now has a plan)
 - `last_action: "plan_posted"`
 - `last_action_time: <now>`
