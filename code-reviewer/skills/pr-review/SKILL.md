@@ -500,9 +500,7 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    | `commentsSummary` | Top 5 findings (one-line each) |
    | `blockerCount` | Number of `[BLOCKER]`-tagged findings |
 
-   The `code-reviewer:update-pr-tracking` skill handles all storage path detection,
-   `tracking.json` management, and per-PR review history. See its
-   [SKILL.md](../update-pr-tracking/SKILL.md) for full details.
+   The `code-reviewer:update-pr-tracking` skill handles all storage path detection, `tracking.json` management, and per-PR review history. See its [SKILL.md](../update-pr-tracking/SKILL.md) for full details (`code-reviewer:update-pr-tracking` skill).
 
    **Error handling**: If tracking fails, the skill warns but does NOT fail the
    review. Tracking is best-effort — the review posted to ADO is the primary output.
@@ -593,3 +591,5 @@ For comprehensive checklists and examples:
 For tool and agent catalog, see [reference/tool-catalog.md](reference/tool-catalog.md).
 
 For output format template, load [reference/output-format.md](reference/output-format.md).
+
+Publishing comments in ADO: IMPORTANT!!!, when referencing ADO work item, use `#` prefix e.g. `#12354` where 12354 is bug/workitem id, and `!` exclamation mark for PRs, e.g. `!4212` where 4212 is PR ID. <-- VERY IMPORTANT, don't forgat `!` is for PRs and `#` is for bugs/workitems.

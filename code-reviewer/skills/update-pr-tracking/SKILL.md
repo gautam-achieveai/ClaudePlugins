@@ -62,13 +62,13 @@ Create `$STORAGE_PATH` and `$STORAGE_PATH/reviews/` if they don't exist.
 Parse `git remote -v` to extract ADO variables:
 
 ```
-origin	https://mcqdbdev.visualstudio.com/MCQdb_Development/_git/MCQdb (fetch)
+origin	https://<org>.visualstudio.com/PROJECT_NAME/_git/REPOSITORY_NAME (fetch)
 ```
 
 Extract:
-- `AZURE_DEVOPS_ORG_URL` = `https://mcqdbdev.visualstudio.com/`
-- `AZURE_DEVOPS_PROJECT` = `MCQdb_Development`
-- `AZURE_DEVOPS_REPOSITORY` = `MCQdb`
+- `AZURE_DEVOPS_ORG_URL` = `https://<org>.visualstudio.com/`
+- `AZURE_DEVOPS_PROJECT` = `PROJECT_NAME`
+- `AZURE_DEVOPS_REPOSITORY` = `REPOSITORY_NAME`
 
 ## Step 3: Load or Initialize `tracking.json`
 
