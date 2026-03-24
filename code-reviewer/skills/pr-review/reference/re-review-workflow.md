@@ -132,11 +132,9 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
 ## Re-review rules
 
 <re_review_rules>
-- **Max 3 re-review iterations** — after 3 re-review cycles, post a final summary
-  and stop. If CRITICAL/HIGH/MEDIUM issues remain, the final verdict is still
-  REQUEST CHANGES — iteration count does not reduce severity or lower the bar.
+- **Max 5 re-review iterations** — after 5 re-review cycles, post a final summary and stop. If CRITICAL/HIGH/MEDIUM issues remain, the final verdict is still REQUEST CHANGES — iteration count does not reduce severity or lower the bar.
 - **Don't re-litigate resolved issues** — if the author fixed it, acknowledge and move on
-- **Track DEFERRED items** — note them as "acknowledged, not blocking" but keep them visible
+- **Track DEFERRED items** — note them as "acknowledged, not blocking" but keep them visible, ask to open bug or work item for it. 
 - **Focus on the delta** — only flag new issues in the updated code
 - **Won't Fix must meet the severity bar** — evaluate the developer's rationale
   against the finding's severity tier (see Satisfaction Check). CRITICAL and HIGH
@@ -146,4 +144,6 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
   standards as the first. Time pressure and iteration count are not reasons to
   accept unresolved CRITICAL/HIGH/MEDIUM issues.
 - **Call out NEW issues** — clearly distinguish new findings from previous ones
+- **Post summary in same thread** — always reply to the last review comment, no need to add new threads. Resolve this thread if all issues are resolved.
+- **DO NOT POST** anything if nothing changed in the PR since last review.
 </re_review_rules>
