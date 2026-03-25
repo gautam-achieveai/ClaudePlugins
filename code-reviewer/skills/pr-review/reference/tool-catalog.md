@@ -2,14 +2,15 @@
 
 ## Azure DevOps MCP Tools
 
-- `mcp__azure-devops__getPullRequest` - Fetch PR details
+- `mcp__azure-devops__getPullRequest` - Fetch PR details (use `include: ["workItems"]` for linked work items)
 - `mcp__azure-devops__getPullRequestFileChanges` - Get changed files list
 - `mcp__azure-devops__getPullRequestChangesCount` - Quick scope check: total files changed, adds/edits/deletes
 - `mcp__azure-devops__getAllPullRequestChanges` - Get all file changes with diffs
 - `mcp__azure-devops__getPullRequestComments` - Get existing PR comments/discussions
 - `mcp__azure-devops__getCommitHistory` - Get commit log with optional file path filter (used in re-review to find commits since last review)
 - `mcp__azure-devops__listPullRequests` - List active/completed/abandoned PRs, filter by creator/reviewer
-- `mcp__azure-devops__getWorkItemById` - Get linked work item details
+- `mcp__azure-devops__getWorkItemById` - Get linked work item details (includes Relations: parent `⬆️`, child `⬇️`, related, PR links)
+- `mcp__azure-devops__getWorkItemsBatch` - Fetch multiple work items efficiently by ID array
 - `mcp__azure-devops__listWorkItems` - WIQL query for work items
 - `mcp__azure-devops__searchWorkItems` - Search work items by text
 - `mcp__azure-devops__getFileContent` - Read file content from repo
@@ -33,6 +34,10 @@
 - `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
 - `exception-handling-review` - Exception patterns: swallowed exceptions, broad catches, incorrect re-throws, missing logging, async pitfalls, flow control abuse
 - `test-coverage-review` - Test coverage adequacy, behavioral coverage, over-mocking, test-production pollution, missing regression tests, integration point coverage
+
+## Context Agents (dispatched in step 1/3)
+
+- `pr-context-gatherer` - Walks ADO work item hierarchy from PR-linked items up to Epic level; collects siblings and related items to build full business context tree. Use `code-reviewer:pr-context` skill to invoke.
 
 ## External Review Agents (dispatched conditionally in step 8)
 

@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.4.4"
+    "version": "1.5.0"
   },
   "plugins": [
     {
@@ -78,24 +78,27 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, architecture review, severity grading quality gate, and log review. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.11.2",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, architecture review, severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, plus a review-pending-prs batch orchestrator with persistent tracking.",
+      "version": "1.12.0",
       "category": "development",
       "tags": [
         "review",
         "pull-request",
         "code-review",
         "security",
-        "euii"
+        "euii",
+        "work-items"
       ],
       "keywords": [
         "code-review",
         "pr-review",
+        "pr-context",
         "review-pending-prs",
         "duplicate-detection",
         "euii-scanning",
         "log-review",
-        "review-pr"
+        "review-pr",
+        "work-item-hierarchy"
       ]
     },
     {
