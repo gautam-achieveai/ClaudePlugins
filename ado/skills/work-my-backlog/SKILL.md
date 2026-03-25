@@ -16,7 +16,7 @@ description: >
 # Work My Backlog
 
 Autonomous sprint processor. Single-pass design — classify all assigned work
-items, advance what you can, report, exit. Designed to run in a loop via
+items, advance eligible items, report, exit. Designed to run in a loop via
 `/loop 15m /work-my-backlog`. State persists between passes via a JSON file.
 
 ---
@@ -45,6 +45,7 @@ branch/PR is associated with it.
       "title": "Comprehensive Observability...",
       "type": "User Story",
       "stage": 1,
+      "sub_state": null,
       "last_action": "plan_posted",
       "last_action_time": "2026-03-19T10:30:00Z",
       "worktree_path": null,
@@ -57,6 +58,9 @@ branch/PR is associated with it.
   }
 }
 ```
+
+**`sub_state` valid values:** `null` (Stage 1 or 3), `"2a"` (awaiting review),
+`"2b"` (feedback pending), `"2c"` (approved), `"2d"` (revision cap).
 
 If the file does not exist, initialize an empty state object. The file will be
 written at the end of this pass (Phase 6).
@@ -137,8 +141,29 @@ calls for every item simultaneously to minimize classification time.
 
 2. **Check for BOT-PLAN marker** — Scan all comments for `<!-- BOT-PLAN v`.
 
-   - **Has plan comment** → **Stage 2** (plan exists — work-on will auto-detect
-     whether to revise, await approval, or implement)
+   - **Has plan comment** → **Stage 2** — then sub-classify by approval status:
+
+     To sub-classify, find the latest BOT-PLAN comment (highest version number),
+     collect all human comments posted AFTER it (exclude comments containing
+     `[bot]`), and check for approval signals (case-insensitive): `approved`,
+     `lgtm`, `looks good`, `go ahead`, `proceed`, `ship it`, `good to go`,
+     `start implementation`.
+
+     | Sub-state | Condition | Action |
+     |-----------|-----------|--------|
+     | **2a — Awaiting Review** | No human comments after plan | **SKIP** — do not process. Plan was posted but no human has reviewed it yet. |
+     | **2b — Feedback Pending** | Human comments exist but no approval signal | Route to **revision batch** (Phase 3.2). |
+     | **2c — Approved** | Human comment contains an approval signal with no actionable feedback alongside it | Route to **implementation group** (Phase 3.3). If approval appears alongside actionable feedback (e.g., "LGTM, but fix the naming"), treat as **2b** — feedback takes priority over approval. |
+     | **2d — Revision Cap** | Plan version is v3 or higher (regardless of comments) | Route to **implementation group** (Phase 3.3) — revision cap reached. |
+
+     **CRITICAL — No implicit approval in autonomous mode.** When running in the
+     autonomous backlog loop, the absence of human comments does NOT constitute
+     approval. Unlike interactive `/work-on` where a user manually re-runs the
+     command (signaling they reviewed and accepted the plan), the backlog
+     processor re-invokes work-on automatically on a timer. Treating silence as
+     approval would bypass human review — a core safety gate. Items in sub-state
+     2a MUST be skipped until a human posts an explicit approval signal or
+     feedback on the work item.
 
 3. **Neither** → **Stage 1** (fresh — needs initial planning)
 
@@ -179,9 +204,18 @@ Stage 3 — PR Published (babysit):
   #1234  Fix login timeout bug         PR !567  [worktree: .worktrees/wi-1234]
   #1235  Add retry logic               PR !568  [worktree: .worktrees/wi-1235]
 
-Stage 2 — Plan In Progress (work-on):
-  #1240  Refactor auth middleware       Plan v2, feedback pending
-    └─ depends on: #1241 (Stage 1, not yet planned)
+Stage 2c — Approved (implement):
+  #1240  Refactor auth middleware       Plan v2, approved by @user
+
+Stage 2d — Revision Cap (implement):
+  #1246  Fix connection pooling          Plan v3, revision cap reached
+
+Stage 2b — Feedback Pending (revise):
+  #1243  Update error handling          Plan v1, feedback from @reviewer
+
+Stage 2a — Awaiting Review (skip):
+  #1244  Add caching layer              Plan v1, no human response yet
+    └─ SKIPPED — awaiting plan approval
 
 Stage 1 — Fresh (plan needed):
   #1250  Implement user preferences
@@ -237,6 +271,33 @@ After all Stage 3 agents complete:
 
 Process Stage 2 items next — they have momentum.
 
+### GATE CHECK — Plan Approval Validation (mandatory)
+
+Before processing ANY Stage 2 item for implementation, validate that the
+implementation plan has been explicitly approved by a human reviewer.
+
+**This is a non-negotiable safety gate.** Implementation MUST NOT begin on a
+work item unless one of these conditions is met:
+
+1. **Explicit approval** (sub-state 2c): A human comment after the latest
+   BOT-PLAN contains one of the approval signals defined in Phase 1.1
+   with no contradicting feedback.
+2. **Revision cap reached** (sub-state 2d): The plan version is v3 or higher,
+   meaning 3 revision cycles have been exhausted.
+
+**Items that MUST NOT be sent to implementation:**
+
+- **Sub-state 2a (Awaiting Review)**: No human has commented on the plan.
+  Log: `#<id> — SKIPPED: awaiting plan approval (no human response)` and
+  move to the next item.
+- **Sub-state 2b (Feedback Pending)**: Human feedback exists but no approval
+  signal. Route to revision batch only (Phase 3.2).
+
+**Verification step:** For each Stage 2 item entering Phase 3.3 (implementation),
+confirm the sub-state is 2c or 2d. If not, do not process — skip the item and
+log the reason. This check is the final safeguard against starting work on an
+unapproved plan.
+
 ### Concurrency: Parallel by dependency group
 
 Stage 2 work items go through `ado:work-on`. Since each work item operates in
@@ -250,28 +311,32 @@ area) must be sequenced.
 Using the dependency graph from Phase 1.2, partition Stage 2 items into
 **execution groups** — sets of items that can run concurrently:
 
-1. **Identify independent items** — Items with NO dependency edges between
-   them (no parent/child, no predecessor/successor, not related) go into the
-   same execution group.
-2. **Sequence dependent chains** — If A must precede B, put A in an earlier
+1. **Filter by sub-state first:**
+   - Sub-state 2a (Awaiting Review) → **SKIP entirely** — log and exclude
+   - Sub-state 2b (Feedback Pending) → **Revision batch** (Phase 3.2)
+   - Sub-state 2c (Approved) → **Implementation groups** (Phase 3.3)
+   - Sub-state 2d (Revision Cap) → **Implementation groups** (Phase 3.3)
+2. **Identify independent items** — Within the implementation pool (2c + 2d
+   only), items with NO dependency edges between them go into the same
+   execution group.
+3. **Sequence dependent chains** — If A must precede B, put A in an earlier
    group. B goes in the next group (it runs after A's group completes).
-3. **Separate revision vs implementation** — Items in **revision mode** (plan
-   has unaddressed feedback) are lightweight (just posting a comment). These
-   can ALL run in a single parallel batch regardless of dependencies since
-   they don't touch code.
 
 **Example grouping:**
 ```
+Skipped (awaiting plan approval):
+  #1244 — plan v1 posted, no human response yet
+
 Revision batch (parallel — no code changes):
   #1240 — has feedback, needs plan revision
   #1243 — has feedback, needs plan revision
 
-Implementation group 1 (parallel — independent):
-  #1241 — approved, no deps
-  #1245 — approved, no deps to group-1 items
+Implementation group 1 (parallel — independent, approved):
+  #1241 — approved by @user, no deps
+  #1245 — approved by @reviewer, no deps to group-1 items
 
 Implementation group 2 (parallel — depends on group 1):
-  #1242 — predecessor #1241 finished in group 1
+  #1242 — predecessor #1241 finished in group 1 (revision cap v3)
 ```
 
 ### 3.2 — Process Revision Batch
@@ -281,7 +346,11 @@ For items in revision mode (plan has unaddressed feedback), spawn all as
 the plan and repost. No worktrees needed. Run ALL revision items concurrently
 since they only post comments to ADO (no code changes, no conflicts).
 
-### 3.3 — Process Implementation Groups
+### 3.3 — Process Implementation Groups (approved items only)
+
+**Pre-condition:** Every item in this phase MUST have sub-state 2c (explicitly
+approved) or 2d (revision cap v3+). If an item does not meet this condition,
+it was incorrectly routed — skip it and log an error.
 
 For each execution group (in dependency order):
 
@@ -401,8 +470,14 @@ Stage 3 (PR Babysitting):
   #1234 — Fixed 2 review comments, builds green
   #1235 — No-op, already approved and green
 
-Stage 2 (Implementation):
-  #1240 — Plan revised to v3 based on feedback, reposted
+Stage 2c — Approved (Implementation):
+  #1240 — Plan approved, implementation complete, PR !570 created
+
+Stage 2b — Feedback (Revision):
+  #1243 — Plan revised to v2 based on feedback, reposted
+
+Stage 2a — Awaiting Review (Skipped):
+  #1244 — Plan v1 posted, no human response yet — skipped
 
 Stage 1 (Planning):
   #1250 — Implementation plan posted, awaiting review
