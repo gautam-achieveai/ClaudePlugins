@@ -15,477 +15,169 @@ description: >
 
 # Work My Backlog
 
-Autonomous sprint processor. Single-pass design — classify all assigned work
-items, advance eligible items, report, exit. Designed to run in a loop via
-`/loop 15m /work-my-backlog`. State persists between passes via a JSON file.
+Autonomous sprint processor. Single-pass design — scan, classify, advance
+eligible items, report, exit. Designed to run in a loop via
+`/loop 15m /work-my-backlog`.
+
+All querying, classification, and context-gathering is handled by the
+`scripts/scan.mjs` scanner. The LLM only handles the actions that
+require reasoning (planning, implementing, reviewing).
 
 ---
 
-## Phase 0 — Load State & Gather Context
+## Phase 0 — Run the Scanner
 
-### 0.1 — Load Persistent State
+### 0.1 — Run the Scan
 
-State file location: `scratchpad/work-my-backlog/state.json`
+The scanner is zero-dependency (uses Node.js built-in `fetch()`). Just run:
 
-If the file exists, read it. This is the memory of all previous passes — what
-stage each work item was in, what action was taken, when, and what worktree/
-branch/PR is associated with it.
+```bash
+node <skill-dir>/scripts/scan.mjs --repo-root <repo-root>
+```
 
-**State schema:**
+Auth: requires `AZURE_DEVOPS_PAT` environment variable (or
+`AZURE_DEVOPS_BEARER_TOKEN`). Org/project auto-detected from git remote, or
+set via `AZURE_DEVOPS_ORG_URL` and `AZURE_DEVOPS_PROJECT` env vars.
+
+The scanner outputs a `ScanResult` JSON to **stdout** (logs go to stderr).
+Capture the JSON output and parse it.
+
+The scanner handles ALL of:
+- Connecting to Azure DevOps (PAT auth via REST API)
+- Getting the current sprint
+- Querying assigned work items via WIQL
+- Fetching work item details, comments, and linked PRs
+- Classifying each into stages (1, 2a-2d, 3) using BOT-PLAN markers
+- For Stage 3 (PR) items: fetching unresolved threads, build status, failure logs
+- Timestamp-based skip optimization (no re-fetch if nothing changed)
+- Saving per-work-item state to `.ai/work-my-backlog/`
+
+### 0.2 — Parse the ScanResult
+
+The JSON has this structure:
 
 ```json
 {
-  "last_run": "2026-03-19T10:30:00Z",
-  "sprint": "O365 Core\\Iteration 03-09",
-  "pass_count": 5,
-  "dev_name": "Gautam Bhakar",
-  "dev_email": "gautamb@microsoft.com",
-  "work_items": {
-    "7084551": {
-      "title": "Comprehensive Observability...",
-      "type": "User Story",
-      "stage": 1,
-      "sub_state": null,
-      "last_action": "plan_posted",
-      "last_action_time": "2026-03-19T10:30:00Z",
-      "worktree_path": null,
-      "branch": null,
-      "pr_id": null,
-      "addressed_thread_ids": [],
-      "error_count": 0,
-      "notes": "Plan v1 posted, awaiting feedback"
-    }
-  }
+  "timestamp": "...",
+  "sprint": "...",
+  "passCount": 5,
+  "devName": "...",
+  "actionable": [ ... ],
+  "skipped": [ ... ],
+  "errors": [ ... ],
+  "summary": "..."
 }
 ```
 
-**`sub_state` valid values:** `null` (Stage 1 or 3), `"2a"` (awaiting review),
-`"2b"` (feedback pending), `"2c"` (approved), `"2d"` (revision cap).
-
-If the file does not exist, initialize an empty state object. The file will be
-written at the end of this pass (Phase 6).
-
-### 0.2 — Identify the User
-
-Run `git config user.email` and `git config user.name` to get the user's
-identity. Cache in state for bot comment prefixes (`[<dev name>'s bot]`).
-
-### 0.3 — Get Current Sprint
-
-Call `getCurrentSprint` to get the active sprint iteration path.
-
-### 0.4 — Query Assigned Work Items
-
-Use `getMyWorkItems` or `listWorkItems` with a WIQL query:
-
-```
-SELECT [System.Id], [System.Title], [System.WorkItemType], [System.State],
-       [System.AssignedTo]
-FROM WorkItems
-WHERE [System.AssignedTo] = @Me
-  AND [System.IterationPath] UNDER '<current sprint path>'
-  AND [System.WorkItemType] IN ('Bug', 'Task', 'User Story')
-  AND [System.State] NOT IN ('Closed', 'Done', 'Removed', 'Resolved')
-ORDER BY [System.ChangedDate] DESC
-```
-
-**Fallback for stale sprints**: If the current sprint has ended (past its end
-date) or the query returns zero results, fall back to querying by state only:
-
-```
-WHERE [System.AssignedTo] = @Me
-  AND [System.WorkItemType] IN ('Bug', 'Task', 'User Story')
-  AND [System.State] IN ('New', 'Active')
-ORDER BY [System.ChangedDate] DESC
-```
-
-If still no work items, report "No open work items assigned to you" and STOP.
-
-### 0.5 — Verify Worktree Inventory
-
-If state has any work items with `worktree_path` set, verify those worktrees
-still exist on disk:
-
-```bash
-git worktree list
-```
-
-For each worktree in state:
-- If the directory still exists on disk → keep it
-- If the directory is gone (manually deleted) → clear `worktree_path` and
-  `branch` from state. If the work item is still active, a new worktree will
-  be created when needed.
-
-Also clean up completed items: if a work item in state has a linked PR that is
-now merged/completed, remove its worktree (`git worktree remove <path>`) and
-remove the item from `state.work_items`.
+Print the `summary` field — it's a pre-formatted text overview of the scan.
 
 ---
 
-## Phase 1 — Classify & Order Work Items
+## Phase 1 — Process Actionable Items
 
-### 1.1 — Classify Each Work Item
+For each item in the `actionable` array, the `action` field tells you what to do:
 
-For each work item, fetch full details with `getWorkItemById` and
-`getWorkItemComments` to inspect comments and linked PRs. **Fetch all work
-items in parallel** — make concurrent `getWorkItemById` + `getWorkItemComments`
-calls for every item simultaneously to minimize classification time.
+### `action: "plan"` — Stage 1 (Fresh, needs planning)
 
-**Classification logic** (check in this order):
+Spawn a **background agent** that invokes `ado:work-on <workItemId>`.
 
-1. **Check for linked active PRs** — Look at the work item's relations/links
-   for pull request links. For each linked PR, call `getPullRequest` to check
-   if it's active (not merged, completed, or abandoned).
+The packet includes the work item's title, description, acceptance criteria,
+area path, and linked items — but `work-on` will fetch its own context anyway.
+The key value is knowing THIS item needs a plan.
 
-   - **Has active PR** → **Stage 3** (PR published, needs babysitting)
+**Concurrency**: All Stage 1 items can run in parallel (planning is read-only).
 
-2. **Check for BOT-PLAN marker** — Scan all comments for `<!-- BOT-PLAN v`.
+### `action: "revise_plan"` — Stage 2b (Feedback, needs revision)
 
-   - **Has plan comment** → **Stage 2** — then sub-classify by approval status:
+Spawn a **background agent** that invokes `ado:work-on <workItemId>`.
 
-     To sub-classify, find the latest BOT-PLAN comment (highest version number),
-     collect all human comments posted AFTER it (exclude comments containing
-     `[bot]`), and check for approval signals (case-insensitive): `approved`,
-     `lgtm`, `looks good`, `go ahead`, `proceed`, `ship it`, `good to go`,
-     `start implementation`.
+The packet includes:
+- `planVersion`: Current plan version (e.g., 2)
+- `planText`: The full plan text
+- `feedback[]`: Array of `{ author, date, text }` — the exact human feedback
 
-     | Sub-state | Condition | Action |
-     |-----------|-----------|--------|
-     | **2a — Awaiting Review** | No human comments after plan | **SKIP** — do not process. Plan was posted but no human has reviewed it yet. |
-     | **2b — Feedback Pending** | Human comments exist but no approval signal | Route to **revision batch** (Phase 3.2). |
-     | **2c — Approved** | Human comment contains an approval signal with no actionable feedback alongside it | Route to **implementation group** (Phase 3.3). If approval appears alongside actionable feedback (e.g., "LGTM, but fix the naming"), treat as **2b** — feedback takes priority over approval. |
-     | **2d — Revision Cap** | Plan version is v3 or higher (regardless of comments) | Route to **implementation group** (Phase 3.3) — revision cap reached. |
+Pass the feedback array to the agent so it has context without needing to
+re-fetch comments. `work-on` auto-detects revision mode.
 
-     **CRITICAL — No implicit approval in autonomous mode.** When running in the
-     autonomous backlog loop, the absence of human comments does NOT constitute
-     approval. Unlike interactive `/work-on` where a user manually re-runs the
-     command (signaling they reviewed and accepted the plan), the backlog
-     processor re-invokes work-on automatically on a timer. Treating silence as
-     approval would bypass human review — a core safety gate. Items in sub-state
-     2a MUST be skipped until a human posts an explicit approval signal or
-     feedback on the work item.
+**Concurrency**: All Stage 2b items can run in parallel (only posting comments).
 
-3. **Neither** → **Stage 1** (fresh — needs initial planning)
+### `action: "implement"` — Stage 2c/2d (Approved or revision cap)
 
-**Cross-check with saved state**: If a work item was Stage 2 last pass but now
-has a PR, it advanced to Stage 3. If it was Stage 3 but the PR is now merged,
-it's done — remove from tracking. Update the state accordingly.
+**GATE CHECK**: Verify `approvalSource` is either `"human"` (explicit approval)
+or `"revision_cap"` (plan v3+). This is the safety gate — never implement
+without one of these conditions.
 
-### 1.2 — Resolve Dependencies
+For each item:
+1. **Ensure worktree exists** — Create at `.worktrees/wi-<id>/` with branch
+   `work-item/<id>-<slugified-title>` if not already present.
+2. **Spawn a background agent** in the worktree that invokes
+   `ado:work-on <workItemId>`.
 
-Before processing, check for dependency relationships that affect ordering.
+The packet includes the approved plan text and any approver feedback.
 
-For each work item, inspect its `Relations` field (from `getWorkItemById`):
-- **Parent / Child** — children should be processed before parent (parent
-  can't be resolved until children are done)
-- **Predecessor / Successor** — predecessors first
-- **Related** — no strict ordering, but group them so related items run
-  in sequence (they likely touch the same code)
+**Concurrency**: Independent items can run in parallel (isolated worktrees).
+Items with dependency relationships (from the scanner's state files) should
+be sequenced.
 
-Build a simple dependency graph within each stage. If work item A is a
-predecessor of B, process A before B within the same stage. If A (Stage 2) is
-a parent of B (Stage 1), B should be planned first since A depends on it.
+### `action: "babysit_pr"` — Stage 3 (PR published)
 
-For **cross-stage dependencies**, note them but don't reorder across stages.
-Stage 3 always processes first (closest to done). Within a stage, respect the
-dependency order.
+The packet includes everything pre-fetched:
+- `prId`, `sourceBranch`, `targetBranch`
+- `mergeStatus`: `{ hasConflicts, status }`
+- `reviewerVotes[]`: `{ name, vote }`
+- `builds[]`: `{ buildId, result, definitionName, failureSummary }`
+- `unresolvedThreads[]`: `{ threadId, status, filePath, lineNumber, comments[] }`
+- `addressedThreadIds[]`: Thread IDs already addressed in previous passes
 
-If circular dependencies are detected, log a warning and fall back to
-`ChangedDate DESC` ordering.
+Spawn the `ado:babysit-pr-worker` **agent** (NOT the full babysit-pr skill)
+for a **single pass**. Provide all the pre-fetched context so the agent
+doesn't need to re-query ADO.
 
-### 1.3 — Present the Classification
-
-Log the classification summary:
-
-```
-Sprint: <sprint name> | Pass #<N> | Last run: <time>
-
-Stage 3 — PR Published (babysit):
-  #1234  Fix login timeout bug         PR !567  [worktree: .worktrees/wi-1234]
-  #1235  Add retry logic               PR !568  [worktree: .worktrees/wi-1235]
-
-Stage 2c — Approved (implement):
-  #1240  Refactor auth middleware       Plan v2, approved by @user
-
-Stage 2d — Revision Cap (implement):
-  #1246  Fix connection pooling          Plan v3, revision cap reached
-
-Stage 2b — Feedback Pending (revise):
-  #1243  Update error handling          Plan v1, feedback from @reviewer
-
-Stage 2a — Awaiting Review (skip):
-  #1244  Add caching layer              Plan v1, no human response yet
-    └─ SKIPPED — awaiting plan approval
-
-Stage 1 — Fresh (plan needed):
-  #1250  Implement user preferences
-  #1251  Add export to CSV
-  #1252  Dashboard loading optimization
-```
-
-**Auto mode (default)**: Proceed immediately without waiting for confirmation.
-Only pause if the user explicitly asked to be consulted.
+**Concurrency**: All Stage 3 items can run in parallel (each in its own worktree).
 
 ---
 
-## Phase 2 — Process Stage 3 (PR Babysitting)
+## Phase 2 — Processing Order
 
-Process Stage 3 items first — they're closest to completion.
+Process items in this order (closest to done first):
 
-### Concurrency: All items in parallel
+1. **Stage 3** (babysit PRs) — all in parallel
+2. **Stage 2c/2d** (implement approved plans) — parallel by execution group
+3. **Stage 2b** (revise plans) — all in parallel
+4. **Stage 1** (create plans) — all in parallel
 
-For each Stage 3 work item, check whether babysitting is actually needed before
-spawning an agent. A quick-check with `getPullRequest` can reveal:
-- All builds green + all threads resolved + reviewer approved → **no-op**, skip
-- PR merged/completed/abandoned → **no-op**, mark as done in state, skip
-- Otherwise → needs babysitting
-
-For items that need work, spawn the `ado:babysit-pr-worker` **agent** directly
-(not the full `babysit-pr` skill) for a **single pass**. Each PR operates in
-its own worktree, so run **all babysit agents in parallel** using background
-agents — no cap needed since worktree isolation prevents conflicts.
-
-This is critical: the full `babysit-pr` skill runs a continuous polling loop
-that would block the backlog processor. Since `work-my-backlog` is itself run
-in a loop, each invocation does one pass per PR and exits. The next loop
-iteration picks up anything still pending.
-
-When spawning each `babysit-pr-worker` agent, provide:
-- PR number and source/target branches
-- Build/test commands (detect from repo root: `.sln` → dotnet, `package.json`
-  → npm, etc.)
-- Previously addressed thread IDs (from `state.work_items[id].addressed_thread_ids`)
-- ADO context (project name, area path from the work item)
-- **Worktree path**: The agent must work in the work item's dedicated worktree
-  (see Phase 5 — Worktree Management). Pass the worktree path so the agent
-  operates in isolation.
-
-After all Stage 3 agents complete:
-- Update `addressed_thread_ids` in state with newly resolved threads
-- Record `last_action` and `last_action_time`
-- Report which PRs had issues fixed, which were no-ops
+Wait for each stage group to complete before starting the next only if there
+are dependency relationships between items across groups.
 
 ---
 
-## Phase 3 — Process Stage 2 (Plan Revision / Implementation)
+## Phase 3 — Report
 
-Process Stage 2 items next — they have momentum.
-
-### GATE CHECK — Plan Approval Validation (mandatory)
-
-Before processing ANY Stage 2 item for implementation, validate that the
-implementation plan has been explicitly approved by a human reviewer.
-
-**This is a non-negotiable safety gate.** Implementation MUST NOT begin on a
-work item unless one of these conditions is met:
-
-1. **Explicit approval** (sub-state 2c): A human comment after the latest
-   BOT-PLAN contains one of the approval signals defined in Phase 1.1
-   with no contradicting feedback.
-2. **Revision cap reached** (sub-state 2d): The plan version is v3 or higher,
-   meaning 3 revision cycles have been exhausted.
-
-**Items that MUST NOT be sent to implementation:**
-
-- **Sub-state 2a (Awaiting Review)**: No human has commented on the plan.
-  Log: `#<id> — SKIPPED: awaiting plan approval (no human response)` and
-  move to the next item.
-- **Sub-state 2b (Feedback Pending)**: Human feedback exists but no approval
-  signal. Route to revision batch only (Phase 3.2).
-
-**Verification step:** For each Stage 2 item entering Phase 3.3 (implementation),
-confirm the sub-state is 2c or 2d. If not, do not process — skip the item and
-log the reason. This check is the final safeguard against starting work on an
-unapproved plan.
-
-### Concurrency: Parallel by dependency group
-
-Stage 2 work items go through `ado:work-on`. Since each work item operates in
-its own dedicated worktree (Phase 5), items that are **independent of each
-other** can safely run in parallel. Only items with direct dependency
-relationships (parent/child, predecessor/successor, or touching the same code
-area) must be sequenced.
-
-### 3.1 — Build Execution Groups
-
-Using the dependency graph from Phase 1.2, partition Stage 2 items into
-**execution groups** — sets of items that can run concurrently:
-
-1. **Filter by sub-state first:**
-   - Sub-state 2a (Awaiting Review) → **SKIP entirely** — log and exclude
-   - Sub-state 2b (Feedback Pending) → **Revision batch** (Phase 3.2)
-   - Sub-state 2c (Approved) → **Implementation groups** (Phase 3.3)
-   - Sub-state 2d (Revision Cap) → **Implementation groups** (Phase 3.3)
-2. **Identify independent items** — Within the implementation pool (2c + 2d
-   only), items with NO dependency edges between them go into the same
-   execution group.
-3. **Sequence dependent chains** — If A must precede B, put A in an earlier
-   group. B goes in the next group (it runs after A's group completes).
-
-**Example grouping:**
-```
-Skipped (awaiting plan approval):
-  #1244 — plan v1 posted, no human response yet
-
-Revision batch (parallel — no code changes):
-  #1240 — has feedback, needs plan revision
-  #1243 — has feedback, needs plan revision
-
-Implementation group 1 (parallel — independent, approved):
-  #1241 — approved by @user, no deps
-  #1245 — approved by @reviewer, no deps to group-1 items
-
-Implementation group 2 (parallel — depends on group 1):
-  #1242 — predecessor #1241 finished in group 1 (revision cap v3)
-```
-
-### 3.2 — Process Revision Batch
-
-For items in revision mode (plan has unaddressed feedback), spawn all as
-**parallel background agents** — each invokes `ado:work-on <id>` to revise
-the plan and repost. No worktrees needed. Run ALL revision items concurrently
-since they only post comments to ADO (no code changes, no conflicts).
-
-### 3.3 — Process Implementation Groups (approved items only)
-
-**Pre-condition:** Every item in this phase MUST have sub-state 2c (explicitly
-approved) or 2d (revision cap v3+). If an item does not meet this condition,
-it was incorrectly routed — skip it and log an error.
-
-For each execution group (in dependency order):
-
-Spawn **parallel background agents** for all items in the group. For each:
-
-1. **Ensure worktree exists** (see Phase 5) — each item gets its own isolated
-   worktree so parallel agents never conflict.
-2. **Spawn a background agent** that:
-   - Changes to the work item's dedicated worktree directory
-   - Invokes `ado:work-on <work-item-id>` via the Skill tool
-   - `work-on` auto-detects the right action:
-     - Plan approved → implements, verifies, publishes PR
-     - Plan at v3 cap → implements regardless
-3. Wait for **all agents in this group** to complete before starting the next
-   group (dependencies require it).
-
-### 3.4 — Update State After All Groups
-
-After all groups complete:
-- **Update state** for each item: record what happened (plan revised, PR
-  published, etc.), update stage if it advanced (Stage 2 → Stage 3 after PR
-  publish), record branch name and PR ID if created.
-- If `work-on` needed user clarification (posted questions to the work item),
-  note this in state (`last_action: "questions_posted"`) — the next loop pass
-  will pick it up.
-
----
-
-## Phase 4 — Process Stage 1 (Fresh Work Items — Planning)
-
-Process Stage 1 items last — planning is the bottleneck since it requires
-human review before implementation.
-
-### Concurrency: All items in parallel
-
-Planning is read-only — no branches, no code changes, just codebase analysis
-and posting a plan comment. This means **all Stage 1 items can be planned in
-parallel** without risk of conflicts, and dependency ordering does not matter
-here (it only matters at Stage 2 when code is being written).
-
-Spawn **one background agent per Stage 1 work item** — all concurrently. Each
-agent invokes `ado:work-on <work-item-id>` and will:
-1. Analyze the work item
-2. Research the codebase
-3. Create an implementation plan
-4. Post the plan as a comment on the work item
-5. STOP (waiting for human review)
-
-No worktrees needed — planning agents only read the codebase and post comments.
-No cap on parallel agents since there are no shared-state conflicts.
-
-After all agents complete, update state for each item:
-- `stage: 2` (now has a plan)
-- `last_action: "plan_posted"`
-- `last_action_time: <now>`
-
----
-
-## Phase 5 — Worktree Management
-
-Each work item that enters implementation (Stage 2 with approved plan, or
-Stage 3) gets its own dedicated git worktree. This ensures multiple work items
-can be worked on without branch conflicts.
-
-### Creating a Worktree
-
-When a work item first needs a worktree (transitioning from planning to
-implementation):
-
-1. **Check if one already exists** — Look in `state.work_items[id].worktree_path`.
-   If it has a path and the directory exists, reuse it.
-
-2. **Create a new worktree** — Follow `development/reference/git-worktrees-guide.md`:
-   - Directory: `.worktrees/wi-<id>/` (e.g., `.worktrees/wi-7084551/`)
-   - Branch: `work-item/<id>-<slugified-title>` (same convention as `work-on`)
-   - Save the path to `state.work_items[id].worktree_path`
-   - Save the branch to `state.work_items[id].branch`
-
-3. **Pass to agents** — When spawning `work-on` or `babysit-pr-worker`, provide
-   the worktree path. The agent must `cd` to the worktree before doing any work.
-
-### Cleaning Up Worktrees
-
-When a work item is fully done (PR merged, state = Closed/Resolved):
-- Remove the worktree: `git worktree remove <path>`
-- Clear `worktree_path` and `branch` from state
-- Remove the work item from `state.work_items`
-
-### Worktree Inventory
-
-Handled in Phase 0.5 at the start of each pass — see that section for details.
-
----
-
-## Phase 6 — Save State & Summary
-
-### 6.1 — Save State
-
-Write the updated state to `scratchpad/work-my-backlog/state.json`. This is
-the most important step — it's the memory that makes the loop work.
-
-Update:
-- `last_run` timestamp
-- `pass_count` increment
-- Each work item's `stage`, `last_action`, `last_action_time`, worktree/branch/
-  PR info, addressed thread IDs, and notes
-
-Remove work items that are fully done (PR merged, work item Closed/Resolved).
-
-### 6.2 — Present Summary
+Print a summary of what was done:
 
 ```
-Backlog Processing Complete — Pass #<N>
-========================================
+Backlog Processing Complete — Pass #<passCount>
+================================================
 
 Stage 3 (PR Babysitting):
   #1234 — Fixed 2 review comments, builds green
-  #1235 — No-op, already approved and green
+  #1235 — No-op, already healthy
 
-Stage 2c — Approved (Implementation):
-  #1240 — Plan approved, implementation complete, PR !570 created
+Stage 2c/2d (Implementation):
+  #1240 — Implementation complete, PR !570 created
 
-Stage 2b — Feedback (Revision):
-  #1243 — Plan revised to v2 based on feedback, reposted
-
-Stage 2a — Awaiting Review (Skipped):
-  #1244 — Plan v1 posted, no human response yet — skipped
+Stage 2b (Plan Revision):
+  #1243 — Plan revised to v2, reposted
 
 Stage 1 (Planning):
-  #1250 — Implementation plan posted, awaiting review
-  #1251 — Implementation plan posted, awaiting review
-  #1252 — Had questions, posted to work item for clarification
+  #1250 — Implementation plan posted
 
-Dependency notes:
-  #1240 depends on #1241 — #1241 still in Stage 1, blocking implementation
+Skipped:
+  #1244 — Plan v1 awaiting review (no human response)
+  #1245 — No changes since last scan
+
+Errors:
+  #1246 — API timeout (will retry next pass)
 
 Next loop iteration will pick up feedback and advance items further.
 ```
@@ -494,18 +186,31 @@ Next loop iteration will pick up feedback and advance items further.
 
 ## Error Handling
 
-- **ADO MCP not configured** — If the first MCP call fails, invoke
-  `ado:setup-ado-mcp` to auto-configure, then retry.
-- **Work item fetch fails** — Skip that item, increment `error_count` in state,
-  report the error, continue with others.
-- **work-on or babysit-pr fails** — Report the failure, increment `error_count`,
-  continue with remaining items. After 3 consecutive errors for the same item
-  across passes, flag it as stuck and skip it on future passes until the user
-  intervenes.
-- **Worktree creation fails** — Inform user (environment issue). Skip that work
-  item's implementation but continue with others.
-- **State file corrupted** — If JSON parse fails, back up the corrupted file
-  as `state.json.bak`, initialize fresh state, and continue. Log a warning.
+- **Scanner fails to run** (Node.js not available, script error): Check
+  `node --version` is 18+. If persistent, report the error.
+- **ADO MCP not configured** (scanner auth fails): Invoke `ado:setup-ado-mcp`
+  to auto-configure, then retry the scan.
+- **Individual work item errors**: Reported in `errors[]` — log and continue.
+  The scanner tracks `errorCount` per item; after 3 consecutive errors it
+  auto-skips the item.
+- **Agent failures**: If `work-on` or `babysit-pr-worker` fails, log the error
+  and continue with remaining items.
+
+---
+
+## State
+
+All state is managed by the scanner at `.ai/work-my-backlog/`:
+
+| File | Purpose |
+|------|---------|
+| `scan-state.json` | Global: pass count, sprint, dev identity |
+| `last-scan.json` | Latest ScanResult (for daemon consumption) |
+| `wi-<id>.json` | Per-work-item: stage, sub-state, timestamps, PR link |
+| `pr-<id>.json` | Per-PR: last commit, build result |
+| `activity.jsonl` | Append-only event log |
+
+The LLM does NOT need to manage state — the scanner handles it.
 
 ---
 

@@ -12,7 +12,7 @@
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, autonomous work item implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "2.8.0",
+      "version": "2.9.0",
       "category": "development",
       "tags": [
         "azure-devops",
