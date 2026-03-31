@@ -8,6 +8,8 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
 - If previous review comments exist from this reviewer (or Claude), this is a re-review
 - Extract the previous issue list (numbered issues with severities) from the last review summary comment
 - Note which issues the author responded to (replies to review threads)
+- **Extract previous `[QUESTION]` threads** — identify which questions were answered
+  and which remain unanswered. Read the answers to build additional review context.
 
 ## Step 2: Find what changed since last review
 
@@ -30,6 +32,28 @@ Create a table tracking each previous issue:
 ```
 
 Status values: `RESOLVED`, `ACTIVE`, `WON'T FIX`
+
+### Build question resolution tracker
+
+Create a separate table tracking each previous `[QUESTION]` thread:
+
+```
+| # | Previous Question | File:Line | Status | Answer Summary |
+|---|---|---|---|---|
+| 1 | Why is retry count hardcoded to 3? | RetryService.cs:45 | ANSWERED | "Business rule: max 3 retries per SLA" |
+| 2 | Is partial update intentional? | BulkUpload.cs:120 | UNANSWERED | — |
+```
+
+Status values: `ANSWERED`, `UNANSWERED`
+
+**Using answered questions:**
+- Feed answered questions into the re-review context — the reviewer now has
+  information they lacked in the previous review
+- An answer may cause previously uncertain code to become a finding (if the
+  answer reveals the code is wrong) or confirm correctness (if the answer
+  justifies the approach)
+- Close answered question threads using `updatePullRequestThread`
+- Leave unanswered questions open — they are non-blocking and carry forward
 
 ## Step 3.5: Satisfaction Check
 
@@ -118,9 +142,16 @@ Use a structured format:
 | # | Issue | Severity | Resolution |
 |---|---|---|---|
 
+### Previous Questions Status
+| # | Question | Status | Impact on Review |
+|---|----------|--------|------------------|
+
 ### New Issues Found (in updated code)
 #### [SEVERITY] - [Issue Title]
 ...
+
+### New Context Questions
+(if any new uncertainties arose from the delta or from answered questions)
 
 ### Verdict
 APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
@@ -144,6 +175,15 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
   standards as the first. Time pressure and iteration count are not reasons to
   accept unresolved CRITICAL/HIGH/MEDIUM issues.
 - **Call out NEW issues** — clearly distinguish new findings from previous ones
-- **Post summary in same thread** — always reply to the last review comment, no need to add new threads. Resolve this thread if all issues are resolved.
+- **Post summary in same thread** — always reply to the existing review summary
+  thread (the `post-pr-review` skill handles thread detection automatically).
+  Do NOT create a new top-level summary comment.
 - **DO NOT POST** anything if nothing changed in the PR since last review.
+- **Incorporate answered questions** — read answers to previous `[QUESTION]`
+  threads. Use the context they provide to inform the re-review. Close answered
+  question threads. If an answer reveals a defect, open a new finding thread
+  (not a question).
+- **Ask new questions sparingly on re-review** — only ask new questions if the
+  delta code introduces new uncertainties. Do not re-ask questions that were
+  already answered.
 </re_review_rules>

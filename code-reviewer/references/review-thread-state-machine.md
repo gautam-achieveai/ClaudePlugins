@@ -14,6 +14,8 @@
 | **Resolved** | The developer fixed the code and replied with evidence. Awaiting reviewer verification. |
 | **Won't Fix** | The developer declined the suggestion with a rationale. Awaiting reviewer acceptance. |
 | **Closed** | The reviewer verified the resolution (or accepted Won't Fix) and closed the thread. Terminal state. |
+| **Question** | The reviewer posted a `[QUESTION]` comment requesting clarification. Non-blocking — does not affect verdict. |
+| **Answered** | The developer replied to a `[QUESTION]` thread with an answer. Awaiting reviewer acknowledgement. |
 
 ```
                   ┌──────────────────────────────┐
@@ -130,3 +132,66 @@ The reviewer rejects the rationale:
 4. **Deferral is a valid Won't Fix** — if the developer creates a work item/bug to track the issue and references its ID, that counts as a valid Won't Fix rationale. The reviewer should verify the work item exists before closing.
 5. **Every reply uses the bot prefix** — `[<dev name>'s bot]` for developer replies
 6. **Evidence over assertions** — "Fixed" must point to actual code changes; "Won't Fix" must provide technical reasoning
+
+## Question Thread Lifecycle
+
+Question threads follow a separate, lightweight lifecycle. They are always
+non-blocking and never affect the verdict.
+
+### States
+
+```
+            ┌──────────┐   author replies    ┌──────────┐   reviewer reads    ┌────────┐
+            │ Question │ ──────────────────► │ Answered │ ──────────────────► │ Closed │
+            └──────────┘                     └──────────┘                     └────────┘
+                 │                                                                ▲
+                 │  no answer needed                                               │
+                 │  (answered by context)                                          │
+                 └────────────────────────────────────────────────────────────────┘
+```
+
+### Question → Answered
+
+The developer replies to the `[QUESTION]` thread:
+
+```
+[<dev name>'s bot] Answer: <explanation of the intent/context>
+```
+
+Requirements:
+- Any substantive reply counts as an answer — no minimum detail bar
+- The answer should address the specific uncertainty raised
+
+### Answered → Closed
+
+The reviewer reads the answer and incorporates it into their review context:
+1. If the answer resolves the uncertainty → close the thread
+2. If the answer reveals a defect → the reviewer opens a NEW finding thread
+   (the question thread is still closed — the finding is a separate concern)
+3. Use `updatePullRequestThread` to close the thread
+
+### Question → Closed (Direct)
+
+The reviewer closes the question without an answer:
+- The uncertainty was resolved by other context (e.g., another comment, the
+  PR description was updated, a sibling PR clarified the intent)
+- Use `updatePullRequestThread` to close the thread
+
+### Re-Review Behavior
+
+During re-review (see [Re-Review Workflow](code-reviewer/skills/pr-review/reference/re-review-workflow.md)):
+1. Check all `[QUESTION]` threads from the previous review
+2. If answered → read the answer, incorporate into review context, close thread
+3. If unanswered → the question remains open (non-blocking, does not affect verdict)
+4. Answers may cause the reviewer to upgrade or downgrade findings from the
+   previous review — this is the intended purpose of questions
+
+### Rules
+
+1. **Questions are ALWAYS non-blocking** — they never prevent approval or merge
+2. **Questions never escalate to findings** — if an answer reveals a defect, open
+   a separate finding thread with proper severity
+3. **No "question fatigue"** — cap at 10 questions per review. If more exist,
+   keep the highest-impact ones
+4. **Questions use `[QUESTION]` tag** — this is how they're identified and
+   distinguished from findings. The tag must appear immediately after the bot prefix.

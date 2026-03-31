@@ -8,6 +8,7 @@ Present findings in severity-grouped format:
 ## Summary
 - Total files reviewed: X
 - Findings: X Critical, X High, X Medium, X Low
+- Context questions: X (non-blocking clarifications asked)
 - Test coverage: adequate / needs improvement / missing
 - Domain areas touched: [NScript Client, Server, Orleans, Tests, etc.]
 - Branch convention: OK / non-conforming
@@ -31,6 +32,15 @@ Only include if there are real strengths — do not manufacture praise.
 ## Low Issues
 | # | File | Line | Blocker? | Issue | Fix |
 |---|---|---|---|---|---|
+
+## Context Questions (non-blocking)
+
+Areas where the reviewer needs clarification to make a confident assessment.
+These do NOT affect the verdict — they are posted as separate `[QUESTION]`
+inline comments for the PR author to answer.
+
+| # | File | Line | Question | What Answering Unlocks |
+|---|------|------|----------|------------------------|
 
 ## Testing Assessment
 Coverage gaps, suggested tests, missing test project mappings

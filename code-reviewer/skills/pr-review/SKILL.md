@@ -253,6 +253,40 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 4. **Check the code for coding Guidelines**: `<parallel agent — use reference/code-project-alignment-guide.md>`
 
+   <agent_question_guidance>
+   **Context Question Emission — applies to ALL agents dispatched in steps 4-8:**
+
+   When reviewing code, if you encounter an area where you **cannot confidently
+   determine correctness** due to missing context, emit a `[QUESTION]` item alongside
+   your findings. Do NOT guess or silently skip — surface the uncertainty.
+
+   **Emit a question when:**
+   - Code does something unusual but it might be intentional (business rule, edge case)
+   - A design choice seems suboptimal but could be justified by context you don't have
+   - A TODO/HACK comment exists but the urgency and plan are unclear
+   - Domain-specific logic that you don't fully understand
+   - A dependency is used in a way that might be correct for the specific integration
+
+   **Do NOT emit a question when:**
+   - You can determine correctness from the code alone
+   - The issue is clearly a defect — emit a finding instead
+   - The PR description or work item already explains the intent
+
+   **Question format:**
+
+   ```
+   ## Question [N]
+   - File: [path:line]
+   - Code Context: [the specific code snippet]
+   - Uncertainty: [what you cannot determine and why]
+   - What Answering Unlocks: [what you could assess with an answer]
+   - Suggested Answers: [optional — 2-3 possible answers]
+   ```
+
+   Include questions in your output alongside findings. They will be collected
+   in Step 10 and posted as `[QUESTION]` inline comments.
+   </agent_question_guidance>
+
 - **Code alignment (CRITICAL FIRST)**: Read [Code Alignment Guide](reference/code-project-alignment-guide.md) and verify code follows existing project patterns, no duplication, proper framework usage, consistency with team standards.
 - **Review the code**: Look for adherence to coding standards, best practices, and project guidelines.
 - **Check for tests**: Use [Testing Assessment Guide](reference/testing-guide.md) — ensure there are appropriate unit tests, integration tests, and end-to-end tests for the changes made.
@@ -384,7 +418,64 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - Existing tests were modified but not in a way that covers the new behavior
    - Test methods lack `[TestCategory("CI")]` for CI pipeline inclusion
 
-10. **Severity Grading — Quality Gate**: `<Dispatch review-grader agent>`
+10. **Consolidate Context Questions**: `<Collect from all agent outputs>`
+
+    During steps 4-9, review agents may encounter code where they **cannot confidently
+    determine correctness** because they lack business context, intent, or domain
+    knowledge. Instead of guessing or silently skipping, agents emit `[QUESTION]` items
+    alongside their findings. This step consolidates those questions.
+
+    <context_questions_philosophy>
+    **Why questions matter:**
+
+    A reviewer who silently skips an uncertain area provides a false sense of coverage.
+    A reviewer who guesses creates false positives that erode trust. Context questions
+    are the honest middle ground — they say "I noticed something that might be wrong,
+    but I need your input to know for sure." This is more valuable than either silence
+    or noise.
+
+    **Questions are NOT findings.** They don't assert a defect. They signal reviewer
+    uncertainty and request author clarification. They are always non-blocking.
+    </context_questions_philosophy>
+
+    **When agents should emit questions (guidance given to all agents in steps 4-8):**
+
+    - The code does something unusual but it might be intentional (business rule, edge case handling, legacy constraint)
+    - A design choice seems suboptimal but could be justified by context the reviewer doesn't have
+    - The PR implements partial logic and it's unclear if the rest is in a sibling PR or missing
+    - A TODO/HACK comment exists but the urgency and plan are unclear
+    - The code handles a scenario the reviewer doesn't fully understand (domain-specific logic)
+    - A dependency or external service is used in a way that might be correct for the specific integration but looks wrong in isolation
+
+    **Question format (as emitted by agents):**
+
+    ```
+    ## Question [N]
+    - File: [path:line]
+    - Code Context: [the specific code snippet that triggered the question]
+    - Uncertainty: [what the reviewer cannot determine and why]
+    - What Answering Unlocks: [what the reviewer could assess if this question is answered]
+    - Suggested Answers: [optional — 2-3 possible answers to guide the author's response]
+    ```
+
+    **Consolidation workflow:**
+
+    1. Collect all `[QUESTION]` items from agent outputs in steps 4-9
+    2. De-duplicate: if two agents ask about the same code area, merge into one question
+       that captures both angles
+    3. Filter out questions that are already answered by the PR description, work item
+       context (from `pr-context`), or inline code comments
+    4. Rank by review impact: questions that would affect severity grading or verdict
+       determination rank higher
+    5. Cap at **10 questions per review** — if more exist, keep the highest-impact ones
+       and note "N additional questions omitted for brevity"
+
+    **What flows forward:**
+    - Questions do NOT go to the review-grader (Step 11) — they are separate from findings
+    - Questions go directly to the `post-pr-review` skill (Step 12) for posting as
+      inline comments with `[QUESTION]` tag
+
+11. **Severity Grading — Quality Gate**: `<Dispatch review-grader agent>`
 
    Before determining the verdict, dispatch the `review-grader` agent to re-evaluate all
    findings through 10 impact dimensions. This is **mandatory for every review** — the grader
@@ -407,7 +498,7 @@ Use this framework after fetching PR metadata and the changes summary to decide 
       ```
    4. Dispatch `review-grader` with the formatted findings list
    5. When the grader returns, **use the graded severities** (not the originals) for verdict
-      determination in Step 11
+      determination in Step 12
 
    **What the grader returns:**
    - Escalated findings with dimension scores and rationale
@@ -418,63 +509,58 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    If the grader escalates any finding, note the escalation in the review summary so the PR
    author understands why the severity differs from what a domain agent might suggest.
 
-11. **Provide Feedback**: `<Post comments via Azure DevOps MCP tools>`
+12. **Provide Feedback**: `<Invoke post-pr-review skill>`
 
-   Post the graded findings to the PR. Use the **graded severities** from Step 10 for all
-   severity labels and verdict determination. When an external agent from step 8 flags the
-   same issue already found in steps 4-7, keep the more detailed version and discard the
-   duplicate.
+    Delegate all comment posting, question posting, and summary thread management to the
+    `post-pr-review` skill. This skill owns the full "publish review results to ADO"
+    workflow.
 
-   **Comment posting priority (most specific first):**
+    **Invoke:**
 
-   1. **Inline comments** (`mcp__azure-devops__addPullRequestInlineComment`) — Use for issues tied to specific lines. This is the PREFERRED method. Requires file path, line number, and comment text. If inline commenting fails (e.g., line not in diff), fall back to file-level.
-   2. **File comments** (`mcp__azure-devops__addPullRequestFileComment`) — Use when the issue is about the file but not a specific line (e.g., missing imports, wrong naming convention).
-   3. **General comments** (`mcp__azure-devops__addPullRequestComment`) — Use for cross-cutting concerns, summary, and verdict. Post the full review summary as a general comment.
+    ```
+    skill: "code-reviewer:post-pr-review"
+    ```
 
-   **Comment format with blocker tag:**
+    **Pass the following inputs:**
 
-   Blocking findings MUST include the `[BLOCKER]` tag:
+    | Field | Source |
+    |-------|--------|
+    | `prNumber` | PR number from Step 1 |
+    | `repository` | Repository name from Step 1 |
+    | `botPrefix` | `[<dev name>'s bot]` — the standard bot prefix for all comments |
+    | `findings[]` | Graded findings list from Step 11 (with graded severities) |
+    | `questions[]` | Consolidated context questions from Step 10 |
+    | `verdict` | Determined from graded findings — see verdict rules below |
+    | `reviewType` | `initial` or `re-review` |
+    | `outputFormatMarkdown` | The formatted review summary (from [Output Format](reference/output-format.md)) |
 
-   ```
-   [<dev name>'s bot] [BLOCKER] **<Severity>** (<Category>)
+    **Determine verdict before invoking** — default posture is skeptical; approve only when
+    confident the code improves (or at minimum does not degrade) the codebase:
+    - **APPROVE** — No Critical/High issues, no Medium issues, code genuinely
+      improves the codebase. This is the highest bar — reserve it for clean PRs.
+    - **APPROVE WITH COMMENTS** — No Critical/High issues, some Medium/Low
+      issues that should be addressed but are non-blocking. The PR is net
+      positive for the codebase despite minor issues.
+    - **REQUEST CHANGES** — Any Critical/High issues, or a pattern of Medium
+      issues that collectively indicate quality slippage (e.g., missing tests +
+      duplicated code + no error handling = systemic problem even if each is
+      individually Medium)
 
-   <Description>
+    **Always confirm with the user before invoking** — show the findings, questions,
+    and verdict first. The user must approve what gets posted to ADO.
 
-   **Suggestion:** <Suggestion>
-   ```
+    The `post-pr-review` skill handles:
+    - Posting inline/file/general comments for findings (3-tier priority with fallback)
+    - Posting inline comments for context questions (with `[QUESTION]` tag)
+    - Detecting existing summary threads and replying to them (instead of creating new ones)
+    - Optionally approving the PR (if verdict is APPROVE and user confirms)
+    - Optionally merging the PR (if user requests, with merge strategy confirmation)
 
-   Omit the `[BLOCKER]` tag for non-blocking findings (non-blocking is the default).
+    After the skill completes, proceed to Step 13 to update tracking state.
 
-   **Blocker classification rubric** (see [Review Thread State Machine](references/review-thread-state-machine.md) for full details):
-   - **BLOCKER** (tag required): Bug/correctness, security vulnerability, significant design issue, significant simplification, data loss risk, user-visible performance issue
-   - **Non-blocking** (no tag needed): Style, minor suggestions, informational, documentation, minor performance, alternative approaches
+    For re-review workflow, load [reference/re-review-workflow.md](reference/re-review-workflow.md).
 
-   <posting_rules>
-   **Workflow:**
-   - **Always confirm with the user before posting** — show the comment text first
-   - Post all CRITICAL and HIGH issues as inline/file comments first
-   - Post MEDIUM issues as inline/file comments
-   - Post the review summary (from Output Format below) as a general comment
-   - **Determine verdict** — default posture is skeptical; approve only when
-     confident the code improves (or at minimum does not degrade) the codebase:
-     - **APPROVE** — No Critical/High issues, no Medium issues, code genuinely
-       improves the codebase. This is the highest bar — reserve it for clean PRs.
-     - **APPROVE WITH COMMENTS** — No Critical/High issues, some Medium/Low
-       issues that should be addressed but are non-blocking. The PR is net
-       positive for the codebase despite minor issues.
-     - **REQUEST CHANGES** — Any Critical/High issues, or a pattern of Medium
-       issues that collectively indicate quality slippage (e.g., missing tests +
-       duplicated code + no error handling = systemic problem even if each is
-       individually Medium)
-   - **Approve the pull request**: Only use `mcp__azure-devops__approvePullRequest` if verdict is APPROVE and user confirms
-   - **Merge the pull request** (optional): If the user requests it after approval, use `mcp__azure-devops__mergePullRequest` with the appropriate merge strategy (squash for feature branches, noFastForward for release branches). Always confirm merge strategy with the user first.
-   </posting_rules>
-
-   After posting feedback, proceed to Step 12 to update tracking state.
-
-   For re-review workflow, load [reference/re-review-workflow.md](reference/re-review-workflow.md).
-
-12. **Update Review Tracking** (after posting feedback):
+13. **Update Review Tracking** (after posting feedback):
 
    **Skip this step for Local Branch Reviews** (no PR number) — tracking only
    applies to ADO pull requests.
@@ -499,13 +585,14 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    | `author` | `createdBy.displayName` from ADO |
    | `createdAt` | PR `creationDate` from ADO |
    | `lastKnownPushAt` | `lastMergeSourceCommit.committer.date` from ADO |
-   | `verdict` | Verdict from Step 11 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
+   | `verdict` | Verdict from Step 12 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
    | `status` | `completed` (or `error` if review failed) |
    | `reviewType` | `initial` or `re-review` (based on whether previous comments existed) |
    | `sourceCommitId` | HEAD commit of source branch |
    | `findings` | `{ critical, high, medium, low }` counts from review |
    | `commentsSummary` | Top 5 findings (one-line each) |
    | `blockerCount` | Number of `[BLOCKER]`-tagged findings |
+   | `questionsAsked` | Number of `[QUESTION]` comments posted |
 
    The `code-reviewer:update-pr-tracking` skill handles all storage path detection, `tracking.json` management, and per-PR review history. See its [SKILL.md](../update-pr-tracking/SKILL.md) for full details (`code-reviewer:update-pr-tracking` skill).
 

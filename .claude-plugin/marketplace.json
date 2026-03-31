@@ -78,8 +78,8 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, architecture review, performance review, severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.13.0",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, architecture review, performance review, severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
+      "version": "1.14.0",
       "category": "development",
       "tags": [
         "review",
@@ -94,6 +94,7 @@
         "code-review",
         "pr-review",
         "pr-context",
+        "post-pr-review",
         "review-pending-prs",
         "duplicate-detection",
         "euii-scanning",
