@@ -185,7 +185,55 @@ the file and line.
 Post each question as an inline comment anchored to the relevant code line.
 Questions use the `[QUESTION]` tag — distinct from findings.
 
-**For each question in `questions[]`:**
+<question_deduplication>
+**Step 5a: Check for existing questions (MUST do before posting)**
+
+Before posting any questions, fetch existing PR comments and check for questions
+we already asked in a previous review iteration:
+
+```
+mcp__azure-devops__getPullRequestComments
+  repository: <repository>
+  pullRequestId: <prNumber>
+```
+
+Scan all returned comment threads for existing `[QUESTION]` threads by looking for
+threads whose root comment contains BOTH:
+- The `botPrefix` (e.g., `[Gautam's bot]`)
+- The `[QUESTION]` tag
+
+Build an existing-questions list from matching threads:
+```
+| File | Uncertainty (first 100 chars) | Thread Status | Thread ID |
+```
+
+**Step 5b: Filter out duplicate questions**
+
+For each question in `questions[]`, check if it already exists by matching:
+1. **Same file path** (exact match, case-insensitive)
+2. **Similar question text** — the `Uncertainty` field substantially overlaps with
+   an existing question's text (same core question, even if wording differs slightly)
+
+If a match is found → **skip posting** and record it as a duplicate. The existing
+thread already captures the question — re-posting would clutter the PR.
+
+**What counts as a duplicate:**
+- Same file + same or very similar uncertainty text → duplicate (skip)
+- Same file + different question about different code → NOT a duplicate (post it)
+- Different file + similar question text → NOT a duplicate (post it)
+- Existing question was answered (thread resolved/closed) but same question still
+  applies to new code → NOT a duplicate (post it, as the context has changed)
+
+Track results:
+```
+skippedQuestions[] — questions that already exist on the PR
+newQuestions[] — questions that need to be posted
+```
+</question_deduplication>
+
+**Step 5c: Post new questions only**
+
+**For each question in `newQuestions[]`:**
 
 ```
 mcp__azure-devops__addPullRequestInlineComment
@@ -216,8 +264,10 @@ mcp__azure-devops__addPullRequestInlineComment
 - Questions do NOT affect the verdict
 - Each question is a separate comment thread (one question per comment)
 - If the line is not in the diff, fall back to file comment, then general comment
-- Cap: if `questions[]` has more than 10 items, post the top 10 (highest review
+- Cap: if `newQuestions[]` has more than 10 items, post the top 10 (highest review
   impact) and note the remainder in the summary
+- If all questions were duplicates, skip posting entirely and note in the summary:
+  `"All <count> questions were already asked in a previous review iteration."`
 
 ### Step 6: Manage Review Summary Thread
 
@@ -325,7 +375,7 @@ Return a structured confirmation to the caller:
 
 - **PR**: #<prNumber> in <repository>
 - **Findings posted**: <count> (<critical> critical, <high> high, <medium> medium, <low> low)
-- **Questions posted**: <count>
+- **Questions posted**: <count> (<skipped> skipped as already asked)
 - **Summary**: <new thread | replied to existing thread #<threadId>>
 - **Verdict**: <verdict>
 - **Approved**: Yes / No
