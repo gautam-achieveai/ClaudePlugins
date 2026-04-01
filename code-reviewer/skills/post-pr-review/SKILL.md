@@ -188,8 +188,13 @@ Questions use the `[QUESTION]` tag — distinct from findings.
 <question_deduplication>
 **Step 5a: Check for existing questions (MUST do before posting)**
 
-Before posting any questions, fetch existing PR comments and check for questions
-we already asked in a previous review iteration:
+Before posting any questions, check for questions we already asked in a previous
+review iteration. This requires the full set of PR comment threads.
+
+**Reuse already-fetched comments:** If PR comment threads were already fetched
+earlier in this workflow (e.g., by Step 4's finding dedup or any prior step),
+reuse that data — do NOT call `getPullRequestComments` again. Only fetch if no
+prior step has retrieved comments yet:
 
 ```
 mcp__azure-devops__getPullRequestComments
@@ -197,7 +202,10 @@ mcp__azure-devops__getPullRequestComments
   pullRequestId: <prNumber>
 ```
 
-Scan all returned comment threads for existing `[QUESTION]` threads by looking for
+**Cache for later:** Store the fetched threads so Step 6 (summary thread
+management) can reuse them instead of making another API call.
+
+Scan all comment threads for existing `[QUESTION]` threads by looking for
 threads whose root comment contains BOTH:
 - The `botPrefix` (e.g., `[Gautam's bot]`)
 - The `[QUESTION]` tag
@@ -278,6 +286,11 @@ clean, we **reuse the existing summary thread** instead of creating new ones.
 **Workflow:**
 
 1. **Search for existing summary thread:**
+
+   **Reuse already-fetched comments:** If Step 5a already fetched PR comment
+   threads, reuse that cached data — do NOT call `getPullRequestComments` again.
+   Only fetch if Step 5 was skipped (no questions to post):
+
    ```
    mcp__azure-devops__getPullRequestComments
      repository: <repository>
