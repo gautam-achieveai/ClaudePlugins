@@ -546,8 +546,13 @@ Use this framework after fetching PR metadata and the changes summary to decide 
       duplicated code + no error handling = systemic problem even if each is
       individually Medium)
 
-    **Always confirm with the user before invoking** — show the findings, questions,
-    and verdict first. The user must approve what gets posted to ADO.
+    **Posting is automatic** — do NOT ask the user for permission to post findings,
+    questions, or the summary to ADO. The whole point of the review workflow is to
+    publish feedback. Post immediately after determining the verdict.
+
+    **Exception — approve/merge still require confirmation:**
+    - Approving the PR (if verdict is APPROVE) — confirm with user first
+    - Merging the PR — always confirm with user first
 
     The `post-pr-review` skill handles:
     - Posting inline/file/general comments for findings (3-tier priority with fallback)
