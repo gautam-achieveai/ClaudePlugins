@@ -65,7 +65,7 @@ with implementation.*
 ### Opening Marker
 
 ```
-<!-- BOT-PLAN v<N> status:<STATUS> -->
+<!-- BOT-PLAN v<N> status:<STATUS> [type:<TYPE>] -->
 ```
 
 - **`v<N>`** — Version number, starting at `v1`. Incremented on each revision.
@@ -73,6 +73,10 @@ with implementation.*
   - `PENDING_REVIEW` — Plan posted, awaiting human feedback
   - `APPROVED` — Human approved (updated when execution begins)
   - `EXECUTING` — Implementation in progress
+- **`type`** (optional) — One of:
+  - `RCA` — Root Cause Analysis for bugs. Uses the format in
+    [rca-comment-format.md](rca-comment-format.md).
+  - Omitted — Standard implementation plan (default for features/tasks).
 
 ### Closing Marker
 
@@ -102,7 +106,7 @@ Every plan comment MUST include these sections:
 | Test Strategy | All | What tests prove the change works |
 | Verification Plan | All | Build + test commands + acceptance criteria mapping |
 | Files to Change | All | Quick-scan table of file-level impact |
-| Root Cause | Bugs only | What is causing the defect |
+| Root Cause | Bugs only | What is causing the defect (see [rca-comment-format.md](rca-comment-format.md) for the full bug template) |
 | Alternatives Considered | Features | Why this approach over others |
 
 ## Parsing Instructions

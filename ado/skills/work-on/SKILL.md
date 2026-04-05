@@ -108,11 +108,52 @@ If the work item is not found, inform the user and STOP.
 Date: <today>
 ```
 
-### Phase 1.2 — Design & Plan (via Plan Subagent)
+### Phase 1.2 — Route by Work Item Type
 
-Launch a **Plan subagent** (`subagent_type: Plan`, `model: opus`) to analyze
-the work item and produce a complete implementation plan. The Plan agent uses
-extended thinking to reason deeply about the problem.
+The approach depends on the work item type extracted in Phase 1.1:
+
+- **Bug** → Phase 1.2-Bug (Debug & Prove Root Cause)
+- **Task / User Story / Product Backlog Item / Requirement** → Phase 1.2-Feature
+  (Design & Plan)
+
+---
+
+### Phase 1.2-Bug — Debug & Prove Root Cause
+
+For bugs, speculation is not acceptable. The root cause must be **proven from
+evidence** (logs, code traces, DuckDB queries) before any fix plan is posted.
+
+Read and follow [reference/bug-rca-workflow.md](reference/bug-rca-workflow.md).
+It defines three stages:
+
+1. **Stage A — Reproduce & Collect Evidence**: Invoke `debugging:debug-with-logs`
+   to reproduce the bug, collect JSONL logs, and query them with DuckDB. If
+   reproduction fails, post questions (Phase 1.3) and STOP.
+
+2. **Stage B — Formulate Root Cause Analysis**: Extract a structured RCA where
+   every claim traces to a log entry, code path, or query result. No opinions —
+   only observed facts.
+
+3. **Stage C — Adversarial RCA Review**: Launch 2-3 explore agents in parallel
+   to critique the RCA — challenge alternative hypotheses, audit evidence
+   completeness, and check blast radius. If blockers are found, return to
+   Stage A/B (max 2 critique rounds).
+
+**Output**: A grounded RCA ready for formatting per
+[reference/rca-comment-format.md](reference/rca-comment-format.md).
+
+**If the RCA workflow identifies blockers or ambiguities** that cannot be
+resolved from the codebase or logs, proceed to Phase 1.3 (Questions) instead
+of Phase 1.4.
+
+---
+
+### Phase 1.2-Feature — Design & Plan (via Plan Subagent)
+
+For features, tasks, and user stories, launch a **Plan subagent**
+(`subagent_type: Plan`, `model: opus`) to analyze the work item and produce
+a complete implementation plan. The Plan agent uses extended thinking to reason
+deeply about the problem.
 
 The agent operates in two stages:
 
@@ -131,11 +172,8 @@ before entering plan mode:
 - **Git**: `Bash` (git log, git blame, git show) — trace how the relevant code
   evolved and who last touched it
 
-For **Bugs**: identify the root cause first. If the bug involves runtime
-behavior, also consider log-based debugging (`debugging:debug-with-logs`).
-
-For **Features / Tasks / User Stories**: explore the codebase for existing
-patterns, formulate 2-3 approaches, and evaluate trade-offs.
+Explore the codebase for existing patterns, formulate 2-3 approaches, and
+evaluate trade-offs.
 
 #### Stage B — Plan (in plan mode)
 
@@ -145,8 +183,8 @@ The agent synthesizes all research into a structured implementation plan, then
 calls **`ExitPlanMode`** to return it.
 
 **Provide the Plan agent with:**
-- The full work item details from Phase 1.1 (type, title, description, repro
-  steps, acceptance criteria, area path, links)
+- The full work item details from Phase 1.1 (type, title, description,
+  acceptance criteria, area path, links)
 - The decision log path for recording decisions
 
 **The Plan agent should produce:**
@@ -162,8 +200,9 @@ from research alone, proceed to Phase 1.3 (Questions) instead of Phase 1.4.
 
 ### Phase 1.3 — Questions (if needed)
 
-If the Plan agent (Phase 1.2) identified blockers, ambiguities, or questions
-that cannot be resolved from the codebase alone:
+If the Plan agent (Phase 1.2-Feature) or the RCA workflow (Phase 1.2-Bug)
+identified blockers, ambiguities, or questions that cannot be resolved from the
+codebase alone:
 
 1. Format the questions clearly with context for each:
    ```
@@ -186,11 +225,17 @@ find the questions comment with no BOT-PLAN marker. It will:
 
 ### Phase 1.4 — Post Plan to ADO
 
-Format the plan using the template in
-[reference/plan-comment-format.md](reference/plan-comment-format.md).
+Select the comment format based on work item type:
+
+- **Bug** → Format using
+  [reference/rca-comment-format.md](reference/rca-comment-format.md).
+  Use `<!-- BOT-PLAN v1 status:PENDING_REVIEW type:RCA -->` opening marker.
+- **Feature / Task / Story** → Format using
+  [reference/plan-comment-format.md](reference/plan-comment-format.md).
+  Use `<!-- BOT-PLAN v1 status:PENDING_REVIEW -->` opening marker.
 
 Post as a NEW work item comment using `addWorkItemComment`:
-- Include `<!-- BOT-PLAN v1 status:PENDING_REVIEW -->` opening marker
+- Include the appropriate opening marker (with or without `type:RCA`)
 - Include `<!-- /BOT-PLAN -->` closing marker
 - Include human-readable CTA at the bottom
 
@@ -242,6 +287,8 @@ On the next invocation, treat as approved regardless of further feedback.
 
 1. Post the revised plan as a NEW comment with incremented version:
    `<!-- BOT-PLAN v<N+1> status:PENDING_REVIEW -->`.
+   For bug RCAs, preserve the type attribute:
+   `<!-- BOT-PLAN v<N+1> status:PENDING_REVIEW type:RCA -->`.
 2. Reply to feedback comments acknowledging each point using `addWorkItemComment`:
    - `[<dev name>'s bot] Addressed in plan v<N+1>: <summary of change>`
    - `[<dev name>'s bot] Kept original approach: <rationale>`
@@ -279,134 +326,25 @@ chars for the slug portion, strip trailing hyphens.
 
 ### Phase 2.3 — Implement
 
-#### Step 2.3.1: Create Task List
+Read and follow [reference/execution-workflow.md](reference/execution-workflow.md)
+for the full implementation process. It covers:
 
-Before writing any code, decompose the approved plan into a concrete task list.
-Each task should be small, clear, and independently verifiable.
+1. **Task list creation** — decompose the plan into granular, checkable tasks
+2. **Execution mode** — auto-detect parallel (subagent-driven) vs sequential,
+   with TDD alongside
+3. **Failure handling** — invoke `debugging:systematic-debugging`, max 3 retries
+   before posting blocker to ADO
 
-<task_list>
-Write the task list to `scratchpad/conversation_memories/<id>-<slug>/tasks.md`
-using the following format:
-
-```markdown
-# Implementation Tasks — Work Item #<id>
-
-## Tasks
-- [ ] Task 1: <clear description — what file, what change, what outcome>
-- [ ] Task 2: <clear description>
-- [ ] Task 3: <clear description>
-...
-
-## Completion Criteria
-- [ ] All tasks checked off
-- [ ] Build passes
-- [ ] All tests pass
-- [ ] Self-review complete (Phase 2.4)
-```
-
-**Task granularity rules:**
-- Each task should be completable in one focused step (one file or one logical
-  change)
-- Include test tasks explicitly — "Write test for X" is its own task, not
-  implicit
-- Include verification tasks — "Run build", "Run tests" after each logical
-  group
-- Order tasks by dependency — things that must happen first come first
-
-Update this file as tasks are completed: check off each task (`- [x]`) after
-it is done. This creates an audit trail of what was implemented and in what
-order.
-</task_list>
-
-#### Step 2.3.2: Execute Tasks
-
-Work through the task list one by one, checking off each as completed.
-
-**Auto-detect implementation mode** from the task structure:
-- Count independent tasks (touch different files/modules with no dependencies).
-- Count sequential tasks (output of one feeds into another, or same files).
-- **3+ independent tasks** → invoke `development:subagent-driven-development`
-- **Otherwise** → read `development/reference/executing-plans-guide.md` and follow it
-
-**Test-Driven Development**: For either mode, also invoke
-`development:test-driven-development` alongside. Auto-detect the test framework:
-- `.csproj` with test references → `dotnet test`
-- `package.json` with jest/vitest/mocha → the configured test runner
-- `pytest.ini` / `pyproject.toml` / `conftest.py` → `pytest`
-- If no test framework is detected, note this and rely on verification in
-  Phase 2.5.
-
-**Handling failures:**
-
-If tests fail or implementation hits a wall:
-1. Invoke `debugging:systematic-debugging` to diagnose
-2. Apply the fix and re-run tests
-
-<max_retries>
-If still failing after 3 debugging attempts:
-- Post a comment to the work item:
-  `[<dev name>'s bot] Implementation blocked after 3 fix attempts.`
-  Include: error messages, what was tried, hypothesis for root cause.
-- Update work item state back to Active.
-- STOP. Do not continue to self-review.
-</max_retries>
+For complex work items (5+ steps, multiple root causes, cross-area changes),
+also follow the **Task Decomposition** section in the same reference to create
+child work items in ADO before implementing.
 
 ### Phase 2.4 — Self-Review Loop
 
-After all implementation tasks are complete, the work is NOT done. Every change
-must pass a self-review cycle before it can be published.
-
-<self_review>
-Run a self-review loop that repeats until the code is clean:
-
-**Cycle 1 (and each subsequent cycle):**
-
-1. **Review** — Invoke the `code-reviewer:pr-review` skill in **local branch
-   review mode** (no PR number — review current branch against base). This runs
-   the full review workflow: code alignment, code quality, performance, security,
-   domain-specific agents (exception handling, test coverage, etc.), and produces
-   structured findings with severity ratings.
-
-2. **Assess findings** — Collect all findings from the review. Categorize:
-   - **Must fix** (HIGH / CRITICAL): bugs, security issues, missing tests for
-     new behavior, incorrect exception handling, data loss risks
-   - **Should fix** (MEDIUM): code quality, missing edge case tests,
-     over-mocking, fragile tests, performance concerns
-   - **Skip** (LOW / informational): naming suggestions, style preferences,
-     documentation — do not fix these in the self-review loop
-
-3. **Fix** — Address all Must Fix and Should Fix findings. For each fix:
-   - Make the code change
-   - Run the build and tests to confirm the fix doesn't break anything
-   - Check off any related tasks in the task list
-
-4. **Re-review** — Run `code-reviewer:pr-review` again on the updated code.
-   Check whether the previous findings are resolved and whether the fixes
-   introduced new issues.
-
-5. **Repeat or exit:**
-   - If new Must Fix or Should Fix findings exist → repeat the cycle
-   - If only LOW/informational findings remain → exit the loop
-   - **Hard cap: 3 review cycles maximum.** After 3 cycles, proceed to
-     verification regardless. Log any remaining findings in the decision log.
-
-**What the self-review covers (via pr-review skill):**
-- Code alignment with project patterns and conventions
-- SOLID principles, code smells, duplication
-- Security (OWASP Top 10)
-- Performance (N+1 queries, memory, efficiency)
-- Exception handling patterns (swallowed exceptions, incorrect re-throws)
-- Test coverage (missing tests, tests that don't cover the actual change)
-- Temporary code, debug artifacts, hardcoded hacks
-
-**What to log:** After each cycle, append to `decisions.md`:
-```markdown
-## Part 2 — Self-Review Cycle <N>
-- Findings: <count> HIGH, <count> MEDIUM, <count> LOW
-- Fixed: <list of fixes applied>
-- Remaining: <list of items deferred or skipped with rationale>
-```
-</self_review>
+Read and follow the **Phase 2.4** section in
+[reference/execution-workflow.md](reference/execution-workflow.md). It defines
+a review-fix-recheck cycle using `code-reviewer:pr-review` in local branch
+mode, with severity-based triage and a hard cap of 3 review cycles.
 
 ### Phase 2.5 — Verify
 
@@ -498,81 +436,18 @@ Determine `<dev name>` from `git config user.name`.
 
 ## Decision Log
 
-Throughout the workflow, maintain a running decision log in the scratchpad at
-`scratchpad/conversation_memories/<work-item-id>-<slug>/decisions.md`. This
-log serves two purposes:
-1. **Bridge Part 1 → Part 2** — persists design context across separate
-   conversation sessions.
-2. **PR reviewer context** — key decisions are included in the PR description.
-
-### Step D.0: Initialize the log
-
-At the start of Part 1 Phase 1.1 (after extracting the work item ID and title),
-create the decision log file using the **Write** tool:
-
-**Path:** `scratchpad/conversation_memories/<id>-<slugified-title>/decisions.md`
-
-**Initial content:**
-```markdown
-# Decision Log — Work Item #<id>: <title>
-Date: <today>
-```
-
-### Step D.1: Log at each phase
-
-Use the **Edit** tool to append entries after each key decision point:
-
-| Phase | What to log |
-|-------|-------------|
-| Part 1, Phase 1.1 | Understanding of the work item, ambiguities noted |
-| Part 1, Phase 1.2 | Root cause (bugs) or chosen design approach (features), alternatives considered with reasons for rejection |
-| Part 1, Phase 1.3 | Plan trade-offs — why certain files/approaches were chosen over others |
-| Part 1, Revision | Feedback received, how it was addressed, what was kept |
-| Part 2, Phase 2.3 | Implementation decisions — library choices, pattern selections, edge cases handled, deviations from plan with justification |
-| Part 2, Phase 2.3 (failures) | Each debugging attempt — what was tried, what was learned, what was ruled out |
-| Part 2, Phase 2.4 | Self-review findings per cycle, fixes applied, items deferred |
-| Part 2, Phase 2.5 | Verification evidence — what passed, what was manually checked |
-
-**Entry format** (append under the relevant phase heading):
-```markdown
-## <Part> — <Phase Name>
-- **<decision>**: <rationale>
-```
-
-### Step D.2: Include in PR description
-
-When creating the PR description (Part 2, Phase 2.6), read the decision log
-file and include a "Key Decisions" section summarizing the 3-5 most important
-entries so reviewers have context without needing to find the log.
+Maintain a running decision log throughout the workflow. Read and follow
+[reference/decision-log-guide.md](reference/decision-log-guide.md) for the
+full process — initialization, what to log at each phase, and how to include
+key decisions in the PR description.
 
 ---
 
 ## Task Decomposition for Complex Work Items
 
-When a work item is large or complex (particularly bugs with multiple root
-causes or features with many components), decompose it into child tasks in ADO.
-
-**When to decompose:**
-- The implementation plan has more than 5 distinct steps
-- A bug has multiple root causes or requires changes across 3+ areas
-- The work item has multiple acceptance criteria that can be verified independently
-
-**When to trigger:** After the plan is approved in Part 2 Phase 2.1, before
-implementation begins.
-
-**How to decompose:**
-1. Create child Task work items under the parent for each major checkpoint:
-   - Use `createWorkItem` with type `Task` for each
-   - Link each to the parent using `createLink` (parent-child relationship)
-   - Title format: `[#<parent-id>] <checkpoint description>`
-2. As each task is completed during Phase 2.3, update its state to Done/Closed
-3. Include task IDs in commit messages: `Completes task #<id>: <description>`
-
-**Example decomposition for a complex bug:**
-- `[#4567] Reproduce and confirm root cause in auth module`
-- `[#4567] Fix token refresh logic`
-- `[#4567] Add regression tests for timeout scenarios`
-- `[#4567] Verify fix against all acceptance criteria`
+See the **Task Decomposition** section in
+[reference/execution-workflow.md](reference/execution-workflow.md) for when and
+how to break large work items into child tasks in ADO.
 
 ---
 
