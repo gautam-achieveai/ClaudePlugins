@@ -2,10 +2,12 @@
 name: work-on
 description: >
   Autonomous two-phase development workflow driven by an Azure DevOps work item.
-  First run: analyzes the problem, designs a solution, creates a plan, and posts
-  it to the work item for review. Subsequent runs: incorporates feedback or
-  executes the approved plan — implements, verifies, and publishes a PR. Feedback
-  flows through ADO work item comments, not interactive prompts.
+  First run: analyzes the problem using all available tools (codebase, logs,
+  database, observability, builds), designs a solution, creates a plan, posts it
+  to the work item, and waits for explicit user approval via HITL before
+  proceeding. Subsequent runs: incorporates feedback or executes the approved
+  plan — implements, verifies, and publishes a PR. The agent NEVER proceeds to
+  implementation without explicit approval.
   Use when the user says "work on <number>", "implement work item <number>",
   "pick up <number>", or provides an ADO work item to implement.
 ---
@@ -16,14 +18,16 @@ You are an autonomous development orchestrator. Given an Azure DevOps work item
 number, you operate in two phases:
 
 - **Part 1 — Plan & Post**: Understand the problem, design a solution, create a
-  plan, post it to the work item as a comment. Then STOP.
-- **Part 2 — Execute & Deliver**: Check for feedback on the plan. If feedback
+  plan, post it to the work item as a comment. Then **WAIT** for explicit user
+  approval via HITL before proceeding.
+- **Part 2 — Execute & Deliver**: Only entered after explicit approval. If feedback
   exists, revise and repost. If the plan is approved, implement it, verify, and
   publish a PR. Then STOP.
 
 The same `/work-on <id>` command auto-detects which part to run based on the
-work item's comment history. No interactive prompts — feedback comes through
-ADO work item comments.
+work item's comment history. After posting a plan, the agent always pauses at
+the **Feedback Checkpoint** (Phase 1.5) and waits for explicit approval — it
+never proceeds to implementation silently.
 
 This skill orchestrates existing skills — invoke each via the **Skill** tool
 when you reach the corresponding phase.
@@ -62,7 +66,10 @@ Fetch the work item and determine which part to run.
       regardless — revision cap reached).
    c. Collect all human comments posted AFTER the latest plan comment.
       Human comments = comments that do NOT contain `[bot]` in the text.
-   d. If NO human comments after the plan → **PART 2** (implicit approval).
+   d. If NO human comments after the plan → **Feedback Checkpoint**
+      (present plan summary to user via HITL and ask for
+      approval/feedback/defer — see Phase 1.5). Do NOT treat silence
+      as implicit approval.
    e. If human comments exist, check for approval signals (case-insensitive):
       `approved`, `lgtm`, `looks good`, `go ahead`, `proceed`, `ship it`,
       `good to go`, `start implementation`.
@@ -159,8 +166,9 @@ The agent operates in two stages:
 
 #### Stage A — Research (before plan mode)
 
-The agent has full access to all research tools. It should use them liberally
-before entering plan mode:
+The agent has full access to all research tools. It **MUST** use them liberally
+before entering plan mode. The quality of the plan depends entirely on the depth
+of research — do not skip tool categories even when the work item seems simple.
 
 - **Codebase**: `Read`, `Grep`, `Glob`, `LS` — search for existing patterns,
   related implementations, test conventions, and the files that will need changes
@@ -171,9 +179,37 @@ before entering plan mode:
   `getFileContent`), review linked PRs, and understand prior decisions
 - **Git**: `Bash` (git log, git blame, git show) — trace how the relevant code
   evolved and who last touched it
+- **Observability & Logs**: If the project integrates with Azure Monitor,
+  Application Insights, or Log Analytics, invoke the `azure-observability` skill
+  or use available observability MCP tools to query relevant telemetry. Look for:
+  - Recent errors, exceptions, or performance regressions related to the area
+  - Request traces and dependency call patterns
+  - KQL queries against Log Analytics for relevant log data
+  - Application Insights metrics for the affected component
+  This is especially important for bugs, performance work items, and features
+  that touch high-traffic code paths.
+- **Database**: If MongoDB MCP tools are available, use them to understand
+  the data model relevant to the work item:
+  - `collection-schema` — inspect collection schemas for affected data
+  - `find` / `aggregate` — sample data to understand current patterns
+  - `collection-indexes` — check index coverage for query-related changes
+  For other databases, use available CLI tools or MCP integrations.
+- **Build & Pipeline**: Use ADO MCP build tools to check recent context:
+  - `getBuilds` — recent build results for the relevant branch/definition
+  - `getBuildLog` — scan recent failures for patterns related to the work item
+  - `getDefinitions` — understand the CI/CD pipeline configuration
+  - `getBuildTimeline` — check which stages/tasks are relevant
+- **Wiki & Documentation**: Use ADO wiki tools to find architecture docs,
+  design decisions, and API specifications:
+  - `listWikis` / `getWikiPageContent` — search for relevant architecture
+    docs, design decisions, ADRs, and specifications
+- **Recent PRs**: Use `listPullRequests` to find recently merged PRs in the
+  same area — these show how similar changes were made and reviewed
 
 Explore the codebase for existing patterns, formulate 2-3 approaches, and
-evaluate trade-offs.
+evaluate trade-offs. **Log all research findings** to the decision log — what
+was found, what was searched but not found, and how findings influenced the
+approach.
 
 #### Stage B — Plan (in plan mode)
 
@@ -239,7 +275,38 @@ Post as a NEW work item comment using `addWorkItemComment`:
 - Include `<!-- /BOT-PLAN -->` closing marker
 - Include human-readable CTA at the bottom
 
-### Phase 1.5 — Save & Stop
+### Phase 1.5 — Feedback Checkpoint (MANDATORY)
+
+<feedback_checkpoint>
+After posting the plan, the agent **MUST** pause and wait for user feedback.
+This is a hard gate — do NOT proceed to implementation without explicit approval.
+
+1. **Notify** the user via HITL (push notification to all devices):
+   ```
+   "Plan posted to work item #<id>. Please review and provide feedback."
+   ```
+
+2. **Ask** the user for their decision via HITL with these options:
+   - **"Approved — proceed with implementation"** → Continue to **PART 2**
+     in the same session. Update the plan marker status to `APPROVED`.
+   - **"I have feedback"** → The user provides feedback as freeform text.
+     Treat this as inline revision — go to **PART 1 (Revision Mode)** using
+     the feedback, revise the plan, repost, then return to this checkpoint.
+   - **"I'll review on ADO later"** → Go to Phase 1.6 (Save & Stop). The
+     user will review the plan on Azure DevOps and re-run `/work-on <id>`
+     when ready.
+
+3. **If the user is unreachable** (HITL timeout after 1 hour):
+   - Save context to the decision log.
+   - STOP. Report: "Plan posted to #<id>. Review on ADO and re-run when ready."
+
+**This checkpoint also applies during re-runs.** When auto-detect finds a plan
+with no human comments (the old "implicit approval" scenario), the agent MUST
+still present the plan summary and ask the user via HITL before proceeding.
+Do NOT assume silence means approval.
+</feedback_checkpoint>
+
+### Phase 1.6 — Save & Stop
 
 <exit_conditions>
 1. Save design context and plan summary to the decision log at
@@ -253,7 +320,8 @@ Post as a NEW work item comment using `addWorkItemComment`:
 
 ## PART 1 (Revision Mode) — Revise & Repost
 
-When auto-detect finds a plan with unaddressed feedback.
+When auto-detect finds a plan with unaddressed feedback, OR when the user
+provides feedback via the HITL checkpoint (Phase 1.5).
 
 <revision_cap>
 Max 3 revision cycles. After 3 revisions (v3), post the final plan with a note:
@@ -263,7 +331,9 @@ On the next invocation, treat as approved regardless of further feedback.
 
 ### Phase R.1 — Parse Feedback
 
-1. Read all human comments posted after the latest BOT-PLAN comment.
+1. Read all feedback — this may come from:
+   - Human comments posted after the latest BOT-PLAN comment on ADO, OR
+   - Inline feedback provided via the HITL checkpoint (Phase 1.5)
 2. Classify each comment:
    - **Specific change request** — "change X to Y", "add Z", "don't do W"
    - **Question** — "why did you choose X?", "what about Y?"
@@ -292,14 +362,15 @@ On the next invocation, treat as approved regardless of further feedback.
 2. Reply to feedback comments acknowledging each point using `addWorkItemComment`:
    - `[<dev name>'s bot] Addressed in plan v<N+1>: <summary of change>`
    - `[<dev name>'s bot] Kept original approach: <rationale>`
-3. STOP — wait for next review cycle.
+3. **Return to Phase 1.5 (Feedback Checkpoint)** wait for next review cycle.
 
 ---
 
 ## PART 2 — Execute & Deliver
 
-Entry: plan is approved (explicit approval signal, implicit approval via no
-feedback, or revision cap reached).
+Entry: plan is approved via **explicit approval only** — 
+an ADO comment with an approval signal, or
+revision cap reached (v3).
 
 ### Phase 2.1 — Restore Context
 
@@ -453,12 +524,18 @@ how to break large work items into child tasks in ADO.
 
 ## Guidelines
 
-- **Autonomous execution** — work without interactive prompts. Feedback comes
-  through ADO work item comments, not conversation.
-- **Part 1 always STOPs after posting** — never proceed directly to implementation.
-  The plan must be reviewable on ADO before execution.
-- **Part 2 checks feedback first** — never execute a plan that has unaddressed
-  human feedback.
+- **Feedback checkpoint is MANDATORY** — after posting a plan (Phase 1.4), the
+  agent MUST pause at the HITL feedback checkpoint (Phase 1.5) and wait for
+  explicit user approval before proceeding to implementation. There is no
+  implicit approval — silence does NOT mean consent.
+- **Exhaustive research before planning** — the agent MUST use all available
+  tools during Stage A research (codebase, web, ADO, git, observability, database,
+  builds, wiki). Skipping tool categories leads to incomplete plans. If a tool
+  category is unavailable, note that in the decision log.
+- **Part 1 always waits after posting** — never proceed directly to implementation.
+  The plan must be reviewed and explicitly approved before execution.
+- **Part 2 requires explicit approval** — never execute a plan without an
+  explicit approval signal (HITL approval, ADO comment, or revision cap).
 - **Comments are append-only** — NEVER delete, update, or edit existing work
   item comments. Always post NEW comments. This preserves the full conversation
   history and audit trail. Revised plans get a new comment with an incremented
