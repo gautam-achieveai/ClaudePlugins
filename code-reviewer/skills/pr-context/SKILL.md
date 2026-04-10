@@ -22,6 +22,10 @@ Build a complete picture of a PR's business context by traversing the ADO work i
 graph. This helps reviewers understand not just WHAT the code changes, but WHY it
 exists and WHERE it fits in the larger initiative.
 
+> **Namespace note:** This skill gathers Azure DevOps work item context. When
+> related docs mention shared workflow names, use the `ado:` namespace here;
+> GitHub-side counterparts use the `gh:` namespace.
+
 ## When to Use
 
 - **During code review** — to understand the business motivation behind changes
@@ -131,7 +135,7 @@ Compare the PR's changes against the parent User Story / Feature:
 
 ## Error Handling
 
-- **ADO MCP tools unavailable** — invoke `ado:setup-ado-mcp` to configure, then retry
+- **ADO MCP tools unavailable** — invoke `ado:setup-ado-mcp` for this ADO flow (`gh:setup-gh-mcp` is the GitHub counterpart), then retry
 - **PR not found** — verify the PR number and repository name
 - **Work items inaccessible** — note which IDs couldn't be fetched; continue with available data
 - **No work items linked** — report clearly and suggest the author link the relevant work item

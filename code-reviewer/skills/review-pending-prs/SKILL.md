@@ -14,6 +14,11 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure
 
 Discover active PRs from Azure DevOps, compare against local tracking state, and review PRs that have updates older than 15 minutes since the last review. Delegates each individual review to the `code-reviewer:pr-review` skill.
 
+> **Namespace note:** This workflow is Azure DevOps-only. When related docs use
+> shared workflow names such as `publish-pr`, `babysit-pr`, `work-on`, or
+> `draft-work-item`, read them as `ado:` entries in this context. GitHub
+> counterparts use the `gh:` namespace.
+
 ## Constants
 
 ```
@@ -273,7 +278,7 @@ After all reviews complete (or exit condition reached), output:
 
 | Scenario | Action |
 |---|---|
-| ADO MCP tools unavailable | Invoke `ado:setup-ado-mcp` skill, retry once. If still fails, STOP with clear error message. |
+| ADO MCP tools unavailable | Invoke `ado:setup-ado-mcp` for this ADO workflow (`gh:setup-gh-mcp` is the GitHub counterpart), retry once. If still fails, STOP with clear error message. |
 | `listPullRequests` returns empty | Report "No active PRs found", exit normally. |
 | `tracking.json` corrupt (invalid JSON) | Rename to `tracking.json.bak`, reinitialize, warn user. |
 | `tracking.json` repo mismatch | Warn user, rename to `tracking.json.bak`, reinitialize for current repo. |

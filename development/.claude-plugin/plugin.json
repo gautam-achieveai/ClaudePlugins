@@ -1,5 +1,5 @@
 {
   "name": "development",
   "description": "Development methodology toolkit: design-first brainstorming, autonomous design, test-driven development, parallel subagent-driven execution with review gates, and evidence-based completion verification. Includes planning, execution, and git workflow reference guides.",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

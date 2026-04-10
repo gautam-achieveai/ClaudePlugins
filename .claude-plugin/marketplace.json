@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.7.0"
+    "version": "1.7.1"
   },
   "plugins": [
     {
@@ -33,10 +33,35 @@
       ]
     },
     {
+      "name": "gh",
+      "source": "./gh",
+      "description": "GitHub integration for issue and project management, PR publishing, iterative PR tending, issue-driven implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
+      "version": "1.0.1",
+      "category": "development",
+      "tags": [
+        "github",
+        "issues",
+        "pull-requests",
+        "projects"
+      ],
+      "keywords": [
+        "gh",
+        "github",
+        "issue",
+        "project",
+        "pull-request",
+        "publish-pr",
+        "babysit-pr",
+        "work-on",
+        "work-my-backlog",
+        "draft-work-item"
+      ]
+    },
+    {
       "name": "development",
       "source": "./development",
       "description": "Development methodology toolkit: design-first brainstorming, autonomous design, test-driven development, parallel subagent-driven execution with review gates, and evidence-based completion verification. Includes planning, execution, and git workflow reference guides.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "category": "development",
       "tags": [
         "methodology",
@@ -79,7 +104,7 @@
       "name": "code-reviewer",
       "source": "./code-reviewer",
       "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, architecture review, performance review, severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.15.0",
+      "version": "1.15.1",
       "category": "development",
       "tags": [
         "review",

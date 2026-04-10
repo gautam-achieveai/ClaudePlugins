@@ -3,6 +3,10 @@
 Use these conventions when writing PR descriptions, commit messages, work item
 comments, wiki pages, and bot replies in Azure DevOps.
 
+This reference is Azure DevOps-specific. When a workflow name overlaps with the
+GitHub plugin, use the `ado:` namespace for Azure DevOps flows and the `gh:`
+namespace for GitHub flows.
+
 ## Quick Reference
 
 | Artifact | Syntax | Where it works | Example |
@@ -140,9 +144,17 @@ For artifacts without shorthand mention syntax, use explicit URLs:
 
 ## Usage in Skills
 
-Any skill that writes to Azure DevOps (PR descriptions, comments, work item
-updates) should follow these conventions. Reference this document when:
-- Composing PR descriptions (`publish-pr`)
-- Posting review comments (`review-pr`, `babysit-pr`, `pr-tender`)
-- Creating or updating work items (`work-items`, `draft-work-item`)
-- Posting comments to work items (`work-on`)
+Any skill or agent that writes to Azure DevOps (PR descriptions, comments,
+work item updates) should follow these conventions. In this context, shared
+workflow names refer to the `ado:` plugin entries; the GitHub counterparts use
+the `gh:` namespace.
+- Composing PR descriptions (`ado:publish-pr`; GitHub counterpart:
+  `gh:publish-pr`)
+- Posting review comments (`code-reviewer:review-pr`, `ado:babysit-pr`,
+  `ado:pr-tender`; GitHub counterparts use `gh:babysit-pr` / `gh:pr-tender`)
+- Creating or updating work items (`ado:work-items`, `ado:draft-work-item`;
+  GitHub counterparts: `gh:work-items`, `gh:draft-work-item`)
+- Posting comments to work items (`ado:work-on`; GitHub counterpart:
+  `gh:work-on`)
+- Configuring MCP access (`ado:setup-ado-mcp`; GitHub counterpart:
+  `gh:setup-gh-mcp`)

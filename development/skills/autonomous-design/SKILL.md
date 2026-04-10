@@ -1,11 +1,12 @@
 ---
 name: autonomous-design
 description: >
-  Non-interactive design workflow for autonomous contexts (e.g., work-on).
-  Mirrors brainstorming methodology but auto-selects the best approach instead
-  of requiring user approval. Use when designing features/tasks without
-  interactive user feedback — requirements come from work items, specs, or
-  task descriptions rather than live conversation.
+  Non-interactive design workflow for autonomous contexts (e.g., namespaced
+  `work-on` flows such as `ado:work-on` or `gh:work-on`). Mirrors
+  brainstorming methodology but auto-selects the best approach instead of
+  requiring user approval. Use when designing features/tasks without
+  interactive user feedback — requirements come from tracked work items/issues,
+  specs, or task descriptions rather than live conversation.
 ---
 
 # Autonomous Design
@@ -13,12 +14,16 @@ description: >
 ## Overview
 
 Design a solution without interactive user approval. Requirements come from
-structured sources (work items, specs, acceptance criteria) rather than live
-conversation.
+structured sources (tracked work items/issues, specs, acceptance criteria)
+rather than live conversation.
 
 This is the autonomous counterpart to `development:brainstorming`. Use
 brainstorming when a user is in the loop; use this skill when operating
-autonomously (e.g., inside `ado:work-on`).
+autonomously inside a namespaced workflow (e.g., `ado:work-on` or
+`gh:work-on`).
+
+When similarly named workflows exist in multiple plugins, keep the namespace so
+the target system stays explicit.
 
 <KEY-DIFFERENCE>
 `development:brainstorming` has a HARD-GATE requiring user approval.
@@ -29,7 +34,8 @@ consistency. There is no interactive approval step.
 ## When to Use
 
 - Autonomous workflows where no user is available for interactive design review
-- Work item implementation (requirements come from the work item description)
+- Work item or issue implementation (requirements come from the tracked ticket
+  description)
 - Batch processing where designs must be produced without human-in-the-loop
 
 ## The Process
@@ -37,7 +43,7 @@ consistency. There is no interactive approval step.
 ### Step 1: Requirements Extraction
 
 List all functional requirements from the available context:
-- Work item description and acceptance criteria
+- Work item or issue description and acceptance criteria
 - Task specification or ticket content
 - Any linked documents or referenced specs
 
@@ -83,8 +89,8 @@ Append to the decision log (if one exists):
 ## Output
 
 The output of this skill is a design decision ready to feed into an
-implementation plan. The calling skill (e.g., `ado:work-on`) takes
-this output and proceeds to plan creation.
+implementation plan. The calling skill (e.g., `ado:work-on` or
+`gh:work-on`) takes this output and proceeds to plan creation.
 
 ## Key Principles
 

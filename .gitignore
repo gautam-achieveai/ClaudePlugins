@@ -55,6 +55,8 @@ htmlcov/
 # Plugin development
 *.mcpb
 .mcp-build/
+.ai/work-my-backlog/
+code-reviewer/skills/pr-review/claude_plugins.code-workspace
 
 # Scratchpad - keep structure but ignore personal notes
 scratchpad/**
