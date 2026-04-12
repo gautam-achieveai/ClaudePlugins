@@ -14,10 +14,10 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure
 
 Discover active PRs from Azure DevOps, compare against local tracking state, and review PRs that have updates older than 15 minutes since the last review. Delegates each individual review to the `code-reviewer:pr-review` skill.
 
-> **Namespace note:** This workflow is Azure DevOps-only. When related docs use
-> shared workflow names such as `publish-pr`, `babysit-pr`, `work-on`, or
-> `draft-work-item`, read them as `ado:` entries in this context. GitHub
-> counterparts use the `gh:` namespace.
+> **Namespace note:** This workflow is Azure DevOps-only. When related docs refer
+> to shared workflow components, read them here as `ado:ado-publish-pr`,
+> `ado:ado-babysit-pr`, `ado:ado-work-on`, and `ado:ado-draft-work-item`.
+> GitHub counterparts use the matching `gh:gh-...` names.
 
 ## Constants
 
@@ -60,13 +60,13 @@ Create `$STORAGE_PATH` and `$STORAGE_PATH/reviews/` if they don't exist.
 Parse `git remote -v` to extract ADO variables (same pattern as `code-reviewer:pr-review` lines 70-86):
 
 ```
-origin	https://mcqdbdev.visualstudio.com/MCQdb_Development/_git/MCQdb (fetch)
+origin	https://<org>.visualstudio.com/<project>/_git/<repo> (fetch)
 ```
 
 Extract:
-- `AZURE_DEVOPS_ORG_URL` = `https://mcqdbdev.visualstudio.com/`
-- `AZURE_DEVOPS_PROJECT` = `MCQdb_Development`
-- `AZURE_DEVOPS_REPOSITORY` = `MCQdb`
+- `AZURE_DEVOPS_ORG_URL` = `https://<org>.visualstudio.com/`
+- `AZURE_DEVOPS_PROJECT` = `<project>`
+- `AZURE_DEVOPS_REPOSITORY` = `<repo>`
 
 Template: `<AZURE_DEVOPS_ORG_URL>/<PROJECT>/_git/<REPOSITORY>`
 

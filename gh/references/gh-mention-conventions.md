@@ -110,7 +110,7 @@ For artifacts without shorthand mention syntax, use explicit URLs:
 Any skill that writes to GitHub (issue bodies, PR descriptions, PR comments,
 issue comments, project notes) should invoke the `gh:gh-mentions` skill, which
 loads this document. Applicable skills:
-- Composing PR descriptions (`publish-pr`)
-- Posting review comments (`babysit-pr`, `pr-tender`)
-- Creating or updating work items backed by issues (`work-items`, `draft-work-item`)
-- Posting comments to work items / issues (`work-on`)
+- Composing PR descriptions (`gh-publish-pr`)
+- Posting review comments (`gh-babysit-pr`, `gh-pr-tender`)
+- Creating or updating work items backed by issues (`gh-work-items`, `gh-draft-work-item`)
+- Posting comments to work items / issues (`gh-work-on`)

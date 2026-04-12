@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.7.1"
+    "version": "1.8.0"
   },
   "plugins": [
     {
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, autonomous work item implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "2.11.0",
+      "version": "3.0.0",
       "category": "development",
       "tags": [
         "azure-devops",
@@ -25,18 +25,22 @@
         "azure-devops",
         "work-item",
         "pull-request",
-        "publish-pr",
-        "babysit-pr",
-        "work-on",
-        "work-my-backlog",
-        "draft-work-item"
+        "ado-publish-pr",
+        "ado-babysit-pr",
+        "ado-work-on",
+        "ado-work-my-backlog",
+        "ado-draft-work-item",
+        "ado-work-items",
+        "ado-pr-tender",
+        "ado-devops-assistant",
+        "ado-babysit-pr-worker"
       ]
     },
     {
       "name": "gh",
       "source": "./gh",
       "description": "GitHub integration for issue and project management, PR publishing, iterative PR tending, issue-driven implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "category": "development",
       "tags": [
         "github",
@@ -50,11 +54,15 @@
         "issue",
         "project",
         "pull-request",
-        "publish-pr",
-        "babysit-pr",
-        "work-on",
-        "work-my-backlog",
-        "draft-work-item"
+        "gh-publish-pr",
+        "gh-babysit-pr",
+        "gh-work-on",
+        "gh-work-my-backlog",
+        "gh-draft-work-item",
+        "gh-work-items",
+        "gh-pr-tender",
+        "gh-devops-assistant",
+        "gh-babysit-pr-worker"
       ]
     },
     {

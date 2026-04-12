@@ -37,8 +37,8 @@ Note: the path is relative to the `gh` plugin root (`gh/references/`).
 ## When to Invoke
 
 Invoke this skill before:
-- Composing PR descriptions (`publish-pr`)
-- Posting review comments or replies (`babysit-pr`, `pr-tender`)
-- Creating or updating issues/project items (`work-items`, `draft-work-item`)
-- Posting plan or status comments to issues (`work-on`)
+- Composing PR descriptions (`gh-publish-pr`)
+- Posting review comments or replies (`gh-babysit-pr`, `gh-pr-tender`)
+- Creating or updating issues/project items (`gh-work-items`, `gh-draft-work-item`)
+- Posting plan or status comments to issues (`gh-work-on`)
 - Writing project notes or follow-up issue links

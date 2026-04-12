@@ -38,10 +38,10 @@ Note: the path is relative to the ado plugin root (`ado/references/`).
 ## When to Invoke
 
 Invoke this skill before:
-- Composing PR descriptions (`publish-pr`)
-- Posting review comments or replies (`babysit-pr`, `pr-tender`)
-- Creating or updating work items (`work-items`, `draft-work-item`)
-- Posting comments to work items (`work-on`)
+- Composing PR descriptions (`ado-publish-pr`)
+- Posting review comments or replies (`ado-babysit-pr`, `ado-pr-tender`)
+- Creating or updating work items (`ado-work-items`, `ado-draft-work-item`)
+- Posting comments to work items (`ado-work-on`)
 - Writing wiki content that references ADO artifacts
 
 ## Full URL Patterns (No Shorthand)

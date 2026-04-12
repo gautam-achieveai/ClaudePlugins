@@ -1,0 +1,219 @@
+{
+  "skill_name": "gh-work-my-backlog",
+  "notes": "These evals depend on live GitHub state. The key things being tested are classification accuracy, delegation routing, `.ai/work-my-backlog/` state persistence, current-iteration scoping, linked-PR rescans, and author-metadata-based comment classification.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "mixed-backlog-all-stages",
+      "prompt": "work my backlog",
+      "expected_output": "Classifies assigned GitHub issues into Stage 1/2/3 and emits the corresponding `plan`, `revise_plan`, `implement`, and `babysit_pr` packets. Writes `scan-state.json`, `last-scan.json`, and per-item `wi-<id>.json` files under `.ai/work-my-backlog/`, then prints a summary covering scope, actionable items, skipped items, and errors.",
+      "assertions": [
+        {
+          "name": "actionable_packets_emitted",
+          "description": "Eligible items produce action packets with the expected action names for their stage/sub-state"
+        },
+        {
+          "name": "scanner_state_written",
+          "description": "`.ai/work-my-backlog/scan-state.json`, `last-scan.json`, and relevant `wi-<id>.json` files are written as valid JSON"
+        },
+        {
+          "name": "correct_delegation",
+          "description": "`babysit_pr` packets route to `gh:gh-babysit-pr-worker`; `plan`, `revise_plan`, and `implement` packets route to `gh:gh-work-on`"
+        },
+        {
+          "name": "summary_presented",
+          "description": "The final summary reports scope plus actionable, skipped, and error sections"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "second-pass-state-continuity",
+      "prompt": "work my backlog",
+      "precondition": "`.ai/work-my-backlog/scan-state.json` and one or more `wi-<id>.json` files already exist from a previous pass",
+      "expected_output": "Reads the existing global/per-item state, cross-checks with live GitHub data, updates changed items, increments `passCount`, and preserves addressed thread IDs for Stage 3 packets.",
+      "assertions": [
+        {
+          "name": "state_loaded",
+          "description": "Reads existing `scan-state.json` and `wi-<id>.json` files before deciding whether an item needs rescanning"
+        },
+        {
+          "name": "pass_count_incremented",
+          "description": "`passCount` in `scan-state.json` is previous + 1"
+        },
+        {
+          "name": "stage_transition_detected",
+          "description": "Work item that gained a PR since last pass is reclassified from Stage 2 to Stage 3"
+        },
+        {
+          "name": "addressed_threads_preserved",
+          "description": "Previously addressed thread IDs from state are passed to babysit-pr-worker"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "stale-worktree-hint-cleared",
+      "prompt": "work through my backlog",
+      "precondition": "A tracked `wi-<id>.json` contains `worktreePath` and `branch`, but `git worktree list` no longer includes that path",
+      "expected_output": "Does not recreate the missing worktree. Instead, clears the stale `worktreePath`/`branch` fields in `wi-<id>.json` and continues scanning.",
+      "assertions": [
+        {
+          "name": "missing_worktree_cleared",
+          "description": "Stale `worktreePath` and `branch` values are reset to null in the per-item state"
+        },
+        {
+          "name": "no_worktree_creation_required",
+          "description": "The scan succeeds without creating a new `.worktrees/wi-<id>/` directory"
+        },
+        {
+          "name": "scan_continues_after_clear",
+          "description": "The item can still be classified and included in actionable/skipped/error output after the stale hint is cleared"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "linked-issues-scanned-independently",
+      "prompt": "handle my assigned items",
+      "precondition": "3 linked GitHub issues share parent/child or predecessor relationships, all are assigned/open, and all are currently Stage 1",
+      "expected_output": "Classifies the items independently from their own comments/PR state. The run does not require dependency-based ordering or blocking notes before producing `plan` packets.",
+      "assertions": [
+        {
+          "name": "independent_stage1_packets",
+          "description": "Each eligible linked issue can appear as its own `plan` packet"
+        },
+        {
+          "name": "no_dependency_sort_required",
+          "description": "The run does not require predecessor-first or child-before-parent ordering to classify the items"
+        },
+        {
+          "name": "no_dependency_blocking_summary",
+          "description": "The summary reflects actual scan results without inventing dependency-blocking notes"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "assigned-open-fallback",
+      "prompt": "work on everything assigned to me",
+      "precondition": "No current project iteration metadata is available, but the user has open assigned issues",
+      "expected_output": "Falls back to assigned open issues, finds and classifies items correctly.",
+      "assertions": [
+        {
+          "name": "fallback_query_used",
+          "description": "When no current iteration is available, falls back to assigned open issues"
+        },
+        {
+          "name": "items_found",
+          "description": "Assigned open issues are found despite missing iteration metadata"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "auto-mode-no-confirmation",
+      "prompt": "work my backlog",
+      "expected_output": "Proceeds immediately after classification without asking for user confirmation. If actionable items are present, routes them autonomously.",
+      "assertions": [
+        {
+          "name": "no_confirmation_prompt",
+          "description": "Skill does NOT ask 'should I proceed?' or wait for user input before processing"
+        },
+        {
+          "name": "autonomous_processing",
+          "description": "All stages are processed without pausing for user interaction"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "unassigned-items-removed-from-state",
+      "prompt": "work my backlog",
+      "precondition": "A `wi-<id>.json` exists from a previous pass, but that issue is now closed or no longer assigned/open and absent from the current assigned-work-items query",
+      "expected_output": "Removes the stale `wi-<id>.json` file during cleanup after the current scan. No separate `pr-<id>.json` cleanup or worktree removal step is required.",
+      "assertions": [
+        {
+          "name": "tracked_item_removed",
+          "description": "Tracked per-item state is removed when the issue is no longer assigned/open"
+        },
+        {
+          "name": "cleanup_does_not_block_scan",
+          "description": "Cleanup completes without preventing `scan-state.json` and `last-scan.json` from being updated"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "error-resilience",
+      "prompt": "process my sprint items",
+      "precondition": "3 work items, one of which consistently fails (e.g., GitHub API error on fetch)",
+      "expected_output": "Failing item is recorded in `errors`, its `errorCount` in `wi-<id>.json` increments, other items process normally, and after 3 consecutive failures the item is returned as skipped with reason `error_cap`.",
+      "assertions": [
+        {
+          "name": "error_does_not_block_others",
+          "description": "Other work items are processed despite one item failing"
+        },
+        {
+          "name": "error_count_tracked",
+          "description": "`errorCount` in the per-item state is incremented for the failing item"
+        },
+        {
+          "name": "error_cap_after_third_failure",
+          "description": "After 3 consecutive failures, the item is skipped with reason `error_cap`"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "current-iteration-scoped",
+      "prompt": "work my backlog",
+      "precondition": "Assigned open issues include a mix of current-iteration items and non-current backlog items in GitHub Projects",
+      "expected_output": "Scopes processing to the assigned issues in the current GitHub Project iteration and reports that iteration in the scan summary instead of processing the full assigned-open set.",
+      "assertions": [
+        {
+          "name": "current_iteration_only_processed",
+          "description": "Only assigned issues in the current iteration are processed when current-iteration metadata is available"
+        },
+        {
+          "name": "iteration_summary_matches_scope",
+          "description": "The scan summary iteration label reflects the active current-iteration scope"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "stage3-pr-activity-rescan",
+      "prompt": "work my backlog",
+      "precondition": "A Stage 3 work item has unchanged issue.updatedAt since the last pass, but the linked open PR has new review/check activity or changed readiness/conflict state",
+      "expected_output": "Rescans the item from linked PR activity, and draft/conflicted PRs remain actionable instead of being skipped as healthy waiting items.",
+      "assertions": [
+        {
+          "name": "linked_pr_activity_triggers_rescan",
+          "description": "Linked PR activity is sufficient to rescan a Stage 3 work item even when the issue timestamp is unchanged"
+        },
+        {
+          "name": "draft_or_conflict_not_skipped",
+          "description": "Draft or conflicted PRs are routed as actionable Stage 3 work instead of being skipped as waiting on humans or checks"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "author-metadata-human-feedback",
+      "prompt": "work my backlog",
+      "precondition": "An issue has BOT-PLAN comments and follow-up comments where bot and human authors are distinguishable through GitHub actor metadata, including at least one human comment mentioning '[bot]' in the body",
+      "expected_output": "Uses GitHub author metadata when available so bot-authored comments are ignored and human-authored feedback/approvals are still classified correctly even if the comment body contains bot-like markers.",
+      "assertions": [
+        {
+          "name": "author_metadata_preferred",
+          "description": "Bot vs human classification prefers GitHub actor metadata over comment-body marker heuristics when metadata is available"
+        },
+        {
+          "name": "human_feedback_retained",
+          "description": "Human feedback is not discarded solely because the text contains '[bot]' or similar markers"
+        }
+      ]
+    }
+  ]
+}

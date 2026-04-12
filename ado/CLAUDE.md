@@ -13,8 +13,9 @@ or authentication failure):
 3. After setup completes, retry the original operation.
 4. If setup itself fails, report the error and stop.
 
-This applies to every skill in this plugin: `work-on`, `publish-pr`,
-`babysit-pr`, `work-items`, `draft-work-item`, and any future skills.
+This applies to every skill in this plugin: `ado-work-on`,
+`ado-publish-pr`, `ado-babysit-pr`, `ado-work-items`,
+`ado-draft-work-item`, and any future skills.
 
 ## Comments Are Append-Only
 

@@ -1,5 +1,5 @@
 {
   "name": "gh",
   "description": "GitHub integration for issue/project management, PR publishing, iterative PR tending, issue-driven implementation, and backlog automation. Orchestrates development methodology skills via the development plugin.",
-  "version": "1.0.1"
+  "version": "2.0.0"
 }

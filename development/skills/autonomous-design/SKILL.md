@@ -2,7 +2,8 @@
 name: autonomous-design
 description: >
   Non-interactive design workflow for autonomous contexts (e.g., namespaced
-  `work-on` flows such as `ado:work-on` or `gh:work-on`). Mirrors
+  `ado-work-on` / `gh-work-on` flows such as `ado:ado-work-on` or
+  `gh:gh-work-on`). Mirrors
   brainstorming methodology but auto-selects the best approach instead of
   requiring user approval. Use when designing features/tasks without
   interactive user feedback — requirements come from tracked work items/issues,
@@ -19,8 +20,8 @@ rather than live conversation.
 
 This is the autonomous counterpart to `development:brainstorming`. Use
 brainstorming when a user is in the loop; use this skill when operating
-autonomously inside a namespaced workflow (e.g., `ado:work-on` or
-`gh:work-on`).
+autonomously inside a namespaced workflow (e.g., `ado:ado-work-on` or
+`gh:gh-work-on`).
 
 When similarly named workflows exist in multiple plugins, keep the namespace so
 the target system stays explicit.
@@ -89,8 +90,8 @@ Append to the decision log (if one exists):
 ## Output
 
 The output of this skill is a design decision ready to feed into an
-implementation plan. The calling skill (e.g., `ado:work-on` or
-`gh:work-on`) takes this output and proceeds to plan creation.
+implementation plan. The calling skill (e.g., `ado:ado-work-on` or
+`gh:gh-work-on`) takes this output and proceeds to plan creation.
 
 ## Key Principles
 

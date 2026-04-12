@@ -18,8 +18,9 @@ toolsets, or authentication failure):
    possible.
 5. If neither MCP nor `gh` access is usable, report the error and stop.
 
-This applies to every skill in this plugin: `work-on`, `publish-pr`,
-`babysit-pr`, `work-items`, `draft-work-item`, and any future skills.
+This applies to every skill in this plugin: `gh-work-on`,
+`gh-publish-pr`, `gh-babysit-pr`, `gh-work-items`,
+`gh-draft-work-item`, and any future skills.
 
 ## Comments Are Append-Only
 

@@ -128,7 +128,7 @@ Use when:
 
 Action: Fix the code, reply explaining the change with bot prefix.
 
-> **Terminology note**: The `babysit-pr-worker` agent uses "Resolve" for this
+> **Terminology note**: The `ado-babysit-pr-worker` agent uses "Resolve" for this
 > disposition. "Needs Addressing" and "Resolve" are interchangeable — both mean
 > "fix the code to address the reviewer's comment."
 

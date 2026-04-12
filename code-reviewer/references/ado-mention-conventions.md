@@ -148,13 +148,13 @@ Any skill or agent that writes to Azure DevOps (PR descriptions, comments,
 work item updates) should follow these conventions. In this context, shared
 workflow names refer to the `ado:` plugin entries; the GitHub counterparts use
 the `gh:` namespace.
-- Composing PR descriptions (`ado:publish-pr`; GitHub counterpart:
-  `gh:publish-pr`)
-- Posting review comments (`code-reviewer:review-pr`, `ado:babysit-pr`,
-  `ado:pr-tender`; GitHub counterparts use `gh:babysit-pr` / `gh:pr-tender`)
-- Creating or updating work items (`ado:work-items`, `ado:draft-work-item`;
-  GitHub counterparts: `gh:work-items`, `gh:draft-work-item`)
-- Posting comments to work items (`ado:work-on`; GitHub counterpart:
-  `gh:work-on`)
+- Composing PR descriptions (`ado:ado-publish-pr`; GitHub counterpart:
+  `gh:gh-publish-pr`)
+- Posting review comments (`code-reviewer:review-pr`, `ado:ado-babysit-pr`,
+  `ado:ado-pr-tender`; GitHub counterparts use `gh:gh-babysit-pr` / `gh:gh-pr-tender`)
+- Creating or updating work items (`ado:ado-work-items`, `ado:ado-draft-work-item`;
+  GitHub counterparts: `gh:gh-work-items`, `gh:gh-draft-work-item`)
+- Posting comments to work items (`ado:ado-work-on`; GitHub counterpart:
+  `gh:gh-work-on`)
 - Configuring MCP access (`ado:setup-ado-mcp`; GitHub counterpart:
   `gh:setup-gh-mcp`)

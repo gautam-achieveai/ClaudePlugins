@@ -146,7 +146,7 @@ For artifacts without shorthand mention syntax, use explicit URLs:
 Any skill that writes to Azure DevOps (PR descriptions, comments, work item
 updates) should invoke the `ado:ado-mentions` skill, which loads this document.
 Applicable skills:
-- Composing PR descriptions (`publish-pr`)
-- Posting review comments (`review-pr`, `babysit-pr`, `pr-tender`)
-- Creating or updating work items (`work-items`, `draft-work-item`)
-- Posting comments to work items (`work-on`)
+- Composing PR descriptions (`ado-publish-pr`)
+- Posting review comments (`review-pr`, `ado-babysit-pr`, `ado-pr-tender`)
+- Creating or updating work items (`ado-work-items`, `ado-draft-work-item`)
+- Posting comments to work items (`ado-work-on`)
