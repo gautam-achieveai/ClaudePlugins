@@ -122,7 +122,7 @@ Evaluate developer performance across these areas:
 - Were blockers external or internal?
 - Is productivity impacted by context switching?
 
-**CRITICAL:** Always ask about gaps via `ask_human` - could be OnCall, blockers, legitimate reasons
+**CRITICAL:** Always ask about gaps via `mcp__hitl__AskUserQuestion` - could be OnCall, blockers, legitimate reasons
 
 ---
 
@@ -136,7 +136,7 @@ Evaluate developer performance across these areas:
 - Team collaboration
 
 **Evidence to Gather:**
-- User feedback via `ask_human`
+- User feedback via `mcp__hitl__AskUserQuestion`
 - Production incident severity
 - Revenue/business impact
 - Team dynamics feedback
@@ -149,7 +149,7 @@ Evaluate developer performance across these areas:
 - Team members blocked by this developer
 - Manual processes created instead of automated
 
-**Assessment Questions (via ask_human):**
+**Assessment Questions (via mcp__hitl__AskUserQuestion):**
 - Overall satisfaction with deliverables?
 - Any business impact issues?
 - Work ethic or responsiveness concerns?
@@ -157,6 +157,32 @@ Evaluate developer performance across these areas:
 - Customer satisfaction with features?
 
 **CRITICAL:** Never finalize review without user validation phase
+
+### 6. Customer Impact & Business Value
+
+**What to Assess:**
+- Features delivered end-to-end that serve customer needs
+- Connection between PRs and customer-facing features (via ADO epic/feature hierarchy)
+- Ratio of feature work vs bug fixes vs maintenance
+- Whether landed work addressed high-priority customer requests
+
+**Evidence to Gather:**
+- ADO work item hierarchy: PR → Task → User Story → Feature → Epic
+- Feature→PR mapping showing which customer features each PR served
+- Bug PRs per feature area (quality signal per feature)
+- Comparison of all-authored vs primary-branch-landed work (WIP/rework signal)
+
+**Red Flags:**
+- High ratio of bug-fix PRs to feature PRs in the same area
+- Features started but not delivered (many branches, few merges to primary)
+- Work items linked to low-priority epics while high-priority items remain unaddressed
+- Significant gap between all-authored work and primary-branch-landed work
+
+**Assessment Questions (via mcp__hitl__AskUserQuestion):**
+- Which customer features were most important this period?
+- Were any features delayed or incomplete from the developer's contributions?
+- How does this developer's work align with team/org priorities?
+- Were there features where the developer went above and beyond?
 
 ---
 
@@ -260,7 +286,7 @@ For each dimension, rate as:
 - User validation input
 
 **Never rely on single dimension**
-**Always validate with user via ask_human**
+**Always validate with user via mcp__hitl__AskUserQuestion**
 **Always consider context**
 
 ---

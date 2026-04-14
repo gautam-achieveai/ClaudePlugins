@@ -180,7 +180,12 @@ $markdown = @"
 
 - **Total Bug Commits**: $($bugCommits.Count)
 - **Hotfixes (to release branches)**: $($hotfixes.Count)
-- **Peak Bug Month**: $(($bugsByMonth | Sort-Object Count -Descending | Select-Object -First 1).Month) with $(($bugsByMonth | Sort-Object Count -Descending | Select-Object -First 1).Count) bugs
+$(if ($bugsByMonth.Count -gt 0) {
+    $peakMonth = $bugsByMonth | Sort-Object Count -Descending | Select-Object -First 1
+    "- **Peak Bug Month**: $($peakMonth.Month) with $($peakMonth.Count) bugs"
+} else {
+    "- **Peak Bug Month**: N/A (no bug commits found)"
+})
 
 ---
 
@@ -198,7 +203,7 @@ foreach ($category in $categories.Keys | Sort-Object) {
 "@
         foreach ($bug in $categories[$category]) {
             $prText = if ($bug.PRNumber) { "PR $($bug.PRNumber)" } else { "Commit" }
-            $markdown += '- **$($bug.Date)** - $prText: $($bug.Message) [`$($bug.Hash)`]`n'
+            $markdown += "- **$($bug.Date)** - $prText`: $($bug.Message) [``$($bug.Hash)``]`n"
         }
     }
 }
@@ -215,7 +220,7 @@ $(if ($hotfixes.Count -eq 0) {
     "🚩 **$($hotfixes.Count) hotfixes** were pushed directly to release branches, indicating production issues:`n"
     foreach ($hf in $hotfixes) {
         $prText = if ($hf.PRNumber) { "PR $($hf.PRNumber)" } else { "Commit" }
-        '`n- **$($hf.Date)** - $prText: $($hf.Message) [`$($hf.Hash)`]'
+        "`n- **$($hf.Date)** - ${prText}: $($hf.Message) [``$($hf.Hash)``]"
     }
 })
 
@@ -310,7 +315,7 @@ Write-Host "=== BUG CATEGORIES ===" -ForegroundColor Green
 foreach ($category in $categories.Keys | Sort-Object) {
     $count = $categories[$category].Count
     if ($count -gt 0) {
-        Write-Host "$category: $count" -ForegroundColor Yellow
+        Write-Host "${category}: $count" -ForegroundColor Yellow
     }
 }
 

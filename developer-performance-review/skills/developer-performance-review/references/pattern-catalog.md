@@ -235,3 +235,52 @@ How quickly and thoroughly bugs are addressed.
 5. **Evidence-Based**: Use concrete examples, not assumptions
 6. **Context-Aware**: Consider OnCall, blockers, learning curve
 7. **Actionable**: Translate patterns into specific training needs
+
+---
+
+## Review Churn Pattern
+
+### Description
+PRs requiring many review rounds before approval, indicating gaps in understanding expectations or code quality.
+
+### Detection
+- PRs needing 3+ review rounds before merge
+- Repeated similar review comments across PRs (same lessons not learned)
+- Long time-to-merge relative to PR size
+
+### Impact
+- Blocks reviewers' time, reduces team velocity
+- Indicates possible skill gap or communication issue
+
+---
+
+## Incomplete Delivery Pattern
+
+### Description
+Features started but not fully landed — many branches created, but few merged to the primary branch.
+
+### Detection
+- Compare Dataset 1 (all-authored) vs Dataset 2 (primary-branch): large gap = many branches not merged
+- ADO work items in "Active" state with child tasks "Done" — feature not fully delivered
+- Stories with some tasks completed but the story itself never closed
+
+### Impact
+- Work effort spent without customer-visible results
+- Possible scope creep, blocked dependencies, or prioritization churn
+
+---
+
+## Customer Impact Clustering Pattern
+
+### Description
+Developer's work concentrates on a few customer features vs spreads across many.
+
+### Detection
+- Build Feature → PR mapping from ADO work item hierarchy
+- Count PRs per Feature/Epic area
+- Ratio of bug-fix PRs to feature PRs within each feature area
+
+### Impact
+- **Focused clustering** (few features, many PRs): deep expertise, high ownership
+- **Scattered clustering** (many features, 1-2 PRs each): breadth but less depth
+- **High bug ratio** in a feature area: quality concern in that domain

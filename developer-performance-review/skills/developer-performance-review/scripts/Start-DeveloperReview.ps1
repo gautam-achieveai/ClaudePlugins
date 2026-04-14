@@ -24,7 +24,13 @@
     End date for the review period (YYYY-MM-DD format). Defaults to today.
 
 .PARAMETER Branch
-    The branch to checkout for review. Defaults to 'dev'.
+    The branch to checkout for review. Auto-detected from the target repository if not specified.
+
+.PARAMETER Repository
+    Path to the target git repository to review. Defaults to the current working directory.
+
+.PARAMETER ForceRecreate
+    If set, removes and recreates the worktree without prompting when it already exists.
 
 .PARAMETER MinorPRLines
     Minimum lines changed to consider a PR "major". Defaults to 100.
@@ -57,7 +63,7 @@
     This script requires:
     - Git installed and available in PATH
     - PowerShell 5.1 or higher
-    - Repository must have 'dev' branch (or specify alternative with -Branch)
+    - Target repository must be a valid git repository
 #>
 
 [CmdletBinding()]
@@ -74,7 +80,13 @@ param(
     [string]$EndDate = (Get-Date -Format 'yyyy-MM-dd'),
 
     [Parameter(Mandatory = $false)]
-    [string]$Branch = "dev",
+    [string]$Branch,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Path to the target git repository to review")]
+    [string]$Repository,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ForceRecreate,
 
     [Parameter(Mandatory = $false)]
     [int]$MinorPRLines = 100,
@@ -104,6 +116,38 @@ if ($PSVersionTable.PSEdition -ne 'Core') {
 }
 
 $ErrorActionPreference = "Stop"
+
+function Get-PrimaryBranch {
+    <#
+    .SYNOPSIS
+        Detects the primary branch of a git repository.
+    .DESCRIPTION
+        Tries multiple strategies: symbolic-ref, well-known branch names, remote show.
+        Returns 'main' as ultimate fallback.
+    #>
+    param([string]$Repository = ".")
+    Push-Location $Repository
+    try {
+        # Strategy 1: Check what origin/HEAD points to
+        $ref = git symbolic-ref refs/remotes/origin/HEAD 2>$null
+        if ($LASTEXITCODE -eq 0 -and $ref) {
+            return ($ref -replace 'refs/remotes/origin/', '')
+        }
+        # Strategy 2: Check well-known branch names
+        foreach ($candidate in @('main', 'master', 'dev', 'develop', 'trunk')) {
+            git rev-parse --verify "origin/$candidate" 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) { return $candidate }
+        }
+        # Strategy 3: Ask remote directly
+        $output = git remote show origin 2>$null | Select-String 'HEAD branch'
+        if ($output) {
+            return $output.ToString().Split(':')[1].Trim()
+        }
+        # Fallback
+        return 'main'
+    }
+    finally { Pop-Location }
+}
 
 function Initialize-GitExclusions {
     <#
@@ -167,28 +211,35 @@ function Initialize-GitExclusions {
     }
 }
 
-# Initialize git exclusions before doing any work
-Write-Host "Initializing git exclusions..." -ForegroundColor Green
-Initialize-GitExclusions
-Write-Host ""
-
 # Script directory (where this script is located)
 $ScriptDir = $PSScriptRoot
 
-# Repository root (4 levels up from scripts dir: .claude/skills/dev-reviewer/scripts)
-$RepoRoot = Split-Path (Split-Path (Split-Path (Split-Path $ScriptDir -Parent) -Parent) -Parent) -Parent
-
-# Validate we're in a git repository
-Push-Location $RepoRoot
-try {
-    $gitCheck = git rev-parse --git-dir 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Not in a git repository. Expected repository root at: $RepoRoot"
-    }
-}
-finally {
+# Determine repository root from -Repository parameter or current working directory
+if ($Repository) {
+    Push-Location $Repository
+    $RepoRoot = (git rev-parse --show-toplevel 2>$null) -replace '/', '\'
     Pop-Location
 }
+else {
+    $RepoRoot = (git rev-parse --show-toplevel 2>$null) -replace '/', '\'
+}
+if (-not $RepoRoot) {
+    Write-Error "Not inside a git repository. Use -Repository to specify the target repo."
+    return
+}
+
+# Auto-detect primary branch if not specified
+if (-not $PSBoundParameters.ContainsKey('Branch')) {
+    $Branch = Get-PrimaryBranch -Repository $RepoRoot
+    Write-Host "Auto-detected primary branch: $Branch" -ForegroundColor Cyan
+}
+
+# Initialize git exclusions in the target repo
+Write-Host "Initializing git exclusions..." -ForegroundColor Green
+Push-Location $RepoRoot
+try { Initialize-GitExclusions }
+finally { Pop-Location }
+Write-Host ""
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Developer Performance Review Setup" -ForegroundColor Cyan
@@ -216,9 +267,8 @@ Write-Host "[1/5] Creating git worktree..." -ForegroundColor Green
 if (Test-Path $worktreePath) {
     Write-Host "   ⚠️  Worktree already exists at: $worktreePath" -ForegroundColor Yellow
 
-    $response = Read-Host "   Do you want to remove and recreate it? (y/n)"
-    if ($response -eq 'y') {
-        Write-Host "   Removing existing worktree..." -ForegroundColor Yellow
+    if ($ForceRecreate) {
+        Write-Host "   Removing existing worktree (ForceRecreate)..." -ForegroundColor Yellow
         Push-Location $RepoRoot
         try {
             git worktree remove $worktreePath --force 2>&1 | Out-Null
@@ -232,7 +282,7 @@ if (Test-Path $worktreePath) {
         }
     }
     else {
-        Write-Host "   Using existing worktree." -ForegroundColor Cyan
+        Write-Host "   Reusing existing worktree. Use -ForceRecreate to remove and recreate." -ForegroundColor Cyan
         Push-Location $worktreePath
         $skipWorktreeCreation = $true
     }
@@ -298,7 +348,9 @@ if (-not $SkipDataCollection) {
         -Author $DeveloperName `
         -Since $StartDate `
         -Until $EndDate `
-        -OutputPath $prsOutput
+        -OutputPath $prsOutput `
+        -Repository $RepoRoot `
+        -PrimaryBranch $Branch
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   ✓ PR data saved to: $prsOutput" -ForegroundColor Green
@@ -312,8 +364,11 @@ if (-not $SkipDataCollection) {
     $majorPrsOutput = Join-Path $dataDir "major_prs.md"
     & "$ScriptDir\Get-MajorPRs.ps1" `
         -Author $DeveloperName `
+        -Since $StartDate `
+        -Until $EndDate `
         -MinLines $MinorPRLines `
-        -OutputPath $majorPrsOutput
+        -OutputPath $majorPrsOutput `
+        -Repository $RepoRoot
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   ✓ Major PRs report saved to: $majorPrsOutput" -ForegroundColor Green
@@ -327,8 +382,11 @@ if (-not $SkipDataCollection) {
     $gapsOutput = Join-Path $dataDir "activity_gaps.md"
     & "$ScriptDir\Find-ActivityGaps.ps1" `
         -Author $DeveloperName `
+        -Since $StartDate `
+        -Until $EndDate `
         -MinGapDays $MinGapDays `
-        -OutputPath $gapsOutput
+        -OutputPath $gapsOutput `
+        -Repository $RepoRoot
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   ✓ Activity gaps report saved to: $gapsOutput" -ForegroundColor Green
@@ -342,7 +400,10 @@ if (-not $SkipDataCollection) {
     $bugsOutput = Join-Path $dataDir "bug_patterns.md"
     & "$ScriptDir\Analyze-BugPatterns.ps1" `
         -Author $DeveloperName `
-        -OutputPath $bugsOutput
+        -Since $StartDate `
+        -Until $EndDate `
+        -OutputPath $bugsOutput `
+        -Repository $RepoRoot
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   ✓ Bug patterns report saved to: $bugsOutput" -ForegroundColor Green
@@ -422,7 +483,7 @@ git worktree remove $worktreePath
 
 ## Important Reminders
 
-- **Always validate findings with user via ask_human before finalizing**
+- **Always validate findings with user via mcp__hitl__AskUserQuestion before finalizing**
 - Use specific code examples, not vague observations
 - Consider context (OnCall, blockers, project complexity)
 - Balance positive feedback with constructive criticism
@@ -745,7 +806,7 @@ Write-Host ""
 Write-Host "3. Document findings in report templates:" -ForegroundColor Yellow
 Write-Host "   $analysisPath\reports\" -ForegroundColor White
 Write-Host ""
-Write-Host "4. CRITICAL: Validate findings with user via ask_human" -ForegroundColor Red
+Write-Host "4. CRITICAL: Validate findings with user via mcp__hitl__AskUserQuestion" -ForegroundColor Red
 Write-Host ""
 Write-Host "5. Open README for full instructions:" -ForegroundColor Yellow
 Write-Host "   $readmePath" -ForegroundColor White

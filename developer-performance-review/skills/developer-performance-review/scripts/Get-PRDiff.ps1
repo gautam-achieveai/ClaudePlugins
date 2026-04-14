@@ -59,7 +59,12 @@ Push-Location $Repository
 if ($PRNumber) {
     Write-Host "Finding commit for PR $PRNumber..." -ForegroundColor Cyan
 
-    $commits = git log --all --oneline --grep="Merged PR $PRNumber" | Select-Object -First 1
+    # Use word-boundary matching to avoid PR 12 matching PR 123
+    $commits = git log --all --oneline --grep="Merged PR ${PRNumber}[^0-9]" | Select-Object -First 1
+    if (-not $commits) {
+        # Try matching PR number at end of line
+        $commits = git log --all --oneline --grep="Merged PR ${PRNumber}$" | Select-Object -First 1
+    }
 
     if (-not $commits) {
         Write-Error "PR $PRNumber not found"

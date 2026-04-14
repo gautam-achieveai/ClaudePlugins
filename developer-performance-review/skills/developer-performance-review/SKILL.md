@@ -1,246 +1,156 @@
 ---
 name: developer-performance-review
-description: Conduct developer performance reviews over weeks or months by analyzing git history, pull requests, and code patterns. Extracts PR data, identifies activity gaps, analyzes bug patterns, and generates evidence-based assessments combining technical analysis with manager feedback. Use when asked to "review [developer]'s work from [date] to [date]", analyze productivity patterns, prepare performance feedback, or investigate developer growth over time. NOT for single PR code reviews.
-allowed-tools: Read, Grep, Glob, Bash, Task, mcp__azure-devops__*, mcp__clarify-doubt__ask_human
+description: >
+  This skill should be used when the user asks to "review [developer]'s work from [date] to [date]",
+  "analyze developer productivity patterns", "prepare performance feedback", "conduct a performance review",
+  "assess developer growth over time", or mentions evaluating a developer over weeks or months.
+  Analyzes git history, PRs, work item context, and code quality patterns with emphasis on quality over quantity.
+  NOT for single PR code reviews — use pr-review for that.
+version: 1.2.0
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - Task
+  - mcp__azure-devops__*
+  - mcp__hitl__*
 ---
 
-# Dev Manager
+# Developer Performance Review
 
-You're a development manager, managing developers.
+Review a developer's work over time (weeks/months) combining git analysis, Azure DevOps PR context, and manager feedback for evidence-based assessment. Quality of work matters more than quantity.
 
-This Skill helps you Review developer's work over time (weeks/months) to assess code quality trends, productivity patterns, and professional growth.
+## Phase 1: Data Collection
 
-## ⚠️ Skill Scope
+### 1A. Auto-Detect Primary Branch
 
-**This skill is for:**
-
-- Developer performance reviews over time (months)
-- Analyzing productivity patterns and growth
-- Assessing multiple PRs and commits across a period
-- Preparing performance feedback for review meetings
-- Investigating time-to-value and bug patterns
-
-**This skill is NOT for:**
-
-- Reviewing individual pull requests → Use `pr-reviewer` skill
-- Single PR code reviews → Use `pr-reviewer` skill
-- Quick code feedback → Use `pr-reviewer` skill
-
-**Examples:**
-
-- "Review John Doe's work from Jan-Jun" → Use **dev-reviewer** ✅
-- "Analyze developer productivity for Q1" → Use **dev-reviewer** ✅
-- "Review PR #12345" → Use **pr-reviewer** ❌
-- "Code review this pull request" → Use **pr-reviewer** ❌
-
-## Quick Start
+Do NOT hardcode any branch. Auto-detect the repo's primary branch:
 
 ```powershell
-cd .claude/skills/dev-reviewer/scripts
-
-.\Start-DeveloperReview.ps1 `
-    -DeveloperName "John Doe" `
-    -StartDate "2024-01-01" `
-    -EndDate "2024-11-01"
+# Run from the TARGET repo (not the plugin directory)
+$ref = git symbolic-ref refs/remotes/origin/HEAD 2>$null
+$primaryBranch = if ($ref) { $ref -replace 'refs/remotes/origin/', '' } else { $null }
+# Fallback: check main, master, dev, develop, trunk
+if (-not $primaryBranch) {
+    foreach ($candidate in @('main', 'master', 'dev', 'develop', 'trunk')) {
+        git rev-parse --verify "origin/$candidate" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { $primaryBranch = $candidate; break }
+    }
+}
 ```
 
-Creates isolated worktree with automated data collection and analysis templates.
+### 1B. Collect Git Data (TWO Datasets)
 
-## Essential Workflow
+```powershell
+# Dataset 1 — ALL authored work (includes branches, WIP, experiments)
+git log --all --author="Developer" --since="START" --until="END" --numstat --pretty=format:"%H|%s|%ad"
 
-1. **Setup & Data Collection** (automated)
-   - Create worktree at `worktrees/review_[developer]_[dates]/`
-   - Extract all PRs, commits, and statistics
-   - Identify major PRs (>100 lines)
-   - Detect activity gaps (>14 days)
-   - Analyze bug patterns
+# Dataset 2 — PRIMARY BRANCH landed work only (features actually shipped)
+git log --first-parent "origin/$primaryBranch" --author="Developer" --since="START" --until="END" --numstat --pretty=format:"%H|%s|%ad"
+```
 
-2. **Context Gathering** (CRITICAL)
-   - Use `ask_human` to collect user feedback
-   - Ask about feature satisfaction, quality concerns
-   - Understand timeline context (OnCall, blockers, vacation)
-   - Get expectations vs reality assessment
+The gap between Dataset 1 and Dataset 2 reveals WIP, rework, and abandoned branches.
 
-3. **Deep Code Analysis**
-   - Review major PRs for quality, testing, design
-   - Look for patterns across multiple PRs
-   - Identify recurring issues (thrashing, missed cases, quality)
-   - Document specific findings with code examples
+Or run the automation script from the TARGET repo:
+```powershell
+& "${CLAUDE_SKILL_DIR}/scripts/Start-DeveloperReview.ps1" `
+    -DeveloperName "Developer" -StartDate "YYYY-MM-DD" -EndDate "YYYY-MM-DD" `
+    -Repository (git rev-parse --show-toplevel)
+```
 
-4. **Pattern Detection**
-   - Thrashing: Add → Remove → Re-add patterns
-   - Missed Cases: Incomplete scenario handling
-   - Quality: Recurring bug types
-   - Design: Architecture anti-patterns
-   - Time-to-Value: Complexity vs timeline
+### 1C. Enrich PRs via Azure DevOps (CRITICAL)
 
-5. **Assessment** (5 Dimensions)
-   - Code Quality & Design
-   - Testing Adequacy
-   - Requirements Analysis
-   - Time-to-Value
-   - User Satisfaction
+Determine the ADO repository name from git remote: `git remote get-url origin` → extract the repo name.
 
-6. **User Validation** (MANDATORY)
-   - Present technical findings to user
-   - Request manager's assessment via `ask_human`
-   - Ask about business impact, work ethic, operations
-   - Integrate feedback into final assessment
+For EVERY PR identified from git history:
 
-7. **Documentation**
-   - Fill templates in `reports/` directory
-   - Detailed code quality analysis
-   - Timeline and productivity assessment
-   - Talking points for review meeting
-   - Specific, actionable recommendations
+1. `azure-devops-getPullRequest(repo, prId, include=["description","workItems","reviewers"])` — get rich PR data
+2. For each linked work item: `azure-devops-getWorkItemById(id, fullDescription=true)` — get context
+3. Walk parent chain: Task/Bug → User Story → Feature → Epic
+4. Record which **customer feature** each PR served — this is key for impact assessment
 
-## Critical Principles
+Also query ADO directly for the developer's PRs to catch any missed by git grep:
+`azure-devops-listPullRequests(repo, creatorId=developer, status="completed")`
 
-**1. User Validation Required**
+Build a **Feature → PR mapping**: group PRs by their parent Feature/Epic. This reveals:
+- Which customer features the developer contributed to
+- How many PRs per feature (breadth vs depth)
+- Bug PRs vs feature PRs ratio per feature area
 
-- ALWAYS use `ask_human` before finalizing
-- Technical analysis + manager feedback = complete picture
-- Never skip Phase 6 (User Validation)
+### 1D. Run Analysis Scripts
 
-**2. Evidence-Based**
+- `Get-MajorPRs.ps1` — filter significant PRs (>100 lines changed)
+- `Find-ActivityGaps.ps1` — detect inactivity periods (>14 days)
+- `Analyze-BugPatterns.ps1` — categorize bug-related commits
 
-- Every claim backed by specific PR numbers
-- Code examples with file:line references
-- Git history data for timelines
+## Phase 2: Context Gathering
 
-**3. Context-Aware**
+**ALWAYS gather context BEFORE making any judgments.**
 
-- Consider OnCall, blockers, learning curve
-- Distinguish individual vs systemic issues
-- Adjust for project complexity
+Use `mcp__hitl__AskUserQuestion` to ask the manager:
+1. Satisfaction with specific features delivered (reference work item hierarchy from Phase 1C)
+2. Known production incidents or rollbacks during the review period
+3. Quality concerns observed from a business perspective
+4. Reasons for activity gaps (OnCall rotations, blockers, vacation, team events)
+5. Work ethic, collaboration, mentoring contributions
 
-**4. Balanced**
+Frame questions with ADO context:
+> "PR #9192 delivered 'Platform Migration' (Feature: Cloud Modernization).
+> It had 3 follow-up bug fixes. Was this acceptable given the complexity?"
 
-- Celebrate wins (20-30%)
-- Constructive feedback (40-50%)
-- Support plan (20-30%)
+## Phase 3: Deep Analysis
 
-**5. Root Cause Focused**
+### Code Quality (for each major PR)
+- Get diff via `Get-PRDiff.ps1` or `git show`
+- Evaluate: design patterns, defensive programming, SOLID, error handling, testing
+- Cross-reference with follow-up bugs from work item hierarchy
+- Document findings with file:line references
 
-- Don't just list bugs—understand why
-- Testing gap vs requirements gap vs skill gap
-- Individual vs team/systemic problem
+### Pattern Detection
+Across all PRs, look for:
+- **Thrashing**: add/remove/re-add in consecutive PRs within 48hrs
+- **Missed Cases**: feature PR followed by 3+ bug PRs within 30 days
+- **Review Churn**: PRs needing 3+ review rounds before approval
+- **Incomplete Delivery**: Stories still Active with child Tasks Done
+- **Production Debugging**: log-add/log-remove commits within 24hrs
 
-## Quick Checklist
+### Impact Assessment (Quality > Quantity)
+- Features DELIVERED end-to-end (from ADO work items and epic context)
+- Bugs GENERATED per feature (quality signal)
+- Review feedback received and how it was addressed
+- Customer impact of delivered features (epic/feature-level context)
 
-- [ ] Ran data collection scripts (PRs, gaps, bugs)
-- [ ] Reviewed major PRs for code quality
-- [ ] Identified patterns (thrashing, missed cases, quality)
-- [ ] Assessed across 5 dimensions
-- [ ] **Used ask_human for user validation**
-- [ ] **Integrated manager feedback**
-- [ ] Documented with specific examples (PR #, file:line)
-- [ ] Created actionable recommendations
-- [ ] Balanced positive and constructive feedback
-- [ ] Considered context (OnCall, blockers)
+## Phase 4: Synthesis
 
-## Detailed Guides
+### Assess across 6 dimensions:
+1. **Code Quality & Design** — SOLID, defensive programming, maintainability
+2. **Testing Adequacy** — coverage, quality, preventable production bugs
+3. **Requirements Analysis** — upfront planning, completeness, rework frequency
+4. **Time-to-Value** — timeline vs complexity, activity patterns, landed work
+5. **User Satisfaction** — manager feedback, team collaboration, stakeholder trust
+6. **Customer Impact & Business Value** — features delivered end-to-end, ADO epic alignment, bug-to-feature ratio
 
-Comprehensive frameworks and examples:
+### Create these documents:
+1. `detailed_code_quality_analysis.md` — PR-by-PR breakdown with code examples and file:line refs
+2. `timeline_analysis.md` — activity patterns, gaps with context, feature delivery timelines
+3. `talking_points.md` — structured discussion guide: accomplishments, concerns, goals
+4. `recommendations.md` — specific, actionable improvements with measurable goals
 
-- [Pattern Catalog](reference/pattern-catalog.md) - Thrashing, missed cases, quality issues
-- [Assessment Framework](reference/assessment-framework.md) - 5 dimensions, rubric, evidence
-- [Review Best Practices](reference/review-best-practices.md) - Principles, pitfalls, checklist
-- [Scripts Documentation](scripts/README.md) - Automation tools
+### Critical Principles
+- **Evidence-based**: Every claim backed by PR #, file:line, work item ID
+- **Context-aware**: OnCall, blockers, complexity, learning curve
+- **Balanced**: celebrate wins (20-30%), constructive feedback (40-50%), support plan (20-30%)
+- **Root-cause focused**: testing gap vs requirements gap vs skill gap
+- **Quality > Quantity**: few excellent PRs beat many mediocre ones
 
-## Assessment Dimensions
+**NEVER finalize without manager validation via `mcp__hitl__AskUserQuestion`.**
 
-### 1. Code Quality & Design
+## Reference Guides
 
-SOLID principles, defensive programming, maintainability
-
-### 2. Testing Adequacy
-
-Coverage, quality, integration tests, production bugs preventable?
-
-### 3. Requirements Analysis
-
-Upfront planning, completeness, rework frequency
-
-### 4. Time-to-Value
-
-Timeline justification, productivity, activity gaps
-
-### 5. User Satisfaction
-
-Manager feedback, business impact, team dynamics
-
-**See [assessment-framework.md](reference/assessment-framework.md) for details**
-
-## Integration with Tools
-
-**Azure DevOps MCP:**
-
-- Fetch PR history and details
-- Get commit information
-- Analyze code changes
-
-**Automation Scripts:**
-
-- `Start-DeveloperReview.ps1` - Full setup
-- `Get-DeveloperPRs.ps1` - Extract PRs
-- `Get-MajorPRs.ps1` - Identify significant PRs
-- `Find-ActivityGaps.ps1` - Detect inactivity
-- `Analyze-BugPatterns.ps1` - Bug analysis
-
-## Output Structure
-
-Create these documents in `reports/`:
-
-1. **detailed_code_quality_analysis.md**
-   - PR-by-PR breakdown
-   - Code examples of patterns
-   - Specific findings with file:line
-
-2. **timeline_analysis.md**
-   - Activity patterns
-   - Gaps analysis with context
-   - Time-to-value assessment
-
-3. **talking_points.md**
-   - Structured discussion guide
-   - Accomplishments to celebrate
-   - Concerns to discuss
-   - Goals for next period
-
-4. **recommendations.md**
-   - Specific, actionable improvements
-   - Training needs
-   - Process improvements
-   - Measurable goals
-
-## Remember
-
-**Goal:** Developer growth, not criticism
-
-**Success Means:**
-
-- Help developer improve
-- Identify systemic issues
-- Celebrate achievements
-- Set clear, supportive goals
-- Build trust through fairness
-
-**Never Finalize Without:**
-
-- User validation (ask_human)
-- Business context
-- Manager feedback
-- Context consideration (OnCall, blockers)
-
-**Be:**
-
-- Evidence-based (PR #, file:line)
-- Context-aware (OnCall, complexity)
-- Balanced (positive + constructive)
-- Actionable (specific recommendations)
-- Root-cause focused (why, not just what)
-
----
-
-**Version:** 1.1.0 (2025-11-02) - Optimized for context efficiency with progressive disclosure
+Load these on demand for detailed frameworks:
+- [Assessment Framework](references/assessment-framework.md) — 6-dimension rubric with evidence requirements
+- [Pattern Catalog](references/pattern-catalog.md) — thrashing, missed cases, quality anti-patterns
+- [Review Best Practices](references/review-best-practices.md) — principles, pitfalls, checklist
+- [Examples](references/examples.md) — real review examples
+- [Script Documentation](scripts/README.md) — automation tools and parameters

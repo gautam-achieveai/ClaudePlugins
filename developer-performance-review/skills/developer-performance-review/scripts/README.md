@@ -1,4 +1,4 @@
-# DevReviewer PowerShell (pwsh) Scripts
+# Developer Performance Review — PowerShell Scripts
 
 Automation scripts for conducting comprehensive developer performance reviews.
 
@@ -348,12 +348,12 @@ New-Item -ItemType Directory -Path "review_analysis" -Force
 Write-Host "Analysis data ready in review_analysis/" -ForegroundColor Green
 ```
 
-### 2. Invoke DevReviewer Skill
+### 2. Invoke the Skill
 
 In Claude Code:
 
 ```
-Claude, use the dev-reviewer skill to analyze the data in review_analysis/
+Claude, use the developer-performance-review skill to analyze the data in review_analysis/
 and conduct a comprehensive performance review for [Developer Name].
 ```
 

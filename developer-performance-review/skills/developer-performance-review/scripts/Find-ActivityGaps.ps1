@@ -62,8 +62,11 @@ Write-Host "Minimum gap: $MinGapDays days" -ForegroundColor Cyan
 Write-Host ""
 
 # Get all commit dates
-$commitDates = git log --all --author="$Author" --since="$Since" --until="$Until" `
-    --date=short --pretty=format:"%ad" | Sort-Object -Unique
+$allCommitDates = git log --all --author="$Author" --since="$Since" --until="$Until" `
+    --date=short --pretty=format:"%ad"
+
+$totalCommits = @($allCommitDates).Count
+$commitDates = $allCommitDates | Sort-Object -Unique
 
 if ($commitDates.Count -eq 0) {
     Write-Host "No commits found for this author in the specified period." -ForegroundColor Red
@@ -74,7 +77,7 @@ if ($commitDates.Count -eq 0) {
 # Convert to DateTime objects
 $dates = $commitDates | ForEach-Object { [DateTime]::ParseExact($_, "yyyy-MM-dd", $null) }
 
-# Find gaps
+# Find gaps between consecutive commit dates
 $gaps = @()
 for ($i = 0; $i -lt $dates.Count - 1; $i++) {
     $gapDays = ($dates[$i + 1] - $dates[$i]).Days
@@ -86,6 +89,46 @@ for ($i = 0; $i -lt $dates.Count - 1; $i++) {
             DurationDays = $gapDays
             DurationWeeks = [Math]::Round($gapDays / 7.0, 1)
         }
+    }
+}
+
+# Check boundary gaps (period start → first commit, last commit → period end)
+$firstCommitDate = $dates[0]
+$lastCommitDate = $dates[-1]
+
+# Gap from start of review period to first commit
+try {
+    $periodStart = [DateTime]::ParseExact($Since, "yyyy-MM-dd", $null)
+} catch {
+    # If $Since is a relative date like "1 year ago", skip boundary check
+    $periodStart = $firstCommitDate
+}
+$startGap = ($firstCommitDate - $periodStart).Days
+if ($startGap -ge $MinGapDays) {
+    $gaps = @(@{
+        StartDate = $periodStart.ToString("yyyy-MM-dd")
+        EndDate = $firstCommitDate.ToString("yyyy-MM-dd")
+        DurationDays = $startGap
+        DurationWeeks = [Math]::Round($startGap / 7.0, 1)
+    }) + $gaps
+}
+
+# Gap from last commit to end of review period
+$periodEnd = Get-Date
+try {
+    if ($Until -and $Until -ne "now") {
+        $periodEnd = [DateTime]::ParseExact($Until, "yyyy-MM-dd", $null)
+    }
+} catch {
+    $periodEnd = Get-Date
+}
+$endGap = ($periodEnd - $lastCommitDate).Days
+if ($endGap -ge $MinGapDays) {
+    $gaps += @{
+        StartDate = $lastCommitDate.ToString("yyyy-MM-dd")
+        EndDate = $periodEnd.ToString("yyyy-MM-dd")
+        DurationDays = $endGap
+        DurationWeeks = [Math]::Round($endGap / 7.0, 1)
     }
 }
 
@@ -120,7 +163,8 @@ $markdown = @"
 
 ## Summary
 
-- **Total Commits**: $($dates.Count)
+- **Total Commits**: $totalCommits
+- **Active Days**: $($dates.Count)
 - **First Commit**: $($dates[0].ToString("yyyy-MM-dd"))
 - **Last Commit**: $($dates[-1].ToString("yyyy-MM-dd"))
 - **Gaps Detected**: $($gaps.Count)
@@ -216,7 +260,8 @@ Pop-Location
 return @{
     Gaps = $gaps
     Summary = @{
-        TotalCommits = $dates.Count
+        TotalCommits = $totalCommits
+        ActiveDays = $dates.Count
         FirstCommit = $dates[0].ToString("yyyy-MM-dd")
         LastCommit = $dates[-1].ToString("yyyy-MM-dd")
         GapsDetected = $gaps.Count

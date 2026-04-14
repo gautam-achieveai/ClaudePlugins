@@ -13,10 +13,10 @@
 - Performance reviews need both technical AND behavioral assessment
 
 **When:**
-After Phase 5 (Assessment) but BEFORE Phase 7 (Documentation)
+After Phase 3 (Deep Analysis) but BEFORE Phase 4 (Synthesis)
 
 **How:**
-Use `ask_human` tool to gather:
+Use `mcp__hitl__AskUserQuestion` tool to gather:
 - Overall satisfaction with work
 - Business impact issues (revenue, delays, customer impact)
 - Work ethic or responsiveness concerns
@@ -37,7 +37,14 @@ Use `ask_human` tool to gather:
 - Actual code diffs with line numbers
 - File paths and change details
 - Timeline data from git history
+- ADO work item IDs linking to features and epics
 - Concrete examples, not vague statements
+
+**Landed vs Authored distinction:**
+- **Authored work** (all branches): everything the developer committed
+- **Landed work** (primary branch): only features that shipped to customers
+- A large gap between authored and landed indicates WIP, rework, or abandoned work
+- Always distinguish between the two when assessing productivity
 
 **Bad:**
 - "Developer writes poor quality code"
@@ -215,7 +222,7 @@ Use `ask_human` tool to gather:
 **✅ Assess value delivered**
 - Business impact, user satisfaction
 
-**✅ Gather context via ask_human**
+**✅ Gather context via mcp__hitl__AskUserQuestion**
 - Understand blockers, constraints
 
 **✅ Distinguish root causes**
@@ -235,7 +242,7 @@ Use `ask_human` tool to gather:
 Before finalizing:
 
 - [ ] Examined actual code diffs (not just messages)
-- [ ] Got user feedback via `ask_human` on major features
+- [ ] Got user feedback via `mcp__hitl__AskUserQuestion` on major features
 - [ ] **Presented findings to user and requested assessment (Phase 6)**
 - [ ] **Integrated user's business, operational, behavioral feedback**
 - [ ] **Updated rating based on combined technical + user input**

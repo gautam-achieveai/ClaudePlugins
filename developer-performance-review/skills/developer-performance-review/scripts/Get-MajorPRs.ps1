@@ -88,6 +88,13 @@ foreach ($line in $commitData) {
             $prNumber = $Matches[1]
             $prTitle = $Matches[2]
 
+            # Finalize previous PR's totals before starting new one
+            if ($currentCommit) {
+                $currentCommit.LinesAdded += $currentLines.Added
+                $currentCommit.LinesDeleted += $currentLines.Deleted
+                $currentCommit.TotalLines = $currentCommit.LinesAdded + $currentCommit.LinesDeleted
+            }
+
             if (-not $prs.ContainsKey($prNumber)) {
                 $prs[$prNumber] = @{
                     Number = $prNumber
@@ -101,6 +108,16 @@ foreach ($line in $commitData) {
             }
 
             $currentCommit = $prs[$prNumber]
+            $currentLines = @{ Added = 0; Deleted = 0 }
+        }
+        else {
+            # Non-PR commit — finalize and stop accumulating into previous PR
+            if ($currentCommit) {
+                $currentCommit.LinesAdded += $currentLines.Added
+                $currentCommit.LinesDeleted += $currentLines.Deleted
+                $currentCommit.TotalLines = $currentCommit.LinesAdded + $currentCommit.LinesDeleted
+            }
+            $currentCommit = $null
             $currentLines = @{ Added = 0; Deleted = 0 }
         }
     }
@@ -123,8 +140,9 @@ if ($currentCommit) {
 # Filter major PRs
 $keywordList = if ($Keywords) { $Keywords -split ',' } else { @() }
 $majorPRs = $prs.Values | Where-Object {
-    $_.TotalLines -ge $MinLines -or
-    ($keywordList.Count -gt 0 -and ($keywordList | Where-Object { $_.Title -match $_ }).Count -gt 0)
+    $pr = $_
+    $pr.TotalLines -ge $MinLines -or
+    ($keywordList.Count -gt 0 -and ($keywordList | Where-Object { $pr.Title -match $_ }).Count -gt 0)
 } | Sort-Object TotalLines -Descending
 
 # Display results

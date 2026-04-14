@@ -38,8 +38,11 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$Since,
 
-    [Parameter(Mandatory=$true)]
-    [string]$Until,
+    [Parameter(Mandatory=$false)]
+    [string]$Until = "now",
+
+    [Parameter(Mandatory=$false)]
+    [string]$PrimaryBranch,
 
     [Parameter(Mandatory=$false)]
     [string]$OutputPath,
@@ -185,6 +188,53 @@ $output = @{
     PRs = $prs.Values | Sort-Object Number
     MonthlyStats = $monthlyStats
     AllCommits = $commits | Select-Object Hash, Date, Message, LinesAdded, LinesDeleted
+}
+
+# If PrimaryBranch specified, run a second pass for landed-only work
+if ($PrimaryBranch) {
+    Write-Host "Extracting landed commits on $PrimaryBranch..." -ForegroundColor Yellow
+    $landedData = git log --first-parent "origin/$PrimaryBranch" --author="$Author" --since="$Since" --until="$Until" `
+        --numstat --date=short --pretty=format:"COMMIT|%h|%ad|%s"
+
+    $landedCommits = @()
+    $currentLandedCommit = $null
+
+    foreach ($line in $landedData) {
+        if ($line -match '^COMMIT\|(.+?)\|(.+?)\|(.+)$') {
+            if ($currentLandedCommit) {
+                $landedCommits += $currentLandedCommit
+            }
+            $currentLandedCommit = @{
+                Hash = $Matches[1]
+                Date = $Matches[2]
+                Message = $Matches[3]
+                LinesAdded = 0
+                LinesDeleted = 0
+            }
+        }
+        elseif ($line -match '^(\d+|-)\s+(\d+|-)\s+(.+)$' -and $currentLandedCommit) {
+            $added = if ($Matches[1] -eq '-') { 0 } else { [int]$Matches[1] }
+            $deleted = if ($Matches[2] -eq '-') { 0 } else { [int]$Matches[2] }
+            $currentLandedCommit.LinesAdded += $added
+            $currentLandedCommit.LinesDeleted += $deleted
+        }
+    }
+    if ($currentLandedCommit) {
+        $landedCommits += $currentLandedCommit
+    }
+
+    $landedLinesAdded = ($landedCommits | Measure-Object -Property LinesAdded -Sum).Sum
+    $landedLinesDeleted = ($landedCommits | Measure-Object -Property LinesDeleted -Sum).Sum
+
+    Write-Host "Landed commits: $($landedCommits.Count)" -ForegroundColor Green
+
+    $output.LandedWork = @{
+        PrimaryBranch = $PrimaryBranch
+        TotalCommits = $landedCommits.Count
+        TotalLinesAdded = $landedLinesAdded
+        TotalLinesDeleted = $landedLinesDeleted
+        Commits = $landedCommits | Select-Object Hash, Date, Message, LinesAdded, LinesDeleted
+    }
 }
 
 # Save to file if specified

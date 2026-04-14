@@ -1,4 +1,4 @@
-# DevReviewer Skill
+# Developer Performance Review Skill
 
 ## Purpose
 Guide Claude through conducting comprehensive, quality-focused developer performance reviews. This skill goes beyond surface metrics to examine actual code quality, testing adequacy, design patterns, and time-to-value justification.
@@ -133,9 +133,9 @@ Guide Claude through conducting comprehensive, quality-focused developer perform
 .\Get-DeveloperPRs.ps1 -Author "DeveloperName" -Since "2024-07-01" -Until "2025-06-30"
 ```
 
-2. **Analyze timeline**:
+2. **Detect activity gaps** (>2 weeks):
 ```powershell
-.\Analyze-CommitTimeline.ps1 -Author "DeveloperName" -OutputPath "analysis/"
+.\Find-ActivityGaps.ps1 -Author "DeveloperName" -MinGapDays 14 -OutputPath "analysis/"
 ```
 
 3. **Identify major PRs** (>100 lines or high impact):
@@ -147,7 +147,7 @@ Guide Claude through conducting comprehensive, quality-focused developer perform
 
 **Critical: Get user feedback BEFORE deep analysis**
 
-Use `ask_human` tool to gather:
+Use `mcp__hitl__AskUserQuestion` tool to gather:
 1. Overall satisfaction with major features
 2. Production incidents/rollbacks
 3. Quality concerns or patterns observed
@@ -237,9 +237,9 @@ Look for patterns across PRs:
 
 ### Phase 5: Timeline Analysis
 
-1. **Create activity timeline**:
+1. **Detect activity gaps** (>2 weeks with no commits):
 ```powershell
-.\Create-ActivityTimeline.ps1 -Author "Developer" -OutputPath "timeline.md"
+.\Find-ActivityGaps.ps1 -Author "Developer" -MinGapDays 14 -OutputPath "timeline.md"
 ```
 
 2. **Identify gaps** (>2 weeks with no commits):
@@ -391,15 +391,15 @@ Create comprehensive analysis with:
 
 **Output**: JSON file with PR list, line counts, dates
 
-### 2. Analyze-CommitTimeline.ps1
-**Purpose**: Create visual timeline of developer activity
+### 2. Find-ActivityGaps.ps1
+**Purpose**: Detect periods of inactivity and create timeline overview
 
 **Usage**:
 ```powershell
-.\Analyze-CommitTimeline.ps1 -Author "Saurabh" -OutputPath "timeline.md"
+.\Find-ActivityGaps.ps1 -Author "Saurabh" -MinGapDays 14 -OutputPath "gaps.md"
 ```
 
-**Output**: Markdown with monthly/weekly activity breakdown
+**Output**: Markdown with gap analysis and activity summary
 
 ### 3. Get-MajorPRs.ps1
 **Purpose**: Identify PRs requiring deep review
@@ -421,17 +421,7 @@ Create comprehensive analysis with:
 
 **Output**: Complete diff with file paths and line numbers
 
-### 5. Find-ActivityGaps.ps1
-**Purpose**: Detect gaps in developer activity
-
-**Usage**:
-```powershell
-.\Find-ActivityGaps.ps1 -Author "Saurabh" -MinGapDays 14 -OutputPath "gaps.md"
-```
-
-**Output**: Report of activity gaps with dates
-
-### 6. Analyze-BugPatterns.ps1
+### 5. Analyze-BugPatterns.ps1
 **Purpose**: Identify recurring bug patterns
 
 **Usage**:
@@ -448,14 +438,14 @@ User: "Review Saurabh's work from July 2024 to June 2025"
 
 Claude:
 1. Runs Get-DeveloperPRs.ps1 to extract all PRs
-2. Uses ask_human to get satisfaction feedback
+2. Uses mcp__hitl__AskUserQuestion to get satisfaction feedback
 3. Runs Get-MajorPRs.ps1 to identify significant work
 4. For each major PR:
    - Runs Get-PRDiff.ps1
    - Uses sequential thinking to analyze
    - Documents quality issues
 5. Runs Find-ActivityGaps.ps1 to detect timeline issues
-6. Uses ask_human to clarify gaps
+6. Uses mcp__hitl__AskUserQuestion to clarify gaps
 7. Compiles comprehensive analysis
 8. Creates talking points document
 

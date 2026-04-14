@@ -12,7 +12,7 @@ This document shows real examples from actual performance reviews conducted usin
 ### Step 1: Data Collection
 
 ```powershell
-# Run in .claude/skills/dev-reviewer/scripts/
+# Run from the TARGET repo being reviewed
 .\Get-DeveloperPRs.ps1 -Author "Saurabh Singh" -Since "2024-07-01" -Until "2025-06-30" -OutputPath "../../../analysis/prs.json"
 ```
 
@@ -344,7 +344,7 @@ case AppId.MDS:
 
 ## Scripts Used in Examples
 
-All scripts available in `dev-reviewer/scripts/`:
+All scripts available in the skill's `scripts/` directory:
 - `Get-DeveloperPRs.ps1` - Extract commits and PRs
 - `Find-ActivityGaps.ps1` - Detect timeline gaps
 - `Get-MajorPRs.ps1` - Identify significant PRs
