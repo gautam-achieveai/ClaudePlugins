@@ -67,19 +67,28 @@ expensive to change.
 
 ## Basics, identify which repo to use
 
-When you check git remote, you will see something like this:
+When you check `git remote -v`, you may see something like this:
 
 ```
-origin	https://mcqdbdev.visualstudio.com/MCQdb_Development/_git/MCQdb (fetch)
-origin	https://mcqdbdev.visualstudio.com/MCQdb_Development/_git/MCQdb (push)
+origin	https://dev.azure.com/<organization>/<project>/_git/<repository> (fetch)
+origin	https://dev.azure.com/<organization>/<project>/_git/<repository> (push)
 ```
 
-From this you can check ADO variables\
-1. AZURE_DEVOPS_ORG_URL = https://mcqdbdev.visualstudio.com/
-2. AZURE_DEVOPS_PROJECT = MCQdb_Development
-3. AZURE_DEVOPS_REPOSITORY = MCQdb
+or:
 
-Use this mechanism to discover repository name.
+```
+origin	https://<organization>.visualstudio.com/<project>/_git/<repository> (fetch)
+origin	https://<organization>.visualstudio.com/<project>/_git/<repository> (push)
+```
+
+From this you can derive ADO variables:
+1. `AZURE_DEVOPS_ORG_URL`
+2. `AZURE_DEVOPS_PROJECT`
+3. `AZURE_DEVOPS_REPOSITORY`
+
+Use the remote to discover the repository coordinates. If no usable remote exists,
+**ask the user** for the `{organization, project, repository}` triple. Do NOT guess
+from prior reviews or hardcoded defaults.
 
 Template:
 <AZURE_DEVOPS_ORG_URL>/<PROJECT>/_git/<REPOSITORY>
@@ -94,15 +103,15 @@ Template:
 mcp__azure-devops__getPullRequest -pullRequestId 12345 -de
 ```
 
-2. Extract source branch from response (e.g., `sourceRefName: "refs/heads/developers/gb/feature"`)
+2. Extract source branch from response (e.g., `sourceRefName: "refs/heads/<source-branch-as-returned-by-getPullRequest>"`)
 3. Call `pwsh` script with parameters:
 
 ```pwsh
 <PATH_FOR_PR-REVIEWER_SKILL_ROOT_DIRECTORY>\scripts\Start-PRReview.ps1 `
     -PRNumber 12345 `
-    -SourceBranch "developers/gb/feature" `
-    -PRTitle "Add bulk upload feature" `
-    -PRAuthor "Gautam Bhakar"
+    -SourceBranch "<source-branch-as-returned-by-getPullRequest>" `
+    -PRTitle "<pull-request-title>" `
+    -PRAuthor "<pull-request-author>"
 ```
 
 Creates isolated worktree with analysis templates.
@@ -110,12 +119,25 @@ Creates isolated worktree with analysis templates.
 4. Take a note of mergeBase (Make sure both target and source are based on origin) e.g.
 
 ```bash
-git merge-base origin/dev origin/feature/user/feature_name
+git merge-base origin/<target-branch> origin/<source-branch>
 ```
 
 NOTE: everything is based of origin.
 
 5. From this point onwards, all diffs are against merge-base-commit-id
+
+## Prerequisite: Load Repo Conventions
+
+Before enforcing repo-specific policy, load [Repo Conventions](reference/repo-conventions.md).
+
+1. Look for `.code-reviewer.yml` at the repo root. If this is a monorepo, also
+   check `sources/*/.code-reviewer.yml`.
+2. Prefer the PR's actual `targetRefName` over any default base branch.
+3. If no convention file exists, auto-detect the default base branch with
+   `git symbolic-ref refs/remotes/origin/HEAD`; if that fails, fall back to
+   checking `main`, then `master`, then `dev`.
+4. If conventions are still unknown, do **not** invent branch naming rules,
+   test project mappings, or CI markers from another repo.
 
 ## Step 0: Determine Review Mode
 
@@ -179,7 +201,9 @@ Use this mode when reviewing changes on the **current branch** before a PR has b
    ```bash
    git fetch origin <base_branch> && git merge-base HEAD origin/<base_branch>
    ```
-   If the user doesn't specify a base branch, auto-detect by checking which of `dev`, `main`, `master` exists on origin (in that order).
+   If the user doesn't specify a base branch, use `default_base_branch` from repo
+   conventions when available. Otherwise auto-detect from `origin/HEAD`; if that
+   fails, check which of `main`, `master`, `dev` exists on origin (in that order).
 2. Use the merge-base commit to scope all diffs:
    ```bash
    # List changed files
@@ -204,7 +228,7 @@ After understanding what the user wants reviewed, state which mode you're using 
 
 > "This PR touches 25 files across 3 layers and introduces a new bulk upload feature — I'll do a **deep review** with a worktree checkout so I can trace the full call chain."
 
-> "No PR yet — I'll find the merge-base against `dev` and review your branch changes locally."
+> "No PR yet — I'll find the merge-base against the repo's default base branch and review your branch changes locally."
 
 ### Complexity Assessment
 
@@ -249,7 +273,16 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 - **Analyze the changes**: Now that you've checked out the branch and have the changes, analyze them to understand what has been modified, what the intent is, and how it fits into the overall project.
 - **Double-check the changes**: Use getWorkItemById tool to double-check the work item associated with the pull request, if applicable.
-- **Verify branch convention**: Expected format: `developers/{initials}/{work_item_id}_work_item_title_in_snake_case`. Target branch should be `dev`. Flag non-conforming branch names (LOW severity).
+- **Verify branch convention**: Verify branch and target conventions from the
+  repo's actual policy — not from a skill-level default. If repo conventions
+  specify `branch_prefix_pattern` or `default_base_branch`, use them. Otherwise
+  skip enforcement and emit a `[QUESTION]` only if the branch name looks
+  generated (for example `{prefix}/{id}_{title}`) but the policy is unclear.
+- **Check PR scope match**: If the PR title or description scope does not match
+  the diff (for example, the title says "fix X" but the diff also adds unrelated
+  config), emit a `[QUESTION]` on the first review pass. Do not re-raise the same
+  scope concern on later re-reviews unless the new delta introduces additional
+  unrelated work.
 
 4. **Check the code for coding Guidelines**: `<parallel agent — use reference/code-project-alignment-guide.md>`
 
@@ -283,9 +316,25 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    - Suggested Answers: [optional — 2-3 possible answers]
    ```
 
-   Include questions in your output alongside findings. They will be collected
-   in Step 10 and posted as `[QUESTION]` inline comments.
-   </agent_question_guidance>
+    Include questions in your output alongside findings. They will be collected
+    in Step 10 and posted as `[QUESTION]` inline comments.
+    </agent_question_guidance>
+
+    <claim_strength_discipline>
+    **Claim-Strength Discipline — applies to ALL agents dispatched in steps 4-8:**
+
+    When proposing doc changes or prescriptive fixes:
+    1. If the finding enumerates N instances (for example, "5 controllers do X"),
+       verify the corrective wording holds for EACH of the N. Never generalize a
+       pattern found in some to a "must" applied to all.
+    2. `only`, `all`, `always`, `never`, and `every` claims require exhaustive
+       search evidence, not scope-limited grep. If the search was scope-limited,
+       soften to "in the searched scope we found only X" and name the scope.
+    3. When pushing back on a pattern (for example, "don't hardcode version X"),
+       do not use the same pattern in your own verified evidence or suggestion text.
+    4. If you cannot safely verify a repo-wide or doc-wide prescription, downgrade
+       to a scoped suggestion or emit a `[QUESTION]`.
+    </claim_strength_discipline>
 
 - **Code alignment (CRITICAL FIRST)**: Read [Code Alignment Guide](reference/code-project-alignment-guide.md) and verify code follows existing project patterns, no duplication, proper framework usage, consistency with team standards.
 - **Review the code**: Look for adherence to coding standards, best practices, and project guidelines.
@@ -401,22 +450,21 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 9. **Cross-Reference Test Coverage**:
 
-   Verify the PR includes adequate test coverage by mapping source projects to their expected test projects:
+   Verify the PR includes adequate test coverage using repo conventions:
 
-   | Source Project | Expected Test Project |
-   |---|---|
-   | `McqDb.Core` | `McqDb.Core.Tests` |
-   | `Mcqdb.WebApi` / `Mcqdb.WebApi.Core` | `McqDb.WebApi.UnitTests` |
-   | `McqDb.Service` | `McqDb.Service.Tests` |
-   | Orleans grains | `Mcqdb.Grains.Tests` |
-   | `JobRunner` | `JobRunner.Tests` |
+   - If repo conventions define `test_project_map`, use it.
+   - Otherwise infer likely test projects from naming patterns such as
+     `<Project>.Tests`, `<Project>.UnitTests`, or `<Project>.IntegrationTests`,
+     and note uncertainty when the mapping is ambiguous.
+   - Only enforce repo-specific CI test markers or test attributes when the repo
+     conventions explicitly define them.
 
    If `pr-review-toolkit:pr-test-analyzer` was dispatched in step 8, cross-reference its behavioral findings with the structural test-to-source mapping here.
 
    Flag if:
    - New public methods have no corresponding test methods
    - Existing tests were modified but not in a way that covers the new behavior
-   - Test methods lack `[TestCategory("CI")]` for CI pipeline inclusion
+   - Repo-specific test inclusion markers are missing when configured for this repo
 
 10. **Consolidate Context Questions**: `<Collect from all agent outputs>`
 
@@ -478,7 +526,7 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 11. **Severity Grading — Quality Gate**: `<Dispatch review-grader agent>`
 
    Before determining the verdict, dispatch the `review-grader` agent to re-evaluate all
-   findings through 10 impact dimensions. This is **mandatory for every review** — the grader
+   findings through 11 impact dimensions. This is **mandatory for every review** — the grader
    catches findings that domain agents classified too softly, especially code health,
    convention, and completeness issues.
 
@@ -530,6 +578,8 @@ Use this framework after fetching PR metadata and the changes summary to decide 
     | `botPrefix` | `[<dev name>'s bot]` — the standard bot prefix for all comments |
     | `findings[]` | Graded findings list from Step 11 (with graded severities) |
     | `questions[]` | Consolidated context questions from Step 10 |
+    | `isSmallDelta` | `true` when a re-review delta qualifies for small-delta mode per `reference/re-review-workflow.md`; otherwise `false` |
+    | `smallDeltaSummary` | A 1-3 sentence delta-only reply used when `isSmallDelta` is `true` |
     | `verdict` | Determined from graded findings — see verdict rules below |
     | `reviewType` | `initial` or `re-review` |
     | `outputFormatMarkdown` | The formatted review summary (from [Output Format](reference/output-format.md)) |
@@ -650,11 +700,15 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 **6. Verify Before Claiming — Avoid False Positives**
 
-Do NOT claim something "doesn't exist", "won't compile", "has no callers", or
-"is unused" unless you have high-confidence evidence. Search tools on large repos
-are unreliable. A false positive damages reviewer credibility more than a missed
-finding. Always search the source branch, scope searches to avoid timeouts, check
-the PR diff itself, and respect green build status as authoritative evidence.
+Do NOT claim something "doesn't exist", "won't compile", "has no callers", "is
+unused", or that code "only/all/always/never" behaves a certain way unless you
+have high-confidence evidence. Search tools on large repos are unreliable. A
+false positive or over-claimed generalization damages reviewer credibility more
+than a missed finding. Always search the source branch, scope searches to avoid
+timeouts, check the PR diff itself, respect green build status as authoritative
+evidence, and qualify scope-limited evidence in the wording of your finding. When
+suggesting documentation or policy wording across multiple instances, verify it
+against each enumerated instance before recommending it.
 
 For full rules, see [Codebase Search Discipline](../../references/codebase-search-discipline.md).
 

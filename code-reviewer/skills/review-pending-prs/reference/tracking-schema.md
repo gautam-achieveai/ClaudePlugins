@@ -26,17 +26,17 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 ```json
 {
   "version": 1,
-  "repository": "MCQdb",
-  "project": "MCQdb_Development",
-  "orgUrl": "https://mcqdbdev.visualstudio.com/",
+  "repository": "MyRepository",
+  "project": "MyProject",
+  "orgUrl": "https://dev.azure.com/my-org/",
   "lastRunAt": "2026-03-12T10:30:00Z",
   "pullRequests": {
     "12345": {
       "prNumber": 12345,
       "title": "Add bulk upload feature",
-      "sourceBranch": "developers/gb/bulk-upload",
-      "targetBranch": "dev",
-      "author": "Gautam Bhakar",
+      "sourceBranch": "feature/add-bulk-upload",
+      "targetBranch": "main",
+      "author": "Example Developer",
       "status": "active",
       "lastKnownPushAt": "2026-03-12T09:45:00Z",
       "lastReviewedAt": "2026-03-12T10:15:00Z",
@@ -84,7 +84,7 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 {
   "prNumber": 12345,
   "title": "Add bulk upload feature",
-  "author": "Gautam Bhakar",
+  "author": "Example Developer",
   "reviews": [
     {
       "reviewedAt": "2026-03-10T16:00:00Z",

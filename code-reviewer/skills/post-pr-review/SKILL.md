@@ -36,8 +36,8 @@ proceeding — reject with a clear error if any are missing.
 | Field | Type | Description |
 |-------|------|-------------|
 | `prNumber` | integer | PR number in Azure DevOps |
-| `repository` | string | Repository name (e.g., `MCQdb`) |
-| `botPrefix` | string | Bot prefix for all comments (e.g., `[Gautam's bot]`) |
+| `repository` | string | Repository name (e.g., `MyRepository`) |
+| `botPrefix` | string | Bot prefix for all comments (e.g., `[<reviewer>'s bot]`) |
 | `findings[]` | array | Graded findings from review — each with severity, blocker flag, category, file, line, issue, suggestion |
 | `questions[]` | array | Context questions from Step 10 — each with file, line, uncertainty, what answering unlocks |
 | `verdict` | enum | `APPROVE`, `APPROVE_WITH_COMMENTS`, or `REQUEST_CHANGES` |
@@ -52,6 +52,8 @@ proceeding — reject with a clear error if any are missing.
 | `approveAfterPosting` | boolean | If `true` and verdict is APPROVE, approve the PR after posting. Default: `false` (confirm with user first) |
 | `mergeAfterApproval` | boolean | If `true`, merge after approval. Default: `false` |
 | `mergeStrategy` | enum | `squash`, `noFastForward`, `rebase`, `rebaseMerge`. Default: `squash` |
+| `isSmallDelta` | boolean | When `true`, the caller is posting a trivial re-review delta and the summary must use small-delta mode. Default: `false` |
+| `smallDeltaSummary` | string | Required when `isSmallDelta` is `true`. A 1-3 sentence delta-only summary reply |
 
 ### Finding Format
 
@@ -87,7 +89,9 @@ Each item in `questions[]` must have:
 1. Verify all required fields are present and non-empty
 2. Verify `findings[]` items have the required structure
 3. Verify `questions[]` items have the required structure
-4. If validation fails → return error with specific missing/invalid fields
+4. If `isSmallDelta` is `true`, verify `reviewType` is `re-review`,
+   `smallDeltaSummary` is present, and the summary is no longer than 3 sentences
+5. If validation fails → return error with specific missing/invalid fields
 
 ### Step 2: Detect Repository and Project
 
@@ -207,7 +211,7 @@ management) can reuse them instead of making another API call.
 
 Scan all comment threads for existing `[QUESTION]` threads by looking for
 threads whose root comment contains BOTH:
-- The `botPrefix` (e.g., `[Gautam's bot]`)
+- The `botPrefix` (e.g., `[<reviewer>'s bot]`)
 - The `[QUESTION]` tag
 
 Build an existing-questions list from matching threads:
@@ -297,7 +301,7 @@ clean, we **reuse the existing summary thread** instead of creating new ones.
      pullRequestId: <prNumber>
    ```
    Scan all comment threads for a thread whose root comment contains BOTH:
-   - The `botPrefix` (e.g., `[Gautam's bot]`)
+   - The `botPrefix` (e.g., `[<reviewer>'s bot]`)
    - A review summary heading: `# PR Review:` or `## Re-Review Summary:`
 
 2. **If existing summary thread found → reply to it:**
@@ -335,8 +339,22 @@ clean, we **reuse the existing summary thread** instead of creating new ones.
 - These markers are how future invocations find the thread to reply to
 </summary_thread_management>
 
-**Summary content:** Use the `outputFormatMarkdown` provided by the caller. Append
-a questions summary section if any questions were posted:
+<small_delta_summary>
+If `reviewType` is `re-review` and `isSmallDelta` is `true`:
+- Reply on the existing summary thread when one exists.
+- Use `smallDeltaSummary` as the entire comment body.
+- Keep the reply to 1-3 sentences.
+- Cover only the incremental delta.
+- Do NOT repeat previously verified claims or re-render prior tables.
+- Do NOT restate the verdict unless it changed.
+- If no existing summary thread is found, create a new general comment with the
+  same short `smallDeltaSummary`.
+</small_delta_summary>
+
+**Summary content selection:**
+- If small-delta mode applies, post `smallDeltaSummary`.
+- Otherwise use the `outputFormatMarkdown` provided by the caller. Append a
+  questions summary section if any questions were posted:
 
 ```markdown
 ## Context Questions Asked (<count>)

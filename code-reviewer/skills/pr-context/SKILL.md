@@ -57,7 +57,7 @@ args: "5234"
 
 Parse the argument to extract the PR number. Determine the repository:
 
-- If a repository name is provided (e.g., `MCQdbDEV#5234`), use it directly
+- If a repository name is provided (e.g., `MyRepository#5234`), use it directly
 - Otherwise, detect from git remote:
   ```bash
   git remote get-url origin
