@@ -11,7 +11,7 @@ Present findings in severity-grouped format:
 - Context questions: X (non-blocking clarifications asked)
 - Test coverage: adequate / needs improvement / missing
 - Domain areas touched: [NScript Client, Server, Orleans, Tests, etc.]
-- Branch convention: OK / non-conforming
+- Branch convention: configured OK / non-conforming / not configured / question asked
 
 ## Strengths
 Genuinely good patterns worth noting (with file:line references).
@@ -74,3 +74,14 @@ erosion, ensure every merge leaves the codebase better than or equal to before.
 Be thorough and direct. **Be specific, actionable, and honest.** Acknowledge
 good work when it's genuinely good. Do not soften findings — a clear finding
 now prevents a production incident later.
+
+<claim-strength-discipline>
+When proposing doc changes or prescriptive fixes:
+1. If a finding enumerates N instances, verify the corrective wording holds for
+   each instance before recommending a universal rule.
+2. `only`, `all`, `always`, `never`, and `every` require exhaustive-search
+   evidence. If evidence is scope-limited, say "in the searched scope..." and
+   name the scope.
+3. Do not use the same pattern in your own verified evidence that you are
+   telling the author to avoid.
+</claim-strength-discipline>

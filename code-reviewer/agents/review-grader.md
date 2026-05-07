@@ -1,7 +1,7 @@
 ---
 name: review-grader
 description: >
-  Post-review quality gate that re-evaluates all PR review findings through 10 impact
+  Post-review quality gate that re-evaluates all PR review findings through 11 impact
   dimensions before the verdict is finalized. Catches findings that domain-specific agents
   classified too softly — especially code health, convention, and completeness issues that
   aren't bugs or security holes but still matter for long-term codebase quality.
@@ -83,7 +83,7 @@ Parse each finding. You will evaluate every finding, but focus your deepest anal
 findings that are LOW or MEDIUM — these are the ones most likely to be under-weighted.
 CRITICAL and HIGH findings are usually correctly classified by domain agents.
 
-## Step 2: Evaluate Each Finding on 10 Dimensions
+## Step 2: Evaluate Each Finding on 11 Dimensions
 
 For each finding, evaluate these dimensions. Score each 0-3:
 - **0** = No concern on this dimension
@@ -242,6 +242,20 @@ if fixing later costs 10x more than fixing now, that's a signal to escalate.
 
 ---
 
+**11. Prescription Safety** — Could the suggested fix, if adopted verbatim,
+introduce a new factual error or misleading guidance?
+
+This catches findings where the problem statement is valid but the suggested fix
+over-generalizes the evidence: "all controllers must...", "only used in X", or
+"always do Y" without verifying the claim across every cited instance.
+
+- 0: Suggestion is narrowly scoped or already verified for each affected instance
+- 1: Slightly broad wording, but clearly limited to the changed code or named scope
+- 2: Prescriptive or absolute wording across multiple instances without proof it holds everywhere
+- 3: Suggestion would likely create false docs, policy, or reviewer guidance if copied verbatim
+
+---
+
 ## Step 3: Determine Escalation
 
 For each finding, assess whether its severity should be escalated. Use this framework:
@@ -251,6 +265,11 @@ For each finding, assess whether its severity should be escalated. Use this fram
 - Three or more dimensions score 2+
 - The composite non-zero dimensions paint a picture where the finding's real-world impact
   exceeds what its current severity implies
+
+**Prescription-safety heuristic:** If the `Suggestion` field contains `must`,
+`always`, `all`, `every`, or `only`, explicitly score Prescription Safety. When
+that score is non-zero, require the main reviewer to either verify the wording
+against each enumerated instance or soften the suggestion before posting.
 
 **Escalation levels:**
 - LOW → MEDIUM: The finding has meaningful impact that isn't just cosmetic
@@ -307,6 +326,7 @@ violations is almost always trivial; the cost of eroding the convention is not.
 
 **Escalation rationale**: [1-2 sentences explaining why the original severity was too low]
 **Blocker recommended**: [Yes/No — and why]
+**Posting precondition**: [If needed, verify each enumerated instance or soften the wording before posting]
 
 ### Confirmed Findings (no change)
 
@@ -336,7 +356,7 @@ communicate the rationale.]
 
 ## Calibration: Software Development Risk Principles
 
-The 10 dimensions give you a structured way to evaluate each finding. But dimensions alone
+The 11 dimensions give you a structured way to evaluate each finding. But dimensions alone
 don't tell you what to look out for. The principles below describe the fundamental risk
 categories in software development — the "big pitfalls" that cause the most damage when
 under-weighted. When you see a finding that touches one of these principles, that's a

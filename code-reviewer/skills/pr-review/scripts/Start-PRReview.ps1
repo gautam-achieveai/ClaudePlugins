@@ -19,11 +19,11 @@
     The pull request number to review
 
 .PARAMETER SourceBranch
-    The source branch name for the PR (e.g., "developers/gb/bulkUpload").
+    The source branch name for the PR (e.g., "feature/add-bulk-upload").
     This should be obtained by the LLM using mcp__azure-devops__getPullRequest.
 
 .PARAMETER BaseBranch
-    The base branch to compare against (defaults to 'dev')
+    The base branch to compare against (defaults to origin/HEAD, then main, master, dev)
 
 .PARAMETER PRTitle
     Optional PR title (obtained from MCP by LLM)
@@ -43,18 +43,18 @@
     # 2. LLM extracts sourceRefName, title, author, description
     # 3. LLM calls this script with parameters:
 
-    .\Start-PRReview.ps1 -PRNumber 12345 -SourceBranch "developers/gb/feature_xyz"
+    .\Start-PRReview.ps1 -PRNumber 12345 -SourceBranch "feature/add-bulk-upload"
 
 .EXAMPLE
     .\Start-PRReview.ps1 `
         -PRNumber 10395 `
-        -SourceBranch "developers/gb/bulkUpload" `
-        -BaseBranch "dev" `
+        -SourceBranch "feature/add-bulk-upload" `
+        -BaseBranch "main" `
         -PRTitle "Add bulk upload feature" `
-        -PRAuthor "Gautam Bhakar"
+        -PRAuthor "Example Developer"
 
 .NOTES
-    Author: MCQdb Development Team
+    Author: Claude Plugins contributors
     Version: 1.0.0
 
     This script requires:
@@ -69,11 +69,12 @@ param(
     [Parameter(Mandatory = $true, HelpMessage = "Pull request number to review")]
     [int]$PRNumber,
 
-    [Parameter(Mandatory = $true, HelpMessage = "Source branch name from PR (e.g., 'developers/gb/feature')")]
+    [Parameter(Mandatory = $true, HelpMessage = "Source branch name from PR (e.g., 'feature/add-bulk-upload')")]
     [string]$SourceBranch,
 
     [Parameter(Mandatory = $false)]
-    [string]$BaseBranch = "dev",
+    # Empty = auto-detect via Get-DefaultBaseBranch (origin/HEAD, else main/master/dev)
+    [string]$BaseBranch = "",
 
     [Parameter(Mandatory = $false)]
     [string]$PRTitle = "",
@@ -190,6 +191,38 @@ try {
 }
 finally {
     Pop-Location
+}
+
+function Get-DefaultBaseBranch {
+    param([string]$RepositoryRoot)
+
+    Push-Location $RepositoryRoot
+    try {
+        $originHead = git symbolic-ref refs/remotes/origin/HEAD 2>$null
+        if ($LASTEXITCODE -eq 0 -and $originHead) {
+            return ($originHead -replace '^refs/remotes/origin/', '')
+        }
+
+        foreach ($candidate in @("main", "master", "dev")) {
+            git show-ref --verify --quiet "refs/remotes/origin/$candidate"
+            if ($LASTEXITCODE -eq 0) {
+                return $candidate
+            }
+        }
+
+        throw "Unable to determine a default base branch from origin/HEAD or fallback candidates (main, master, dev)."
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+$BaseBranch = $BaseBranch.Trim()
+if (-not $BaseBranch) {
+    Write-Host "Detecting base branch..." -ForegroundColor Cyan
+    $BaseBranch = Get-DefaultBaseBranch -RepositoryRoot $RepoRoot
+    Write-Host "   ✓ Using base branch: $BaseBranch" -ForegroundColor Green
+    Write-Host ""
 }
 
 # Fetch branches before calculating merge base

@@ -59,7 +59,7 @@ Your job is to eliminate this blind spot by mapping the full work item ancestry.
 
 You receive one of:
 - A PR number (e.g., `5234`)
-- A PR number with repository name (e.g., `MCQdbDEV#5234`)
+- A PR number with repository name (e.g., `MyRepository#5234`)
 - A list of work item IDs already extracted from a PR
 
 ## Workflow

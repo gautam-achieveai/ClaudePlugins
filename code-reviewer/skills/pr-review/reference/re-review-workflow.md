@@ -133,7 +133,18 @@ The verdict is the MORE restrictive of:
 - The delta review result (new issues found in Step 4)
 </verdict_gate>
 
-Use a structured format:
+<verdict-monotonicity>
+On re-review, the verdict MUST NOT regress unless:
+  (a) a new finding was introduced in the delta, OR
+  (b) an existing finding was previously under-graded and the grader now escalates, OR
+  (c) a previously RESOLVED thread was reopened as ACTIVE because the attempted fix was insufficient.
+If none of (a)-(c) happened, carry the previous verdict forward.
+
+`APPROVE` from iteration N must stay `APPROVE` on iteration N+1 when the
+incremental diff introduces no new issues and no prior thread was reopened.
+</verdict-monotonicity>
+
+Unless small-delta mode applies, use a structured format:
 
 ```markdown
 ## Re-Review Summary: PR #XXXX
@@ -178,6 +189,14 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
 - **Post summary in same thread** — always reply to the existing review summary
   thread (the `post-pr-review` skill handles thread detection automatically).
   Do NOT create a new top-level summary comment.
+- **Use small-delta mode for trivial re-reviews** — if the delta is limited to
+  doc string edits, URL updates, formatting, or config/MCP tweaks under ~30
+  changed lines, set `isSmallDelta = true` and pass a 1-3 sentence
+  `smallDeltaSummary` to `post-pr-review`. In small-delta mode, do NOT
+  re-render prior verified claims or issue tables, and do NOT restate the
+  verdict unless it changed. If the delta touches business logic, authorization,
+  error handling, or security-relevant code, do a full re-review regardless of
+  size.
 - **DO NOT POST** anything if nothing changed in the PR since last review.
 - **Incorporate answered questions** — read answers to previous `[QUESTION]`
   threads. Use the context they provide to inform the re-review. Close answered

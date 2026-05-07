@@ -60,9 +60,9 @@ mcp__azure-devops__getPullRequest -repository "YourRepo" -pullRequestId 12345
 ```pwsh
 <PATH_FOR_PR-REVIEWER_SKILL_ROOT_DIRECTORY>\scripts\Start-PRReview.ps1 `
     -PRNumber 12345 `
-    -SourceBranch "developers/gb/feature" `
+    -SourceBranch "feature/add-bulk-upload" `
     -PRTitle "Add bulk upload feature" `
-    -PRAuthor "Gautam Bhakar"
+    -PRAuthor "Example Developer"
 ```
 
 This creates an isolated worktree with analysis templates.
@@ -181,6 +181,7 @@ Every review includes:
 - **reference/performance-guide.md**: Performance optimization patterns
 - **reference/code-quality-guide.md**: Code quality best practices
 - **reference/testing-guide.md**: Testing adequacy guidelines
+- **reference/repo-conventions.md**: Repo-specific defaults and overrides
 - **.claude-plugin/plugin.json**: Plugin manifest for Claude Code marketplace
 
 ## Requirements

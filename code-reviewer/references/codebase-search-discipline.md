@@ -1,10 +1,10 @@
 # Codebase Search Discipline — Avoiding False Positives
 
 When reviewing code, do NOT claim that something "doesn't exist", "will not
-compile", "is missing", "has no callers", or "is unused" unless you have
-**high-confidence evidence**. Search tools (Grep, Glob, `git grep`, ripgrep)
-are unreliable on large repos — they timeout, return partial results, or miss
-files outside the searched scope.
+compile", "is missing", "has no callers", "is unused", "is only used in X", or
+"all controllers do Y" unless you have **high-confidence evidence**. Search
+tools (Grep, Glob, `git grep`, ripgrep) are unreliable on large repos — they
+timeout, return partial results, or miss files outside the searched scope.
 
 **A false positive damages reviewer credibility more than a missed finding.**
 If you're unsure whether something exists, say so — don't assert that it doesn't.
@@ -86,6 +86,25 @@ When search results are inconclusive, use qualifying language:
 
 ---
 
+## Rule 7: Match claim strength to evidence
+
+Absolute language requires evidence to match:
+
+- `only`, `all`, `always`, `never`, `every` -> exhaustive evidence
+- Scoped search or partial grep -> scoped wording
+
+```markdown
+Good: "In the searched scope (`src/Controllers/**`), I only found X."
+Bad:  "X is only used in Y."
+```
+
+When proposing documentation or policy wording across multiple enumerated
+instances, verify the wording against each instance. If even one counterexample
+exists, soften the recommendation or ask a `[QUESTION]` instead of posting a
+universal rule.
+
+---
+
 ## Quick Summary
 
 | Before claiming... | First verify... |
@@ -95,3 +114,4 @@ When search results are inconclusive, use qualifying language:
 | "Interface Z isn't registered" | Checked DI/IoC setup files, startup configs |
 | "This won't compile" | Build/merge status is actually failing |
 | "This pattern isn't used anywhere" | Search wasn't cut short by timeout |
+| "Only X uses this" / "All Y must do Z" | Evidence is exhaustive, or the claim is explicitly scoped |

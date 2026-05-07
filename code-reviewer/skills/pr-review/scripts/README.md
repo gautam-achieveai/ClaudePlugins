@@ -8,8 +8,8 @@ Automation scripts for conducting comprehensive pull request code reviews.
 
 1. Fetch PR metadata using MCP:
 ```
-$pr = mcp__azure-devops__getPullRequest -repository "MCQdbDEV" -pullRequestId 12345
-$sourceBranch = $pr.sourceRefName -replace '^refs/heads/', ''  # e.g., "developers/gb/feature"
+$pr = mcp__azure-devops__getPullRequest -repository "<repository>" -pullRequestId 12345
+$sourceBranch = $pr.sourceRefName -replace '^refs/heads/', ''  # e.g., "feature/add-bulk-upload"
 ```
 
 2. Call script with extracted parameters:
@@ -41,8 +41,8 @@ This creates an isolated worktree with complete review setup.
 **Parameters**:
 - `-PRNumber` (Required): Pull request number to review
 - `-SourceBranch` (Required): Source branch name from PR (LLM fetches via MCP)
-- `-Repository` (Optional): Repository name (defaults to "MCQdbDEV")
-- `-BaseBranch` (Optional): Branch to compare against (defaults to "dev")
+- `-Repository` (Optional): Repository name supplied by the upstream review workflow
+- `-BaseBranch` (Optional): Branch to compare against (defaults to `origin/HEAD`, then `main`, `master`, `dev`)
 - `-PRTitle` (Optional): PR title (LLM fetches via MCP)
 - `-PRAuthor` (Optional): PR author (LLM fetches via MCP)
 - `-PRDescription` (Optional): PR description (LLM fetches via MCP)
@@ -52,14 +52,14 @@ This creates an isolated worktree with complete review setup.
 ```powershell
 .\Start-PRReview.ps1 `
     -PRNumber 12345 `
-    -SourceBranch "developers/gb/feature_xyz" `
+    -SourceBranch "feature/add-bulk-upload" `
     -PRTitle "Add bulk upload feature" `
-    -PRAuthor "Gautam Bhakar"
+    -PRAuthor "Example Developer"
 ```
 
 **Example - Minimal** (Missing metadata):
 ```powershell
-.\Start-PRReview.ps1 -PRNumber 10395 -SourceBranch "developers/gb/bugfix"
+.\Start-PRReview.ps1 -PRNumber 10395 -SourceBranch "bugfix/fix-validation"
 ```
 
 **Example - Without Worktree**:
