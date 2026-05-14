@@ -111,8 +111,8 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.17.0",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
+      "version": "1.18.0",
       "category": "development",
       "tags": [
         "review",
@@ -123,7 +123,9 @@
         "euii",
         "work-items",
         "over-engineering",
-        "yagni"
+        "yagni",
+        "schema-compatibility",
+        "backward-compatibility"
       ],
       "keywords": [
         "code-review",
@@ -139,7 +141,13 @@
         "work-item-hierarchy",
         "over-engineering-review",
         "gold-plating",
-        "scope-creep"
+        "scope-creep",
+        "schema-compatibility-review",
+        "wire-contract",
+        "forward-compatibility",
+        "backward-compatibility",
+        "migration-review",
+        "rollout-sequencing"
       ]
     },
     {
