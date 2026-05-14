@@ -69,7 +69,7 @@
       "name": "development",
       "source": "./development",
       "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, and evidence-based completion verification. Includes planning, execution, and git workflow reference guides.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "category": "development",
       "tags": [
         "methodology",
@@ -111,8 +111,8 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.18.0",
+      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility assessment), severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects tech stack and publishes findings to Azure DevOps, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
+      "version": "1.18.1",
       "category": "development",
       "tags": [
         "review",
@@ -125,7 +125,9 @@
         "over-engineering",
         "yagni",
         "schema-compatibility",
-        "backward-compatibility"
+        "backward-compatibility",
+        "feature-flag",
+        "rollout"
       ],
       "keywords": [
         "code-review",
@@ -147,7 +149,10 @@
         "forward-compatibility",
         "backward-compatibility",
         "migration-review",
-        "rollout-sequencing"
+        "rollout-sequencing",
+        "feature-flag-reviewer",
+        "rollout-strategy",
+        "blast-radius"
       ]
     },
     {

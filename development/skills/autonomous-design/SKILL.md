@@ -90,7 +90,27 @@ Append to the decision log (if one exists):
 
 ### Step 6: Review Planning
 
-Use sub-agents like `code-reviewer:architectural-reviewer` to review the design decision for architectural soundness, `code-reviewer:feature-flag-reviewer` to assess if feature flags are needed based on risk, `code-reviewer:over-engineering-reviewer` to check for unnecessary complexity, and `code-reviewer:security-reviewer` to identify security implications.
+Dispatch sub-agents in parallel to pressure-test the design decision before
+handoff. Use whichever apply to the change being designed:
+
+- `code-reviewer:architecture-review` — layer boundaries, dependency
+  direction, SOLID, coupling, DI patterns; flags structural risks early
+- `code-reviewer:feature-flag-reviewer` — assesses blast radius,
+  reversibility, and change type to recommend whether the change should
+  ship behind a feature flag
+- `code-reviewer:over-engineering-review` — compares the proposed scope
+  against the stated intent; flags speculative abstractions, unrequested
+  features, premature optimization, and other YAGNI violations
+- `code-reviewer:schema-compatibility-review` — when the design touches
+  schemas, DTOs, migrations, queue payloads, or any wire-contract surface;
+  catches forward/backward compat breaks and rollout-sequencing risks
+
+Note: there is no dedicated design-time security reviewer in the
+code-reviewer plugin — security concerns are evaluated at code-review time
+via the `pr-review` skill's OWASP checklist. If the design has obvious
+security implications (authentication, authorization, crypto, payment, PII
+handling), surface them explicitly in the design decision so they're not
+discovered late.
 
 ### Step 7: Implementation Handoff
 

@@ -24,15 +24,15 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.1.0)
+### development (v1.1.1)
 
 Development methodology toolkit — design-first brainstorming, autonomous design (with review-planning and implementation-handoff steps), TDD, parallel subagent-driven execution with review gates, and evidence-based completion verification.
 
 **Skills**: `brainstorming`, `autonomous-design`, `test-driven-development`, `subagent-driven-development`, `verification-before-completion`
 
-### code-reviewer (v1.18.0)
+### code-reviewer (v1.18.1)
 
-Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag review, severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
+Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility), severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 
 **Skills**: `pr-review`, `post-pr-review`, `pr-context`, `review-pending-prs`, `update-pr-tracking`, `codebase-search-discipline`, `over-engineering-review`, `schema-compatibility-review`
 
