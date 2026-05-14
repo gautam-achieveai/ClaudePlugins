@@ -24,17 +24,17 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.0.1)
+### development (v1.1.0)
 
-Development methodology toolkit — design-first brainstorming, autonomous design, TDD, parallel subagent-driven execution with review gates, and evidence-based completion verification.
+Development methodology toolkit — design-first brainstorming, autonomous design (with review-planning and implementation-handoff steps), TDD, parallel subagent-driven execution with review gates, and evidence-based completion verification.
 
 **Skills**: `brainstorming`, `autonomous-design`, `test-driven-development`, `subagent-driven-development`, `verification-before-completion`
 
-### code-reviewer (v1.15.1)
+### code-reviewer (v1.18.0)
 
-Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design simplification, architecture review, performance review, and severity grading. Includes batch PR review orchestration with persistent tracking.
+Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag review, severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 
-**Skills**: `pr-review`, `post-pr-review`, `pr-context`, `review-pending-prs`, `update-pr-tracking`, `codebase-search-discipline`
+**Skills**: `pr-review`, `post-pr-review`, `pr-context`, `review-pending-prs`, `update-pr-tracking`, `codebase-search-discipline`, `over-engineering-review`, `schema-compatibility-review`
 
 ### developer-performance-review (v1.2.0)
 
@@ -54,9 +54,9 @@ Zero-warning builds through systematic warning elimination, code formatting (ReS
 
 **Skills**: `clean-builds`
 
-### debugging (v1.3.0)
+### debugging (v1.4.0)
 
-Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes logging enablement for codebases, logging compliance review, and systematic root-cause debugging.
+Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.
 
 **Skills**: `debug-with-logs`, `logging-enablement`, `systematic-debugging`
 

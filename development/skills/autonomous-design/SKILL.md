@@ -47,6 +47,7 @@ List all functional requirements from the available context:
 - Work item or issue description and acceptance criteria
 - Task specification or ticket content
 - Any linked documents or referenced specs
+- `code-reviewer:pr-context-gatherer` to extract context from related work items, PRs, or issues.
 
 Note any ambiguities — these become assumptions to document.
 
@@ -87,6 +88,14 @@ Append to the decision log (if one exists):
 - **Assumptions**: <any ambiguities resolved by assumption>
 ```
 
+### Step 6: Review Planning
+
+Use sub-agents like `code-reviewer:architectural-reviewer` to review the design decision for architectural soundness, `code-reviewer:feature-flag-reviewer` to assess if feature flags are needed based on risk, `code-reviewer:over-engineering-reviewer` to check for unnecessary complexity, and `code-reviewer:security-reviewer` to identify security implications.
+
+### Step 7: Implementation Handoff
+
+Apply the comments, refine the design decision if needed, and then hand off to the implementation skill (e.g., `ado:ado-implement` or `gh:gh-implement`) with a clear design decision and implementation plan.
+
 ## Output
 
 The output of this skill is a design decision ready to feed into an
@@ -100,3 +109,4 @@ implementation plan. The calling skill (e.g., `ado:ado-work-on` or
 - **Favor simplicity** — when in doubt, choose the simpler approach
 - **Follow existing patterns** — consistency with the codebase beats novelty
 - **YAGNI** — do not propose features beyond what the requirements specify
+- **Tribal Knowledge** — Tap into clarifying questions for the developer (at the end of the plan), to capture any tribal knowledge that may not be in the codebase but is relevant to the design decision.

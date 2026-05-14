@@ -1,0 +1,14 @@
+[mcp_servers.azure-devops]
+args = [
+    "/c",
+    "npx",
+    "-y",
+    "@achieveai/azuredevops-mcp",
+]
+command = "cmd"
+
+[mcp_servers.azure-devops.env]
+AZURE_DEVOPS_IS_ON_PREMISES = "false"
+AZURE_DEVOPS_ORG_URL = "https://mcqdbdev.visualstudio.com/"
+AZURE_DEVOPS_PROJECT = "MCQdb_Development"
+AZURE_DEVOPS_Repository = "MCQdbDev"

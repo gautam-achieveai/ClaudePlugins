@@ -60,6 +60,7 @@ htmlcov/
 .mcp-build/
 .ai/work-my-backlog/
 code-reviewer/skills/pr-review/claude_plugins.code-workspace
+code-reviewer/skills/over-engineering-review-workspace/
 
 # Scratchpad - keep structure but ignore personal notes
 scratchpad/**
