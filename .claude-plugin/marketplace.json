@@ -43,6 +43,32 @@
       ]
     },
     {
+      "name": "sandbox",
+      "source": "./sandbox",
+      "description": "Workspace-agent skills for sandboxed task execution: bootstrap Memory/ and scripts/, maintain task handoffs, use repeatable script helpers, and understand sandbox auth/context boundaries without bloating the chat-mode system prompt.",
+      "version": "1.0.0",
+      "category": "development",
+      "tags": [
+        "sandbox",
+        "workspace",
+        "memory",
+        "scripts",
+        "skills",
+        "agentic-workflows"
+      ],
+      "keywords": [
+        "sandbox",
+        "workspace-agent",
+        "workspace-memory",
+        "sandbox-memory",
+        "sandbox-scripts",
+        "sandbox-workspace-bootstrap",
+        "sandbox-auth-flow",
+        "task-memory",
+        "agentic-workflows"
+      ]
+    },
+    {
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, autonomous work item implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
