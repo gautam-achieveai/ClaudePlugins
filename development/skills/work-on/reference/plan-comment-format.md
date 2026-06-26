@@ -1,7 +1,8 @@
 # Plan Comment Format
 
-This reference defines the format for implementation plans posted to Azure DevOps
-work item comments. The format is both human-readable (Markdown) and
+This reference defines the format for implementation plans posted to the work
+item's comment thread (a **GitHub issue** comment or an **Azure DevOps work
+item** comment). The format is both human-readable (Markdown) and
 machine-parseable (HTML comment markers).
 
 ## Comment Template
@@ -13,12 +14,12 @@ machine-parseable (HTML comment markers).
 
 ## Understanding
 
-**Type:** <Bug | Task | User Story | Product Backlog Item>
+**Type:** <Bug | Task | Feature | User Story | Product Backlog Item>
 **Summary:** <1-3 sentence summary of what needs to be done>
 **Root Cause:** <for bugs only — what is causing the issue>
 **Acceptance Criteria:**
-1. <criterion from work item>
-2. <criterion from work item>
+1. <criterion from the work item body, project item, or linked spec>
+2. <criterion from the work item body, project item, or linked spec>
 
 ## Approach
 
@@ -111,12 +112,13 @@ Every plan comment MUST include these sections:
 
 ## Parsing Instructions
 
-When re-entering `/ado-work-on <id>` (Part 2), the bot must find and parse the
-latest plan:
+When re-entering the work-on command (Part 2) — `/gh-work-on <id>` on GitHub or
+`/ado-work-on <id>` on Azure DevOps — the bot must find and parse the latest
+plan:
 
 ### Finding the Latest Plan
 
-1. Fetch work item comments (chronologically ordered)
+1. Fetch the work item's comments (chronologically ordered)
 2. Scan each comment body for `<!-- BOT-PLAN v` prefix
 3. Extract version number from each match
 4. Select the comment with the highest version number
@@ -163,11 +165,11 @@ sentences providing direction.
 
 ### Explicit Approval via HITL
 
-When the user re-runs `/ado-work-on <id>` and there are zero human comments after
-the latest bot plan comment, the agent MUST still present the plan summary and
-ask the user via HITL before proceeding. The agent never assumes that a re-run
-alone signals approval — explicit confirmation through the HITL checkpoint is
-always required.
+When the user re-runs the work-on command (`/gh-work-on <id>` or
+`/ado-work-on <id>`) and there are zero human comments after the latest bot plan
+comment, the agent MUST still present the plan summary and ask the user via HITL
+before proceeding. The agent never assumes that a re-run alone signals approval —
+explicit confirmation through the HITL checkpoint is always required.
 
 ## CTA (Call-to-Action) Template
 
@@ -192,5 +194,5 @@ For final revision (v3):
 ```markdown
 ---
 *This is the final revision (v3). Implementation will proceed on the next run
-of `/ado-work-on <id>` regardless of further feedback.*
+of the work-on command regardless of further feedback.*
 ```

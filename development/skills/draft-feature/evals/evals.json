@@ -1,0 +1,102 @@
+{
+  "skill_name": "draft-feature",
+  "notes": "draft-feature is the deep feature/user-story flow invoked by the draft-work-item router. Inputs (provider, rawRequirement, priorAnswers) arrive already resolved; the skill must NOT detect the provider and must NOT create the item — it composes requirements and hands {type,title,body,meta} back to the router. These evals check the discipline of the 8-phase flow: context-first grounding, one-at-a-time clarification that loops, agent-wrapped blind-spot detection (feature lens), the over-engineering/duplication review pass, and verifiable acceptance criteria. They assume the router invokes the skill with a known provider; assertions are a transcript contract since the flow is interactive.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "context-gathered-before-questions",
+      "prompt": "[provider=GitHub] Draft a feature: let users schedule reports to be emailed on a recurring basis.",
+      "expected_output": "Phase 1 gathers grounding first — dispatches Explore subagents over the codebase for the components this touches and searches existing issues for related/duplicate work — before asking the user clarifying questions.",
+      "assertions": [
+        {
+          "name": "explore_before_interrogating",
+          "description": "Codebase context is gathered (Explore subagents) before clarifying questions are asked"
+        },
+        {
+          "name": "prior_art_searched",
+          "description": "Existing issues/work items are searched for related or overlapping efforts"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "clarify-one-at-a-time-and-loops",
+      "prompt": "[provider=GitHub] Draft a feature: add SSO so enterprise customers can log in.",
+      "expected_output": "Clarifying questions are asked one at a time, multiple-choice where possible, skipping anything already volunteered. When an answer materially changes understanding, the flow loops back to re-ground against the code rather than barreling ahead.",
+      "assertions": [
+        {
+          "name": "single_question_per_turn",
+          "description": "Clarifying questions are posed one at a time, not as a batch"
+        },
+        {
+          "name": "loops_on_new_understanding",
+          "description": "A materially new answer sends the flow back to re-ground (Phase 1) instead of continuing linearly"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "blind-spot-agent-feature-lens",
+      "prompt": "[provider=GitHub] Draft a feature: a public REST endpoint to fetch a customer's invoice history.",
+      "expected_output": "Once ambiguities are resolved, the development:blind-spot-detector agent is dispatched with the feature lens against the working requirements + gathered context, and its findings (e.g., authz, pagination, rate limiting, PII/EUII exposure) feed a clarify-and-fold step.",
+      "assertions": [
+        {
+          "name": "blind_spot_agent_dispatched",
+          "description": "The development:blind-spot-detector agent is invoked (not just inline self-review) with the feature lens"
+        },
+        {
+          "name": "findings_acted_on",
+          "description": "Blind-spot findings are folded into the requirements or raised with the user, not ignored"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "over-engineering-review-pass",
+      "prompt": "[provider=GitHub] Draft a feature: add a 'copy to clipboard' button on the share dialog.",
+      "expected_output": "After writing requirements, the code-reviewer:over-engineering-review agent is dispatched against the draft to catch gold-plating/scope creep; for overlap-prone features duplicate-code-detector may also be used. Review feedback is then addressed (scope trimmed).",
+      "assertions": [
+        {
+          "name": "over_engineering_review_invoked",
+          "description": "code-reviewer:over-engineering-review is dispatched against the drafted requirements"
+        },
+        {
+          "name": "feedback_addressed",
+          "description": "The review's scope/gold-plating feedback is acted on before finalizing"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "does-not-create-hands-back",
+      "prompt": "[provider=GitHub] Draft a feature for bulk-archiving old projects, then post it.",
+      "expected_output": "The skill composes {type, title, body, meta} and hands back to development:draft-work-item for duplicate-check, preview, and creation. It does NOT call the GitHub/ADO create API itself, even when asked to post.",
+      "assertions": [
+        {
+          "name": "no_self_create",
+          "description": "draft-feature does not create the issue/work item itself"
+        },
+        {
+          "name": "structured_handback",
+          "description": "Output is a composed {type,title,body,meta} returned to the router"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "acceptance-criteria-verifiable",
+      "prompt": "[provider=Azure DevOps] Draft a user story: warn users before their session expires.",
+      "expected_output": "The composed body uses Summary / Value / Acceptance Criteria, and every acceptance criterion has a clear, verifiable pass/fail signal (e.g., 'a warning appears 2 minutes before expiry') rather than vague aspirations.",
+      "assertions": [
+        {
+          "name": "summary_value_criteria_present",
+          "description": "Body includes Summary, Value, and Acceptance Criteria sections"
+        },
+        {
+          "name": "criteria_have_passfail_signal",
+          "description": "Each acceptance criterion is concretely verifiable, not vague"
+        }
+      ]
+    }
+  ]
+}

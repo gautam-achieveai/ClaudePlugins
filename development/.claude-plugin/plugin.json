@@ -1,5 +1,5 @@
 {
   "name": "development",
-  "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, and evidence-based completion verification. Includes planning, execution, and git workflow reference guides.",
-  "version": "1.1.1"
+  "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, evidence-based completion verification, a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep draft-feature and draft-bug sub-skills with agent-driven blind-spot detection — and a provider-agnostic autonomous work-on workflow (plan → HITL approval → implement → verify → publish) shared by the GitHub and Azure DevOps plugins. Includes planning, execution, and git workflow reference guides.",
+  "version": "1.4.0"
 }

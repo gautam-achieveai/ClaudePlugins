@@ -1,7 +1,8 @@
 # RCA Comment Format
 
-This reference defines the format for Root Cause Analysis comments posted to
-GitHub issue comments when the work item is a **Bug**. It extends the standard
+This reference defines the format for Root Cause Analysis comments posted to the
+work item's comment thread (a **GitHub issue** comment or an **Azure DevOps work
+item** comment) when the work item is a **Bug**. It extends the standard
 [plan-comment-format.md](plan-comment-format.md) with bug-specific sections.
 
 ## Comment Template
@@ -88,7 +89,7 @@ This RCA was reviewed by <N> critique agents before posting:
 - `<build command>` succeeds
 - `<test command>` passes (including new regression test)
 - Original reproduction steps no longer trigger the bug
-- <acceptance criteria from the issue, project item, or linked spec, if any>
+- <acceptance criteria from the issue, work item, or linked spec, if any>
 
 ## Files to Change
 
@@ -167,7 +168,8 @@ For final revision (v3):
 ```markdown
 ---
 *This is the final revision (v3) of the root cause analysis. Implementation
-will proceed on the next run of `/gh-work-on <id>` regardless of further feedback.*
+will proceed on the next run of the work-on command (`/gh-work-on <id>` or
+`/ado-work-on <id>`) regardless of further feedback.*
 ```
 
 ## Parsing Instructions

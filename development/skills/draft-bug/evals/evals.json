@@ -1,0 +1,111 @@
+{
+  "skill_name": "draft-bug",
+  "notes": "draft-bug is the deep, evidence-based bug flow invoked by the draft-work-item router. Inputs (provider, rawRequirement, priorAnswers) arrive resolved; the skill must NOT detect the provider and must NOT create the item. The defining disciplines under test: multiple root-cause hypotheses each investigated by its own subagent, validation by a SCRATCH regression test that is run best-effort and NEVER committed (repo left clean), only test-validated hypotheses advancing, an agent-wrapped blind-spot scan (bug lens), and a write-up that carries repro proof + related risk. Running these for real needs a codebase that reproduces the defect; the most important automatable check is repo cleanliness after a run.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "multiple-hypotheses-subagent-each",
+      "prompt": "[provider=GitHub] Write a bug: the cart total is occasionally off by one cent at checkout.",
+      "expected_output": "Phase 3 enumerates several candidate root causes (e.g., float rounding, per-line vs total rounding, tax order-of-operations) and spawns one subagent per hypothesis to investigate in parallel, rather than committing to the first guess.",
+      "assertions": [
+        {
+          "name": "multiple_hypotheses_enumerated",
+          "description": "More than one distinct root-cause hypothesis is produced"
+        },
+        {
+          "name": "one_subagent_per_hypothesis",
+          "description": "Each hypothesis is investigated by its own dispatched subagent"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "scratch-regression-test-not-committed",
+      "prompt": "[provider=GitHub] Write a bug: deleting a user leaves orphaned rows in the sessions table.",
+      "expected_output": "For surviving hypotheses, a candidate regression test is written to a scratch location (session scratch dir) and run best-effort to demonstrate the bug. Nothing is written into the repo's tracked tree, nothing is committed, and no branch is created.",
+      "assertions": [
+        {
+          "name": "test_written_to_scratch",
+          "description": "Regression test goes to a scratch location, not the repo's tracked test tree"
+        },
+        {
+          "name": "test_run_best_effort",
+          "description": "The test is executed to confirm it reproduces the bug (red proves repro)"
+        },
+        {
+          "name": "repo_left_clean",
+          "description": "After the run, git status is clean — no committed files, no new branches, no stray files in the working tree"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "only-validated-hypotheses-advance",
+      "prompt": "[provider=Azure DevOps] Write a bug: search returns no results for queries with accented characters.",
+      "expected_output": "Only hypotheses whose scratch test actually reproduces the bug advance to the write-up; hypotheses that cannot be validated by a failing test are dropped (or explicitly noted as unconfirmed), not presented as the root cause.",
+      "assertions": [
+        {
+          "name": "validated_only_advances",
+          "description": "A hypothesis must yield a reproducing test to be carried into the root-cause write-up"
+        },
+        {
+          "name": "unconfirmed_not_asserted_as_cause",
+          "description": "Hypotheses without a reproducing test are dropped or marked unconfirmed rather than stated as the cause"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "best-effort-fallback-when-unrunnable",
+      "prompt": "[provider=GitHub] Write a bug: the mobile app crashes on launch after the latest release.",
+      "precondition": "The project cannot be built or run in the current environment (e.g., missing mobile toolchain)",
+      "expected_output": "When the app/tests can't be built or run, the skill records that explicitly and falls back to static reasoning for the affected hypotheses instead of fabricating a passing/failing run.",
+      "assertions": [
+        {
+          "name": "unrunnable_noted",
+          "description": "Inability to build/run is stated explicitly rather than silently ignored"
+        },
+        {
+          "name": "static_fallback_used",
+          "description": "The flow falls back to static analysis rather than inventing execution results"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "blind-spot-agent-bug-lens",
+      "prompt": "[provider=GitHub] Write a bug: a null-pointer error on the login path when the profile is missing.",
+      "expected_output": "Phase 5 dispatches the development:blind-spot-detector agent with the bug lens to find other call sites sharing the same root cause, adjacent defects, regression-risk areas, and data-integrity fallout — and folds those into a Related Risk section.",
+      "assertions": [
+        {
+          "name": "blind_spot_agent_bug_lens",
+          "description": "development:blind-spot-detector is dispatched with the bug lens (not inline-only reasoning)"
+        },
+        {
+          "name": "same_root_cause_sites_considered",
+          "description": "The scan looks for other call sites/inputs sharing the same faulty path"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "writeup-has-repro-proof-and-handback",
+      "prompt": "[provider=Azure DevOps] Write a bug and post it: API returns 200 with an empty body when the upstream times out.",
+      "expected_output": "The composed body includes Summary, Steps to Reproduce, Expected, Actual, Root Cause, Repro Proof (the scratch test + its run output), and Related Risk. The skill hands {type:bug,title,body,meta} back to draft-work-item and does NOT create the item itself, even when asked to post.",
+      "assertions": [
+        {
+          "name": "repro_proof_section_present",
+          "description": "The write-up embeds the scratch test source and its run output as repro proof"
+        },
+        {
+          "name": "root_cause_and_related_risk_present",
+          "description": "Root Cause and Related Risk sections are included"
+        },
+        {
+          "name": "no_self_create_handback",
+          "description": "The item is not created by draft-bug; output is handed back to the router for preview/create"
+        }
+      ]
+    }
+  ]
+}

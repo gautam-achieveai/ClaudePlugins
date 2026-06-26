@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.11.0"
+    "version": "1.12.0"
   },
   "plugins": [
     {
@@ -72,7 +72,7 @@
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, autonomous work item implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "category": "development",
       "tags": [
         "azure-devops",
@@ -100,7 +100,7 @@
       "name": "gh",
       "source": "./gh",
       "description": "GitHub integration for issue and project management, PR publishing, iterative PR tending, issue-driven implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "category": "development",
       "tags": [
         "github",
@@ -128,8 +128,8 @@
     {
       "name": "development",
       "source": "./development",
-      "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, and evidence-based completion verification. Includes planning, execution, and git workflow reference guides.",
-      "version": "1.1.1",
+      "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, evidence-based completion verification, a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep draft-feature and draft-bug sub-skills with agent-driven blind-spot detection — and a provider-agnostic autonomous work-on workflow (plan → HITL approval → implement → verify → publish) shared by the GitHub and Azure DevOps plugins. Includes planning, execution, and git workflow reference guides.",
+      "version": "1.4.0",
       "category": "development",
       "tags": [
         "methodology",
@@ -145,6 +145,11 @@
         "tdd",
         "subagent-driven-development",
         "verification-before-completion",
+        "draft-work-item",
+        "draft-feature",
+        "draft-bug",
+        "blind-spot-detector",
+        "work-on",
         "planning",
         "git-worktrees"
       ]
