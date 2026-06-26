@@ -24,7 +24,7 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.6.0)
+### development (v1.6.1)
 
 Development methodology toolkit — design-first brainstorming, autonomous design (with a mandatory design-review gate and implementation-handoff), TDD, parallel subagent-driven execution with review gates, evidence-based completion verification, a provider-agnostic `implement` engine (purpose-and-consumption context → atomic TDD task execution → self-review → verification) that `work-on` delegates to, and a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep `draft-feature` and `draft-bug` sub-skills with an agent-driven blind-spot detector.
 

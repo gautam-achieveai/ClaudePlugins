@@ -494,6 +494,7 @@ part `development:implement` does not do:
 |---|---|---|
 | Child items | Follow-up issues labeled `task`/`sub-task`, linked via `Relates to #<parent-id>`, titled `[#<parent-id>] <checkpoint>`; close/move to done as each completes | Child `Task` work items via `createWorkItem`, linked to the parent via `createLink`, titled `[#<parent-id>] <checkpoint>`; set Done/Closed as each completes |
 
+<outcome_handling>
 **Handle the outcome:**
 - **success** → proceed to Phase 2.4 (Finish & Publish).
 - **blocked** → `development:implement` stopped after its retry cap or on a
@@ -503,6 +504,7 @@ part `development:implement` does not do:
   tried, root-cause hypothesis) — revert the work item to an active state when
   possible (GitHub: active/in-progress status field; Azure DevOps: `Active`),
   then STOP. Do not continue to publish.
+</outcome_handling>
 
 ### Phase 2.4 — Finish & Publish
 

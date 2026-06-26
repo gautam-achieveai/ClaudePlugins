@@ -67,6 +67,7 @@ The non-negotiables that govern every phase below.
 
 ## Phase 0 — Establish Purpose & Consumption (the North Star)
 
+<purpose_brief>
 **Before decomposing anything**, write down what this work is *for* and how its
 output will be *consumed*. This brief is the reference every later task and review
 is measured against — it is the single best defense against scope creep,
@@ -88,25 +89,26 @@ misalignment, and "technically correct but wrong" changes.
    ```markdown
    ## Purpose & Consumption — <work item / plan title>
 
-   ## Why this exists (purpose)
+   ### Why this exists (purpose)
    - Problem / outcome: <the user/business problem this solves>
    - Definition of done: <the acceptance criteria, restated concretely>
 
-   ## How it will be consumed
+   ### How it will be consumed
    - Callers / consumers: <who calls this — APIs, UI, downstream services, jobs>
    - Contracts & invariants: <inputs/outputs, DTO/schema shapes, behaviors callers rely on>
    - Surfaces touched: <public API, persisted data, events/queues, UI>
 
-   ## Constraints
+   ### Constraints
    - <compatibility, performance, security, conventions to honor>
 
-   ## Out of scope (do NOT build)
+   ### Out of scope (do NOT build)
    - <explicit non-goals — guards against scope creep>
    ```
 
 3. **Keep it central.** Reference this brief when decomposing (Phase 1), when
    reviewing each task, and at verification (Phase 4). If a task or finding
    doesn't serve the purpose or a consumer, it's probably out of scope.
+</purpose_brief>
 
 ---
 
@@ -166,6 +168,7 @@ and log each cycle to the decision log.
 
 ## Phase 4 — Verify (Definition of Done)
 
+<definition_of_done>
 Invoke `development:verification-before-completion` and produce **fresh evidence**
 — never assert success you haven't observed this run. Confirm:
 
@@ -179,6 +182,7 @@ Invoke `development:verification-before-completion` and produce **fresh evidence
 If verification fails, fix and re-verify; if it still fails after 3 attempts,
 return the **blocked** outcome. When green, record the evidence in the decision
 log and return the **success** outcome.
+</definition_of_done>
 
 ---
 
@@ -197,6 +201,7 @@ This skill returns one of two outcomes to its caller:
   comment, revert state, ask a human).
 </outcomes>
 
+<never>
 **Never:**
 - Start on `main`/`master` without explicit consent.
 - Mark a task done without reading real pass/fail output.
@@ -204,6 +209,7 @@ This skill returns one of two outcomes to its caller:
 - Ship placeholder/stub implementations or suppress errors to move on.
 - Bundle unrequested features or drive-by refactors (out-of-scope = stop).
 - Claim completion without fresh verification evidence (Phase 4).
+</never>
 
 ---
 

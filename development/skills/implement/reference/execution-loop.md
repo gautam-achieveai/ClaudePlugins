@@ -97,6 +97,7 @@ do not continue to later tasks or self-review.
 
 ### Drift & "cheating" detection
 
+<drift_detection>
 Stop and reassess (revert the last step if needed) the moment you notice:
 - **Looping** — repeating the same failed change.
 - **Unrequested functionality** — building beyond the current task/purpose brief.
@@ -105,6 +106,7 @@ Stop and reassess (revert the last step if needed) the moment you notice:
 
 These are signals the work has lost the thread. Revert to the last good commit
 rather than pushing forward on a wrong path.
+</drift_detection>
 
 ---
 

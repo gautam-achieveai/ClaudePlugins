@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.13.0"
+    "version": "1.13.1"
   },
   "plugins": [
     {
@@ -129,7 +129,7 @@
       "name": "development",
       "source": "./development",
       "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, evidence-based completion verification, severity-and-cost triage for acting on received code review (Critical/Blocker always, High even when costly, Medium/Low only when cheap, with a practicality-and-alignment gate), a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep draft-feature and draft-bug sub-skills with agent-driven blind-spot detection — and a provider-agnostic autonomous work-on workflow (plan → HITL approval → implement → verify → publish) shared by the GitHub and Azure DevOps plugins, with a dedicated provider-agnostic implement engine (purpose-and-consumption context, atomic TDD task execution, self-review, and evidence-based verification) that work-on delegates to. Includes planning, execution, and git workflow reference guides.",
-      "version": "1.6.0",
+      "version": "1.6.1",
       "category": "development",
       "tags": [
         "methodology",
