@@ -5,9 +5,69 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.10.0"
+    "version": "1.11.0"
   },
   "plugins": [
+    {
+      "name": "sandbox-auth",
+      "source": "./sandbox-auth",
+      "description": "Authenticate outbound network calls from inside a sandbox running behind a MITM egress-proxy + gateway auth-webhook (e.g. SandboxedOstoolsMcpServer). Authentication is a required first step — the proxy blocks unauthenticated egress — and tokens are injected server-side so the agent never holds them. A common egress-auth skill owns the wire contract (HTTP 511 auth_pending handshake, 403 deny), backoff polling, human-in-the-loop device-code relay, transparent token injection, warm-then-run, and a portable Python probe engine. Thin user-invocable service skills (github, azure-devops, microsoft-graph, connect) reference and invoke it FIRST with service-specific probe URLs, scopes, and endpoints.",
+      "version": "2.0.0",
+      "category": "development",
+      "tags": [
+        "sandbox",
+        "egress",
+        "proxy",
+        "authentication",
+        "github",
+        "azure-devops",
+        "microsoft-graph",
+        "m365",
+        "networking"
+      ],
+      "keywords": [
+        "sandbox-auth",
+        "egress-auth",
+        "egress-proxy",
+        "auth-webhook",
+        "auth-pending",
+        "mitm-proxy",
+        "oauth-device-code",
+        "token-injection",
+        "warm-then-run",
+        "github-auth",
+        "azure-devops-auth",
+        "microsoft-graph-auth",
+        "connect",
+        "hitl"
+      ]
+    },
+    {
+      "name": "sandbox",
+      "source": "./sandbox",
+      "description": "Workspace-agent skills for sandboxed task execution: bootstrap Memory/ and scripts/, maintain task handoffs, use repeatable script helpers, and understand sandbox auth/context boundaries without bloating the chat-mode system prompt.",
+      "version": "1.0.0",
+      "category": "development",
+      "tags": [
+        "sandbox",
+        "workspace",
+        "memory",
+        "scripts",
+        "skills",
+        "agentic-workflows"
+      ],
+      "keywords": [
+        "sandbox",
+        "workspace-agent",
+        "workspace-memory",
+        "sandbox-memory",
+        "sandbox-scripts",
+        "sandbox-workspace-bootstrap",
+        "sandbox-auth-flow",
+        "task-memory",
+        "agentic-workflows"
+      ]
+    },
     {
       "name": "ado",
       "source": "./ado",

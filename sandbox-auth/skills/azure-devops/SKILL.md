@@ -1,107 +1,65 @@
 ---
 name: azure-devops
 description: >-
-  Set up Azure DevOps authentication for the current sandbox session.
-  This skill MUST be called before making any requests to Azure DevOps APIs
-  (dev.azure.com, *.visualstudio.com). It triggers the sandbox egress proxy's
-  auth handshake — which may prompt the user to log in via browser and approve
-  access. Do NOT make Azure DevOps API calls until this skill reports SUCCESS.
+  ALWAYS use this FIRST — before any Azure DevOps operation — to authenticate the
+  sandbox. Trigger this before any request to dev.azure.com or *.visualstudio.com:
+  listing/creating PRs, querying work items, reading repos/builds/pipelines, or any
+  ADO REST call. The sandbox blocks unauthenticated egress, so ADO calls will fail
+  until this runs. It triggers the egress proxy's auth handshake (may need a browser
+  Azure AD login / consent, which it relays). Do NOT make Azure DevOps API calls until
+  this reports SUCCESS.
 argument-hint: <organization name, e.g. "myorg">
 allowed-tools: Bash Read
 user-invocable: true
 shell: bash
 ---
 
-# Azure DevOps — Sandbox Authentication Setup
+# Azure DevOps — sandbox auth setup
 
-You are setting up Azure DevOps authentication for the sandbox session. This is a **prerequisite step** — the sandbox cannot access Azure DevOps APIs until authentication is established through the egress proxy.
+Set up Azure DevOps auth through the sandbox egress proxy before any ADO API call. This is a
+**prerequisite** — the proxy must acquire and cache an OAuth token on the user's behalf.
 
-## Why This Skill Exists
+This skill is a **thin wrapper**: it only picks the right ADO probe URL and reports the result.
+The handshake itself — wire contract, polling through `auth_pending`, the login relay, token
+injection, and exit-code handling — is owned by the **`sandbox-auth:egress-auth`** skill.
+**Do not reimplement it here.**
 
-The sandbox runs inside an isolated container with no user credentials. All outbound HTTPS traffic goes through an egress proxy that enforces per-service authentication policies. Before making any Azure DevOps API call, you must trigger the proxy's auth handshake so it can acquire and cache an OAuth token on the user's behalf.
+## Choose the probe URL (this is the ADO-specific value of this skill)
 
-## What Happens During This Skill (and Why It Takes Time)
+Pick in this priority order, then hand the URL to `egress-auth`:
 
-This skill runs a **two-phase auth probe**:
+a. **A specific target the user named** (a repo, PR list, work-item query, build) — probe THAT
+   URL, so you verify the exact permission they need. Example: PRs in `Weve_DA/_git/Zoran` →
+   `https://o365exchange.visualstudio.com/Weve_DA/_apis/git/repositories/Zoran/pullrequests?api-version=7.0&searchCriteria.status=active`
 
-### Phase 1 — TRIGGER (~30 seconds)
-A short-timeout request is sent to Azure DevOps through the egress proxy. The proxy intercepts it, evaluates the egress policy, and **kicks off token acquisition**. If this is the first time the user is authenticating to ADO in this session:
-- The user's **browser opens** to the Azure AD login page (or a ManualToken dialog appears in the Desktop app)
-- The user must sign in and (possibly) approve consent
-- This happens outside the sandbox — the proxy holds the auth flow open
+b. **Otherwise, if an org name is given** — probe the **project-list** endpoint (project-level,
+   accessible to any org member):
+   `https://dev.azure.com/<ORG>/_apis/projects?api-version=7.0`
+   (legacy hosts: `https://<ORG>.visualstudio.com/_apis/projects?api-version=7.0`)
 
-The trigger request will almost certainly return a non-200 status (403 "Login in progress", 407, or timeout). **This is expected** — the request's purpose is to start the auth flow, not to get data. The script automatically continues to Phase 2 polling.
+c. **If no org** — probe the VSSPS profile (works for any signed-in user, no org permission):
+   `https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.0`
 
-### Phase 2 — VALIDATE (up to ~5 minutes by default, polling every 5 seconds)
-The script polls the same endpoint with short-timeout requests. Each poll checks whether the token has been acquired and cached by the proxy:
-- **403 "Login in progress" / 407 / timeout** = user is still logging in, keep waiting
-- **2xx** = token is cached, auth is ready — **SUCCESS**
-- **403 without "Login in progress"** = token acquired but service rejected it — **FAILED**
-
-The script is patient — it keeps polling through transient 403 responses while the user completes login. Once the user finishes, the very next poll gets a 2xx.
-
-**Total time**: If the token is already cached from a previous auth, this completes in under 5 seconds. If the user needs to log in, it takes as long as the user takes (typically 15-60 seconds). The default budget is 5 minutes (configurable via the second argument).
-
-## Resolving Script Paths
-
-This skill references `../../scripts/probe-auth.sh` — a path relative to this SKILL.md file. To resolve it in the sandbox:
-1. This SKILL.md is loaded from a path like `/skills/sandbox-auth-azure-devops/SKILL.md`
-2. The plugin root is the parent that contains both `skills/` and `scripts/` directories
-3. Find the plugin root: strip the `skills/<skill-name>/` suffix from the SKILL.md directory, then look under `/plugin/` for the matching plugin
-4. The script is at `<plugin-root>/scripts/probe-auth.sh` — e.g. `/plugin/sandbox-auth/scripts/probe-auth.sh`
-
-If unsure, run `find /plugin -name probe-auth.sh` to locate it.
+> **Avoid `/_apis?api-version=7.0` (org API-discovery).** Some orgs restrict it to admins
+> (e.g. `o365exchange.visualstudio.com` returns `AccessCheckException` to non-admins). A
+> successful login followed by a 403 there makes the agent wrongly report "auth failed" when
+> auth actually worked. The `/_apis/projects` endpoint avoids this trap.
 
 ## Process
 
-1. **Parse the organization name** from `$ARGUMENTS`. If not provided, use the VSSPS profile endpoint.
+1. **Parse the org** from `$ARGUMENTS` (optional). Select the probe URL per the priority above.
+2. **Tell the user** you're setting up ADO auth and a browser Azure AD login may be required,
+   which you'll relay and wait for.
+3. **Invoke `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
+   with `PROBE_URL = <selected URL>` and `BUDGET = 300`. It runs the engine
+   (`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
+   `[HITL_REQUIRED]` prompt. **Do not write your own retry loop.**
+4. **Report** SUCCESS / FAILED / TIMEOUT per the `egress-auth` exit-code table. On SUCCESS the
+   user can call `dev.azure.com` and `*.visualstudio.com`; the token is cached for the session.
 
-2. **Inform the user** before running the probe:
-   > Setting up Azure DevOps authentication. This may open your browser for Azure AD login. Please complete the sign-in if prompted — I'll wait for it to finish.
+## Scope
 
-3. **Run the auth probe** (default 5-minute budget — the script handles all retries internally).
-
-   **Pick the probe URL in this priority order:**
-
-   a. **If the user gave a specific target URL** (a repo, PR list, work-item query, build, etc.) — probe THAT URL directly. The probe verifies the actual permission the user needs:
-      ```
-      bash ../../scripts/probe-auth.sh "${USER_TARGET_URL}" 300 5
-      ```
-      Example: user asks about PRs in `Weve_DA/_git/Zoran` → probe
-      `https://o365exchange.visualstudio.com/Weve_DA/_apis/git/repositories/Zoran/pullrequests?api-version=7.0&searchCriteria.status=active`
-
-   b. **Otherwise, if an organization name is provided** — probe the project-list endpoint. This is project-level and accessible to any org member, unlike `/_apis?api-version=7.0` (org-discovery) which requires elevated permissions in some orgs:
-      ```
-      bash ../../scripts/probe-auth.sh "https://dev.azure.com/${ORG}/_apis/projects?api-version=7.0" 300 5
-      ```
-      Substitute the org name for `${ORG}`. For legacy `*.visualstudio.com` hosts, use
-      `https://${ORG}.visualstudio.com/_apis/projects?api-version=7.0` instead.
-
-   c. **If no organization** — probe the VSSPS profile endpoint (works for any signed-in user with no org-specific permission required):
-      ```
-      bash ../../scripts/probe-auth.sh "https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.0" 300 5
-      ```
-
-   ### Why we no longer use `/_apis?api-version=7.0`
-   The org-level API-discovery endpoint requires permissions some org admins restrict (e.g., `o365exchange.visualstudio.com` denies it with `AccessCheckException` to non-admins). A successful auth flow followed by a 403 here is misleading — it makes the agent report "auth failed" when authentication actually worked and only this specific endpoint's ACL rejected. The project-list endpoint (`/_apis/projects`) avoids this trap.
-
-   The second argument is the poll budget in seconds (300 = 5 minutes). The third is the poll interval (5 seconds). **Do NOT implement your own retry loop around this script** — it already polls internally and handles transient 403 "Login in progress" responses from the proxy.
-
-4. **Report the result based on script output**:
-   - `AUTH_STATUS=SUCCESS`: Tell the user **Azure DevOps authentication is ready.** They can now make API calls to `dev.azure.com` and `*.visualstudio.com`. Mention the elapsed time if it was more than a few seconds.
-   - `AUTH_STATUS=FAILED`: Tell the user **Azure DevOps authentication failed.** Include the HTTP code and any response hint. Suggest they check for a consent prompt in the desktop app, or verify the egress policy config.
-   - `AUTH_STATUS=TIMEOUT`: Tell the user **Authentication timed out waiting for browser login.** Ask if they saw the browser prompt and want to retry.
-
-## CRITICAL RULES
-
-- **NEVER make Azure DevOps API calls before this skill reports SUCCESS.** The egress proxy will block unauthenticated requests.
-- **If this skill fails, do NOT retry silently.** Tell the user what happened and ask if they want to retry.
-- **This skill only sets up auth — it does not make any data requests.** After success, use standard HTTP tools (curl, requests, etc.) to call ADO APIs.
-- **Warn the user this may take a moment** — browser login is interactive and the script must wait for the user to complete it.
-- The auth token is cached by the proxy. You do NOT need to re-run this skill for every request — only once per session (or when the token expires).
-
-## Scopes
-
-This skill requests the Azure DevOps default scope: `499b84ac-1321-427f-aa17-267ca6975798/.default`
-
-This grants access to Azure DevOps REST APIs based on the user's permissions. The user must have an Azure DevOps account with access to the target organization.
+Azure DevOps default scope: `499b84ac-1321-427f-aa17-267ca6975798/.default` (set by the egress
+policy, not by this skill). The user needs an ADO account with access to the target organization.
+Everything else — never bypass the proxy, never call ADO before SUCCESS, one auth per session —
+is enforced by `sandbox-auth:egress-auth`.

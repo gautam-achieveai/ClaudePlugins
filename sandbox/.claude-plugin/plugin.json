@@ -1,0 +1,5 @@
+{
+  "name": "sandbox",
+  "description": "Workspace-agent skills for sandboxed task execution: bootstrap workspace memory, use scripts for repeatable work, maintain task state, and understand sandbox auth/context boundaries.",
+  "version": "1.0.0"
+}
