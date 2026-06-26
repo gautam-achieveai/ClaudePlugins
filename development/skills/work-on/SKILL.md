@@ -201,20 +201,32 @@ of Phase 1.4.
 
 ---
 
-### Phase 1.2-Feature — Design & Plan (via Plan Subagent)
+### Phase 1.2-Feature — Design & Plan
 
-For features, tasks, and stories, launch a **Plan subagent**
-(`subagent_type: Plan`, `model: opus`) to analyze the work item and produce
-a complete implementation plan. The Plan agent uses extended thinking to reason
-deeply about the problem.
+For features, tasks, and stories, design happens in two stages: first select a
+review-vetted approach via the **autonomous-design** skill, then detail it into
+an implementation plan via a **Plan subagent**.
 
-The agent operates in two stages:
+#### Stage A — Design (via `development:autonomous-design`)
 
-#### Stage A — Research (before plan mode)
+Invoke **`development:autonomous-design`** from this orchestrator (NOT from
+inside the Plan subagent — the design-review gate dispatches review sub-agents,
+and the `Plan` agent type cannot spawn agents). Pass it the full work item
+details from Phase 1.1 and the decision log path. It will:
 
-The agent has full access to all research tools. It **MUST** use them liberally
-before entering plan mode. The quality of the plan depends entirely on the depth
-of research — do not skip tool categories even when the work item seems simple.
+1. Extract requirements and note ambiguities (→ assumptions).
+2. Reconnoiter the codebase for existing patterns, files to change, and impact —
+   using the **research toolkit** below.
+3. Formulate 2-3 approaches and auto-select the best (simplicity, pattern
+   consistency, completeness).
+4. Run the **mandatory design-review gate** — over-engineering, design-pattern
+   smells, schema/compat, feature-flag, and a blind-spot adversarial critique —
+   applying blocking feedback before the approach is finalized.
+5. Log the chosen design decision and gate outcome to the decision log.
+
+**Research toolkit** — autonomous-design's reconnaissance (step 2 above) **MUST**
+use these liberally. The quality of the design depends on research depth — do not
+skip tool categories even when the work item seems simple.
 
 - **Codebase**: `Read`, `Grep`, `Glob`, `LS` — search for existing patterns,
   related implementations, test conventions, and the files that will need changes
@@ -261,19 +273,24 @@ of research — do not skip tool categories even when the work item seems simple
   |---|---|
   | `gh pr list` / GitHub MCP pull-request tools — recently merged PRs in the same area | `listPullRequests` — recently merged PRs in the same area |
 
-Explore the codebase for existing patterns, formulate 2-3 approaches, and
-evaluate trade-offs. **Log all research findings** to the decision log — what
-was found, what was searched but not found, and how findings influenced the
-approach.
+**Log all research findings** to the decision log — what was found, what was
+searched but not found, and how findings influenced the chosen approach.
 
-#### Stage B — Plan (in plan mode)
+**Output of Stage A**: a review-vetted design decision (chosen approach,
+rationale, rejected alternatives, assumptions, gate outcome) in the decision log.
 
-Once research is complete, the agent calls **`EnterPlanMode`**. This locks it
-into read-only mode where it can only write to the plan file — no code changes.
-The agent synthesizes all research into a structured implementation plan, then
-calls **`ExitPlanMode`** to return it.
+#### Stage B — Plan (via Plan subagent)
+
+Hand the chosen design decision to a **Plan subagent** (`subagent_type: Plan`,
+`model: opus`) to turn it into a concrete implementation plan. The Plan agent
+uses extended thinking; it **details the approach already selected in Stage A —
+it does NOT re-open approach selection**.
+
+The `Plan` agent is inherently read-only — it explores and writes the plan only,
+never code — and returns the plan natively (no plan-mode toggling required).
 
 **Provide the Plan agent with:**
+- The Stage A design decision (chosen approach, rationale, assumptions)
 - The full work item details from Phase 1.1 (type, title, description,
   acceptance criteria, placement fields, links)
 - The decision log path for recording decisions
@@ -283,17 +300,17 @@ calls **`ExitPlanMode`** to return it.
 - Implementation steps (ordered)
 - Test strategy
 - Verification steps
-- Alternatives considered with rationale for rejection
-- Any assumptions made due to ambiguity
+- How the plan realizes the chosen approach, and any assumptions carried over
 
-**If the Plan agent identifies blockers or ambiguities** that it cannot resolve
-from research alone, proceed to Phase 1.3 (Questions) instead of Phase 1.4.
+**If Stage A or the Plan agent identifies blockers or ambiguities** that cannot
+be resolved from research alone, proceed to Phase 1.3 (Questions) instead of
+Phase 1.4.
 
 ### Phase 1.3 — Questions (if needed)
 
-If the Plan agent (Phase 1.2-Feature) or the RCA workflow (Phase 1.2-Bug)
-identified blockers, ambiguities, or questions that cannot be resolved from the
-codebase alone:
+If Phase 1.2-Feature (autonomous-design in Stage A or the Plan subagent in
+Stage B) or the RCA workflow (Phase 1.2-Bug) identified blockers, ambiguities,
+or questions that cannot be resolved from the codebase alone:
 
 1. Format the questions clearly with context for each:
    ```
@@ -449,47 +466,52 @@ Example: Work item #4567 "Fix login timeout on slow networks"
 Slugify rules: lowercase, replace spaces/special chars with hyphens, max 60
 chars for the slug portion, strip trailing hyphens.
 
-### Phase 2.3 — Implement
+### Phase 2.3 — Implement, Self-Review & Verify (via `development:implement`)
 
-Read and follow [reference/execution-workflow.md](reference/execution-workflow.md)
-for the full implementation process. It covers:
+Delegate the entire build → review → verify flow to **`development:implement`** —
+the provider-agnostic engine. Invoke it via the **Skill** tool, passing:
 
-1. **Task list creation** — decompose the plan into granular, checkable tasks
-2. **Execution mode** — auto-detect parallel (subagent-driven) vs sequential,
-   with TDD alongside
-3. **Failure handling** — invoke `debugging:systematic-debugging`, max 3 retries
-   before posting a blocker comment to the work item
+- The approved plan (steps, files to change, test strategy) from Phase 2.1.
+- The design decision and decision-log path
+  (`scratchpad/conversation_memories/<id>-<slug>/decisions.md`).
+- The acceptance criteria from the work item.
+- The work-item / business context gathered in Part 1 (feeds its Phase 0
+  Purpose & Consumption brief).
 
-For complex work items (5+ steps, multiple root causes, cross-area changes),
-also follow the **Task Decomposition** section in the same reference to create
-child items on the active provider before implementing.
+`development:implement` runs Phase 0 (purpose & consumption brief), Phase 1
+(decompose into `tasks.md`), Phase 2 (TDD execution loop — auto-detecting
+subagent-driven vs sequential, with `debugging:systematic-debugging` and a max of
+3 attempts per task), Phase 3 (self-review via `code-reviewer:pr-review`), and
+Phase 4 (verification). It commits each green increment and returns a **success**
+or **blocked** outcome.
 
-### Phase 2.4 — Self-Review Loop
+**Before delegating — decompose complex work items into provider child items.**
+For large items (5+ steps, multiple root causes, cross-area changes), create
+tracked child items/issues on the active provider first — the provider-specific
+part `development:implement` does not do:
 
-Read and follow the **Phase 2.4** section in
-[reference/execution-workflow.md](reference/execution-workflow.md). It defines
-a review-fix-recheck cycle using `code-reviewer:pr-review` in local branch
-mode, with severity-based triage and a hard cap of 3 review cycles.
+| | GitHub | Azure DevOps |
+|---|---|---|
+| Child items | Follow-up issues labeled `task`/`sub-task`, linked via `Relates to #<parent-id>`, titled `[#<parent-id>] <checkpoint>`; close/move to done as each completes | Child `Task` work items via `createWorkItem`, linked to the parent via `createLink`, titled `[#<parent-id>] <checkpoint>`; set Done/Closed as each completes |
 
-### Phase 2.5 — Verify
+**Handle the outcome:**
+- **success** → proceed to Phase 2.4 (Finish & Publish).
+- **blocked** → `development:implement` stopped after its retry cap or on a
+  drift/cheating signal. Post a blocker comment to the work item with the
+  diagnostics it returned —
+  `[<dev name>'s bot] Implementation blocked: <summary>` (error output, what was
+  tried, root-cause hypothesis) — revert the work item to an active state when
+  possible (GitHub: active/in-progress status field; Azure DevOps: `Active`),
+  then STOP. Do not continue to publish.
 
-Invoke `development:verification-before-completion`. This must confirm:
-- All tests pass
-- Build succeeds
-- No regressions in existing functionality
-- The acceptance criteria from the work item are met
+### Phase 2.4 — Finish & Publish
 
-If verification fails, apply the fix and retry (up to 3 attempts per
-`<max_retries>` in Phase 2.3). No user checkpoint — proceed automatically when green.
-
-### Phase 2.6 — Finish & Publish
-
-#### Step 2.6.1: Finish the Branch
+#### Step 2.4.1: Finish the Branch
 
 Read `../../reference/branch-completion-guide.md` and follow it. Auto-select
 "push and create PR" — do not present options interactively.
 
-#### Step 2.6.2: Publish the PR
+#### Step 2.4.2: Publish the PR
 
 Load and execute the provider's publish-pr skill. Since the work item already
 exists (from Phase 1), **skip Phase 1 of publish-pr** — pass the work item ID
@@ -503,7 +525,7 @@ directly.
 The PR should also include a "Key Decisions" section in the description
 summarizing the 3-5 most important entries from the decision log.
 
-#### Step 2.6.3: Update Work Item / Project State
+#### Step 2.4.3: Update Work Item / Project State
 
 After the PR is created, add a comment:
 `[<dev name>'s bot] Implementation complete. PR #<pr-id> created.`
@@ -514,7 +536,7 @@ Then update state (provider-specific):
 |---|---|---|
 | State update | If the issue belongs to a GitHub Project, move its status field to an in-review/resolved-equivalent state when that convention exists (see [reference/issue-lifecycle.md](reference/issue-lifecycle.md)) | Update state to `Resolved` (or equivalent — see [reference/ado-state-transitions.md](reference/ado-state-transitions.md)) |
 
-### Phase 2.7 — Stop
+### Phase 2.5 — Stop
 
 <exit_conditions>
 Report to user: "PR #<pr-id> created for work item #<id>. Link: <PR URL>"
@@ -537,10 +559,10 @@ STOP.
   in the plan.
 
 ### Part 2 Errors
-- **Build failures after 3 attempts** → post blocker comment to the work item,
-  revert state to an active value when possible (GitHub: active/in-progress
-  status field; Azure DevOps: `Active`), STOP.
-- **Test failures after 3 attempts** → same as build failures.
+- **`development:implement` returns blocked** (build/test failures after its
+  3-attempt cap, or a drift/cheating signal) → post a blocker comment to the work
+  item with the diagnostics it returned, revert state to an active value when
+  possible (GitHub: active/in-progress status field; Azure DevOps: `Active`), STOP.
 - **Worktree creation fails** → inform user locally (environment issue).
   Do not post to the work item.
 - **PR creation fails** → check if a PR already exists for this branch. If so,
@@ -582,9 +604,11 @@ key decisions in the PR description.
 
 ## Task Decomposition for Complex Work Items
 
-See the **Task Decomposition** section in
-[reference/execution-workflow.md](reference/execution-workflow.md) for when and
-how to break large work items into child items on the active provider.
+For large items (5+ steps, multiple root causes, cross-area changes), create
+tracked child items on the active provider **before** delegating to
+`development:implement` — see the child-items table in **Phase 2.3**. The local
+task breakdown (the `tasks.md` list) is handled inside `development:implement`
+(see its `reference/execution-loop.md`).
 
 ---
 
@@ -595,10 +619,15 @@ how to break large work items into child items on the active provider.
   agent MUST pause at the HITL feedback checkpoint (Phase 1.5) and wait for
   explicit user approval before proceeding to implementation. There is no
   implicit approval — silence does NOT mean consent.
-- **Exhaustive research before planning** — the agent MUST use all available
-  tools during Stage A research (codebase, web, work tracker, git, observability,
-  database, builds, docs/wiki). Skipping tool categories leads to incomplete
-  plans. If a tool category is unavailable, note that in the decision log.
+- **Exhaustive research before planning** — during Stage A (autonomous-design
+  reconnaissance) the agent MUST use all available tools (codebase, web, work
+  tracker, git, observability, database, builds, docs/wiki). Skipping tool
+  categories leads to incomplete designs and plans. If a tool category is
+  unavailable, note that in the decision log.
+- **Design-review gate is MANDATORY** — Stage A must run autonomous-design's
+  design-review gate (over-engineering, design-pattern smells, schema/compat,
+  feature-flag, and a blind-spot adversarial critique) and apply blocking
+  feedback before the approach is finalized. Do not skip it for "simple" items.
 - **Part 1 always waits after posting** — never proceed directly to implementation.
   The plan must be reviewed and explicitly approved before execution.
 - **Part 2 requires explicit approval** — never execute a plan without an

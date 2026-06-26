@@ -35,10 +35,10 @@ Use the **Edit** tool to append entries after each key decision point:
 | Part 1, Phase 1.2-Feature | Chosen design approach, alternatives considered with reasons for rejection |
 | Part 1, Phase 1.3 | Plan trade-offs — why certain files/approaches were chosen over others |
 | Part 1, Revision | Feedback received, how it was addressed, what was kept |
-| Part 2, Phase 2.3 | Implementation decisions — library choices, pattern selections, edge cases handled, deviations from plan with justification |
-| Part 2, Phase 2.3 (failures) | Each debugging attempt — what was tried, what was learned, what was ruled out |
-| Part 2, Phase 2.4 | Self-review findings per cycle, fixes applied, items deferred |
-| Part 2, Phase 2.5 | Verification evidence — what passed, what was manually checked |
+| Part 2, Phase 2.3 (implement) | Purpose & Consumption brief; implementation decisions — library choices, pattern selections, edge cases handled, deviations from plan with justification |
+| Part 2, Phase 2.3 (implement — failures) | Each debugging attempt — what was tried, what was learned, what was ruled out |
+| Part 2, Phase 2.3 (implement — self-review) | Self-review findings per cycle, fixes applied, items deferred |
+| Part 2, Phase 2.3 (implement — verification) | Verification evidence — what passed, what was manually checked |
 
 **Entry format** (append under the relevant phase heading):
 ```markdown
@@ -48,6 +48,6 @@ Use the **Edit** tool to append entries after each key decision point:
 
 ## Step D.2: Include in PR description
 
-When creating the PR description (Part 2, Phase 2.6), read the decision log
+When creating the PR description (Part 2, Phase 2.4), read the decision log
 file and include a "Key Decisions" section summarizing the 3-5 most important
 entries so reviewers have context without needing to find the log.

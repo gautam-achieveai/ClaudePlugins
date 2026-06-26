@@ -24,11 +24,11 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.3.0)
+### development (v1.6.0)
 
-Development methodology toolkit — design-first brainstorming, autonomous design (with review-planning and implementation-handoff steps), TDD, parallel subagent-driven execution with review gates, evidence-based completion verification, and a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep `draft-feature` and `draft-bug` sub-skills with an agent-driven blind-spot detector.
+Development methodology toolkit — design-first brainstorming, autonomous design (with a mandatory design-review gate and implementation-handoff), TDD, parallel subagent-driven execution with review gates, evidence-based completion verification, a provider-agnostic `implement` engine (purpose-and-consumption context → atomic TDD task execution → self-review → verification) that `work-on` delegates to, and a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep `draft-feature` and `draft-bug` sub-skills with an agent-driven blind-spot detector.
 
-**Skills**: `brainstorming`, `autonomous-design`, `test-driven-development`, `subagent-driven-development`, `verification-before-completion`, `draft-work-item`, `draft-feature`, `draft-bug`
+**Skills**: `brainstorming`, `autonomous-design`, `work-on`, `implement`, `test-driven-development`, `subagent-driven-development`, `verification-before-completion`, `receiving-code-review`, `draft-work-item`, `draft-feature`, `draft-bug`
 
 **Agents**: `blind-spot-detector`
 
