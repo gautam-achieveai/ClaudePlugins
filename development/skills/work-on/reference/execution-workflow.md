@@ -55,7 +55,7 @@ Work through the task list one by one, checking off each as completed.
 - Count independent tasks (touch different files/modules with no dependencies).
 - Count sequential tasks (output of one feeds into another, or same files).
 - **3+ independent tasks** → invoke `development:subagent-driven-development`
-- **Otherwise** → read `development/reference/executing-plans-guide.md` and follow it
+- **Otherwise** → read `../../../reference/executing-plans-guide.md` and follow it
 
 **Test-Driven Development**: For either mode, also invoke
 `development:test-driven-development` alongside. Auto-detect the test framework:
@@ -76,7 +76,9 @@ If still failing after 3 debugging attempts:
 - Post a comment to the work item:
   `[<dev name>'s bot] Implementation blocked after 3 fix attempts.`
   Include: error messages, what was tried, hypothesis for root cause.
-- Update work item state back to Active.
+- Update work item state back to an active value (GitHub: active/in-progress
+  status field when present; Azure DevOps: `Active` — see the active provider's
+  state reference).
 - STOP. Do not continue to self-review.
 </max_retries>
 
@@ -144,7 +146,8 @@ Run a self-review loop that repeats until the code is clean:
 ## Task Decomposition for Complex Work Items
 
 When a work item is large or complex (particularly bugs with multiple root
-causes or features with many components), decompose it into child tasks in ADO.
+causes or features with many components), decompose it into child items on the
+active provider.
 
 **When to decompose:**
 - The implementation plan has more than 5 distinct steps
@@ -154,7 +157,16 @@ causes or features with many components), decompose it into child tasks in ADO.
 **When to trigger:** After the plan is approved in Part 2 Phase 2.1, before
 implementation begins.
 
-**How to decompose:**
+**How to decompose — GitHub:**
+1. Create follow-up GitHub issues for each major checkpoint:
+   - Use the repo's normal issue labels such as `task`, `follow-up`, or `sub-task`
+   - Link each issue back to the parent using `Relates to #<parent-id>`
+   - Title format: `[#<parent-id>] <checkpoint description>`
+2. As each issue is completed during Phase 2.3, close it or move it to the
+   repo's equivalent done state
+3. Include issue IDs in commit messages when useful: `Completes #<id>: <description>`
+
+**How to decompose — Azure DevOps:**
 1. Create child Task work items under the parent for each major checkpoint:
    - Use `createWorkItem` with type `Task` for each
    - Link each to the parent using `createLink` (parent-child relationship)

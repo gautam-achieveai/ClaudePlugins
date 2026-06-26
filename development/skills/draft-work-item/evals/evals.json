@@ -1,0 +1,158 @@
+{
+  "skill_name": "draft-work-item",
+  "notes": "draft-work-item is the ROUTER. These evals exercise its own responsibilities — provider resolution, intent classification + routing, the inline Quick Path for Tasks, and the shared finalize/preview/create/follow-up — rather than the deep feature/bug flows (which have their own eval sets in draft-feature and draft-bug). Several evals depend on live GitHub/ADO state and on the user answering confirmation prompts; treat the assertions as the behavior contract to check in a transcript, not as a fully automatable batch (the skill must never create an item without explicit confirmation).",
+  "evals": [
+    {
+      "id": 1,
+      "name": "feature-routes-to-draft-feature",
+      "prompt": "I want to draft a work item: add a dark-mode toggle to the settings page",
+      "precondition": "Origin remote is a github.com URL",
+      "expected_output": "Auto-detects GitHub from the remote, classifies the intent as a feature/user story, and delegates to the development:draft-feature sub-skill, passing the resolved provider and the raw requirement. The router itself does not run the deep clarify/blind-spot/review phases — it hands off.",
+      "assertions": [
+        {
+          "name": "classified_as_feature",
+          "description": "The new capability is classified as a feature / user story, not a bug or task"
+        },
+        {
+          "name": "delegates_to_draft_feature",
+          "description": "Routing invokes development:draft-feature rather than handling the deep flow inline"
+        },
+        {
+          "name": "provider_passed_through",
+          "description": "The resolved provider (GitHub) is passed to the sub-skill so it does not re-detect"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "bug-routes-to-draft-bug",
+      "prompt": "help me write a bug report: login returns a 500 when the email contains a plus sign",
+      "expected_output": "Classifies the intent as a bug and delegates to development:draft-bug with the resolved provider and raw report. The router does not enumerate hypotheses or write regression tests itself — that is the sub-skill's job.",
+      "assertions": [
+        {
+          "name": "classified_as_bug",
+          "description": "Defect/crash/500 wording is classified as a bug"
+        },
+        {
+          "name": "delegates_to_draft_bug",
+          "description": "Routing invokes development:draft-bug rather than the Quick Path or draft-feature"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "task-handled-on-quick-path-with-blind-spot-agent",
+      "prompt": "draft a task to bump the eslint config to the new flat-config format",
+      "expected_output": "Classifies the item as a Task and handles it inline on the Quick Path (2-3 clarifying questions, compose Summary + Definition of Done) without delegating to a deep sub-skill. Before preview it dispatches the development:blind-spot-detector agent with the task lens.",
+      "assertions": [
+        {
+          "name": "classified_as_task",
+          "description": "Routine tooling/config work is classified as a Task"
+        },
+        {
+          "name": "handled_inline_no_subskill",
+          "description": "The Quick Path runs inline; draft-feature and draft-bug are NOT invoked"
+        },
+        {
+          "name": "blind_spot_agent_task_lens",
+          "description": "The development:blind-spot-detector agent is dispatched with the task lens before preview"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "provider-autodetect-ado",
+      "prompt": "I have a rough requirement, turn it into a work item: export the audit log as CSV",
+      "precondition": "Origin remote is a dev.azure.com (or visualstudio.com) URL",
+      "expected_output": "Silently auto-detects Azure DevOps from the remote, states the detected provider in one short line, and proceeds. ADO-specific mappings (work item type via getWorkItemTypes, area path/team, Microsoft.VSTS.Common.Priority) are used in the finalize phase.",
+      "assertions": [
+        {
+          "name": "ado_detected_from_remote",
+          "description": "Provider resolves to Azure DevOps from the dev.azure.com/visualstudio.com remote"
+        },
+        {
+          "name": "detection_stated_not_interrogated",
+          "description": "Provider is announced in one short line; the user is not asked which backend to use"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "explicit-provider-from-wrapper-wins",
+      "prompt": "[invoked by gh:gh-draft-work-item wrapper with provider=GitHub] draft a work item for a flaky checkout test",
+      "expected_output": "Because the caller supplied the provider explicitly, the router skips git-remote auto-detection entirely and uses GitHub.",
+      "assertions": [
+        {
+          "name": "explicit_provider_used",
+          "description": "The provider supplied by the wrapper is used as-is"
+        },
+        {
+          "name": "autodetect_skipped",
+          "description": "git remote get-url is not consulted when the provider is already explicit"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "ambiguous-type-asks-not-guesses",
+      "prompt": "draft a work item about the dashboard",
+      "expected_output": "When the intent (bug vs feature vs task) is not obvious from the input, the router shows the type options and asks rather than guessing a route.",
+      "assertions": [
+        {
+          "name": "type_options_presented",
+          "description": "Bug / Feature / Task options are surfaced as a choice"
+        },
+        {
+          "name": "no_silent_guess",
+          "description": "The router does not silently pick a route for genuinely ambiguous input"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "ambiguous-provider-asks-once",
+      "prompt": "draft a work item: add rate limiting to the public API",
+      "precondition": "No git remote, or a remote whose host matches neither github.com nor dev.azure.com/visualstudio.com",
+      "expected_output": "Provider cannot be auto-detected, so the router asks once which backend to target, then proceeds.",
+      "assertions": [
+        {
+          "name": "provider_asked_once",
+          "description": "Exactly one question resolves the provider when detection is genuinely ambiguous"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "preview-required-before-create",
+      "prompt": "draft a task to rotate the staging API keys, then create it",
+      "expected_output": "Even when the user says 'create it', the router composes the item, shows the full preview (type, title, placement, body, etc.), and waits for explicit confirmation before calling the provider create API.",
+      "assertions": [
+        {
+          "name": "full_preview_shown",
+          "description": "A complete preview is presented before any create call"
+        },
+        {
+          "name": "no_create_without_confirmation",
+          "description": "No issue/work item is created until the user explicitly confirms the preview"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "followup-matches-provider",
+      "prompt": "draft a task to add a CONTRIBUTING.md and create it",
+      "precondition": "Provider resolves to GitHub; user confirms the preview",
+      "expected_output": "After creation, the router reports the created id/URL and offers provider-appropriate follow-ups, including Start /gh-work-on <id> for GitHub (or /ado-work-on <id> for ADO).",
+      "assertions": [
+        {
+          "name": "created_id_reported",
+          "description": "The created issue number/URL (GitHub) or work item id (ADO) is reported"
+        },
+        {
+          "name": "provider_correct_workon_offer",
+          "description": "The follow-up offers /gh-work-on <id> for GitHub (and would offer /ado-work-on <id> for ADO)"
+        }
+      ]
+    }
+  ]
+}
