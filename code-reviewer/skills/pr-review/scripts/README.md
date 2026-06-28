@@ -129,23 +129,35 @@ The README.md includes a comprehensive checklist:
 - [ ] Testing adequacy reviewed
 - [ ] And more...
 
-## Integration with Azure DevOps MCP
+## Integration with PR Providers
 
-When reviewing Azure DevOps PRs, you can use MCP tools to:
+The skill auto-detects the provider (GitHub or Azure DevOps) from the git remote —
+see [provider-resolution.md](../../../references/provider-resolution.md). Use the
+matching tools:
 
 **Fetch PR Details**:
 ```
+# GitHub
+gh pr view <n> --json number,title,author,headRefName,baseRefName,body
+# Azure DevOps
 mcp__azure-devops__getPullRequest
 ```
 
 **Get File Changes**:
 ```
+# GitHub
+gh pr diff <n> --name-only      # files;  gh pr diff <n>  for the full diff
+# Azure DevOps
 mcp__azure-devops__getAllPullRequestChanges
 mcp__azure-devops__getPullRequestFileChanges
 ```
 
 **Add Review Comments**:
 ```
+# GitHub
+gh api repos/<owner>/<repo>/pulls/<n>/comments ...   # inline (line-specific)
+gh pr comment <n> --body ...                         # general comment
+# Azure DevOps
 mcp__azure-devops__addPullRequestComment           # General comment
 mcp__azure-devops__addPullRequestInlineComment     # Line-specific
 mcp__azure-devops__addPullRequestFileComment       # File-level
@@ -153,6 +165,9 @@ mcp__azure-devops__addPullRequestFileComment       # File-level
 
 **Approve PR**:
 ```
+# GitHub
+gh pr review <n> --approve --body ...
+# Azure DevOps
 mcp__azure-devops__approvePullRequest
 ```
 

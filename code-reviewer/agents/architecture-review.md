@@ -45,7 +45,7 @@ skills:
   - codebase-search-discipline
 ---
 
-Before making any claim about what exists or doesn't exist in the codebase, invoke:
+Before making any claim about what exists or doesn't exist in the codebase, use:
 ```
 skill: "code-reviewer:codebase-search-discipline"
 ```

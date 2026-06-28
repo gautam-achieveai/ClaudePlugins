@@ -2,9 +2,17 @@
 
 When a PR was previously reviewed, the author pushed fixes, and the reviewer's vote was reset (e.g., "Vote of X was reset: Changes pushed to source branch"), the reviewer needs to focus on what changed since their last review — not re-review the entire PR.
 
+> **Provider note:** This workflow is provider-agnostic. The `mcp__azure-devops__*`
+> tools named below have GitHub `gh` equivalents — see
+> [Provider Resolution & Tool Mapping](../../../references/provider-resolution.md)
+> (`getPullRequestComments` → `gh api .../pulls/<n>/comments`,
+> `getCommitHistory` → `gh api .../pulls/<n>/commits`, `replyToComment` →
+> `gh api .../comments/<id>/replies`, `updatePullRequestThread` → GraphQL
+> `resolveReviewThread`).
+
 ## Step 1: Detect re-review context
 
-- Call `mcp__azure-devops__getPullRequestComments` to check for existing review comments
+- Fetch existing review comments — ADO `mcp__azure-devops__getPullRequestComments`, GitHub `gh api repos/<owner>/<repo>/pulls/<n>/comments`
 - If previous review comments exist from this reviewer (or Claude), this is a re-review
 - Extract the previous issue list (numbered issues with severities) from the last review summary comment
 - Note which issues the author responded to (replies to review threads)
@@ -13,7 +21,7 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
 
 ## Step 2: Find what changed since last review
 
-- Use `mcp__azure-devops__getCommitHistory` to find commits pushed after the last review comment date
+- Find commits pushed after the last review date — ADO `mcp__azure-devops__getCommitHistory`, GitHub `gh api repos/<owner>/<repo>/pulls/<n>/commits` (or `git log --after="<date>" origin/<source>`)
 - Use `git log --after="<last-review-date>" origin/<source-branch>` locally to see new commits
 - Use `git diff <last-review-commit>..<current-head>` to see ONLY the delta since last review
 - **Critical difference from initial review**: diff against last-review-point, not merge-base

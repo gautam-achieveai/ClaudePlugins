@@ -51,7 +51,7 @@ explicit migration plan is in place.
 
 ## When to Use This Skill
 
-Invoke this methodology when a PR touches any of the following:
+Use this methodology when a PR touches any of the following:
 
 - A `.proto`, `.thrift`, `.fbs`, `.avsc`, `.bond`, or other schema-definition file.
 - A type annotated for serialization: `[GenerateSerializer]` / `[Id]` (Orleans), `[DataContract]` /
@@ -68,7 +68,7 @@ Invoke this methodology when a PR touches any of the following:
 - A serializer/deserializer pair where the two sides use different concrete types for the
   "same" payload.
 
-You should also invoke this skill whenever a reviewer or work item raises a compatibility
+You should also use this skill whenever a reviewer or work item raises a compatibility
 question — "old clients won't have this field," "this rolls out before the server side," "what
 about clients still on the previous build?", "is this safe for a rolling deploy?", etc.
 

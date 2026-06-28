@@ -43,7 +43,7 @@ unjustified complexity.
 
 ## When to Use This Skill
 
-Invoke this methodology when:
+Use this methodology when:
 
 - Reviewing an LLM-generated PR or implementation — LLMs disproportionately over-produce.
 - A PR's diff feels much larger than the task it's linked to.

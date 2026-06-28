@@ -1,5 +1,9 @@
 # Tool & Agent Catalog
 
+Resolve the repository provider first (see
+[Provider Resolution & Tool Mapping](../../../references/provider-resolution.md)),
+then use the matching tool set below.
+
 ## Azure DevOps MCP Tools
 
 - `mcp__azure-devops__getPullRequest` - Fetch PR details (use `include: ["workItems"]` for linked work items)
@@ -23,6 +27,23 @@
 - `mcp__azure-devops__approvePullRequest` - Approve PR
 - `mcp__azure-devops__mergePullRequest` - Complete/merge a PR (squash, rebase, noFastForward)
 
+## GitHub Tools (`gh` CLI / GitHub MCP)
+
+Used when the resolved provider is GitHub. Prefer GitHub MCP tools when connected;
+otherwise the `gh` CLI (run via `Bash`, authenticated with `gh auth`).
+
+- `gh pr view <n> --json …` - Fetch PR details (`title,author,headRefName,baseRefName,body,isDraft,createdAt,headRefOid,closingIssuesReferences,comments,reviews`)
+- `gh pr diff <n> --name-only` - Changed files list (and count); `gh pr diff <n>` for the full diff
+- `gh pr list --state open --json …` - List active PRs (filter with `--author`, `--limit`)
+- `gh api repos/<owner>/<repo>/pulls/<n>/comments` - Get/post inline (review) comments
+- `gh api repos/<owner>/<repo>/issues/<n>/comments` - Get/post general comments
+- `gh api repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies` - Reply in a review thread
+- `gh api repos/<owner>/<repo>/pulls/<n>/commits` - Commits on the PR (re-review delta)
+- `gh pr comment <n> --body …` - Add a general PR comment
+- `gh pr review <n> --approve|--request-changes --body …` - Record an approval / request-changes review
+- `gh pr merge <n> --squash|--merge|--rebase` - Merge the PR
+- `gh issue view <n> --json …` / `gh api repos/<owner>/<repo>/issues/<n>` - Linked-issue details and parent/sub-issue relations
+
 ## Specialized Review Agents (dispatched in step 7)
 
 - `nscript-review` - NScript C#-to-JS transpiler compliance, MVVM, template/skin patterns
@@ -37,7 +58,7 @@
 
 ## Context Agents (dispatched in step 1/3)
 
-- `pr-context-gatherer` - Walks ADO work item hierarchy from PR-linked items up to Epic level; collects siblings and related items to build full business context tree. Use `code-reviewer:pr-context` skill to invoke.
+- `pr-context-gatherer` - Walks the PR-linked item hierarchy — ADO work items (up to Epic level) or GitHub linked issues / sub-issues — collecting siblings and related items to build a full business context tree. Use `code-reviewer:pr-context` skill to invoke.
 
 ## External Review Agents (dispatched conditionally in step 8)
 

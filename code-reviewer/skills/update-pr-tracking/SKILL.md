@@ -3,9 +3,9 @@ name: update-pr-tracking
 description: >
   Update local PR review tracking state after a review completes. Detects
   storage path, loads or initializes tracking.json, updates the PR entry, and
-  appends to the per-PR review history file. Internal skill invoked by
+  appends to the per-PR review history file. Internal skill used by
   code-reviewer:pr-review and code-reviewer:review-pending-prs — not typically
-  invoked directly by users.
+  used directly by users.
 allowed-tools: Read, Write, Edit, Bash, Glob
 ---
 
@@ -13,7 +13,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob
 
 Persist review results to local tracking files so future reviews know what was
 already reviewed and when. This skill is the single source of truth for all
-tracking file operations — other skills invoke it rather than writing tracking
+tracking file operations — other skills use it rather than writing tracking
 files directly.
 
 For full schema details, load [reference/tracking-schema.md](../review-pending-prs/reference/tracking-schema.md).
@@ -24,13 +24,13 @@ The calling skill passes these values as `$ARGUMENTS` or context:
 
 | Field | Required | Source |
 |-------|----------|--------|
-| `prNumber` | Yes | PR number from ADO |
+| `prNumber` | Yes | PR number from the provider |
 | `title` | Yes | PR title |
 | `sourceBranch` | Yes | Without `refs/heads/` prefix |
 | `targetBranch` | Yes | Without `refs/heads/` prefix |
-| `author` | Yes | `createdBy.displayName` from ADO |
-| `createdAt` | Yes | PR `creationDate` from ADO |
-| `lastKnownPushAt` | Yes | `lastMergeSourceCommit.committer.date` from ADO |
+| `author` | Yes | PR author (GitHub `author.login`; ADO `createdBy.displayName`) |
+| `createdAt` | Yes | PR creation date from the provider |
+| `lastKnownPushAt` | Yes | Latest push timestamp (GitHub head-commit date; ADO `lastMergeSourceCommit.committer.date`) |
 | `verdict` | Yes | `APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`, or `null` (if error) |
 | `status` | Yes | `completed` or `error` |
 | `reviewType` | Yes | `initial` or `re-review` |
@@ -59,16 +59,13 @@ Create `$STORAGE_PATH` and `$STORAGE_PATH/reviews/` if they don't exist.
 
 ## Step 2: Discover Repository
 
-Parse `git remote -v` to extract ADO variables:
+Resolve the provider and repo coordinates from `git remote -v` (see
+[provider-resolution.md](../../references/provider-resolution.md)):
 
-```
-origin	https://<org>.visualstudio.com/PROJECT_NAME/_git/REPOSITORY_NAME (fetch)
-```
-
-Extract:
-- `AZURE_DEVOPS_ORG_URL` = `https://<org>.visualstudio.com/`
-- `AZURE_DEVOPS_PROJECT` = `PROJECT_NAME`
-- `AZURE_DEVOPS_REPOSITORY` = `REPOSITORY_NAME`
+- **GitHub** (`github.com`): `provider = "github"`, `repository = <repo>`,
+  `project = <owner>`, `orgUrl = https://github.com/<owner>`.
+- **Azure DevOps** (`dev.azure.com` / `visualstudio.com`): `provider = "ado"`,
+  `repository = <repo>`, `project = <project>`, `orgUrl = https://<org>.visualstudio.com/`.
 
 ## Step 3: Load or Initialize `tracking.json`
 
@@ -79,17 +76,18 @@ Read `$STORAGE_PATH/tracking.json`.
 ```json
 {
   "version": 1,
-  "repository": "<AZURE_DEVOPS_REPOSITORY>",
-  "project": "<AZURE_DEVOPS_PROJECT>",
-  "orgUrl": "<AZURE_DEVOPS_ORG_URL>",
+  "provider": "<github | ado>",
+  "repository": "<repo>",
+  "project": "<project | owner>",
+  "orgUrl": "<org/owner URL>",
   "lastRunAt": null,
   "pullRequests": {}
 }
 ```
 
 **If found** — validate:
-1. `repository` matches `AZURE_DEVOPS_REPOSITORY`
-2. `project` matches `AZURE_DEVOPS_PROJECT`
+1. `repository` matches the detected repo
+2. `project` matches the detected project/owner
 
 If mismatch → rename to `tracking.json.bak`, reinitialize, warn user.
 
@@ -166,7 +164,7 @@ Return a brief confirmation to the calling skill:
 ## Error Handling
 
 **Tracking is best-effort.** If any write fails, warn the calling skill but do
-NOT fail the review. The review itself (posted to ADO) is the primary output —
+NOT fail the review. The review itself (posted to the PR) is the primary output —
 tracking is supplementary.
 
 | Scenario | Action |

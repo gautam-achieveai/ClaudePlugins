@@ -62,12 +62,12 @@ skills:
   - over-engineering-review
 ---
 
-Before making any claim about what exists or doesn't exist in the codebase, invoke:
+Before making any claim about what exists or doesn't exist in the codebase, use:
 ```
 skill: "code-reviewer:codebase-search-discipline"
 ```
 
-For the full methodology — categories, examples, severity guidance, and what NOT to flag — invoke:
+For the full methodology — categories, examples, severity guidance, and what NOT to flag — use:
 ```
 skill: "code-reviewer:over-engineering-review"
 ```

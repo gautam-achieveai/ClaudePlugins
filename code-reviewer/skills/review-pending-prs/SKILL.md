@@ -1,9 +1,9 @@
 ---
 name: review-pending-prs
 description: >
-  Discover all active pull requests from Azure DevOps, compare against local
-  tracking data, and review PRs with updates older than 15 minutes since last
-  review. Invokes code-reviewer:pr-review for each PR needing review and
+  Discover all active pull requests from GitHub or Azure DevOps, compare against
+  local tracking data, and review PRs with updates older than 15 minutes since last
+  review. Uses code-reviewer:pr-review for each PR needing review and
   maintains persistent review history. Use when asked to "review all pending PRs",
   "check for unreviewed PRs", "review pending pull requests", "catch up on PR
   reviews", "batch review PRs", or "review all open PRs".
@@ -12,12 +12,14 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure
 
 # Review Pending PRs — Batch Orchestrator
 
-Discover active PRs from Azure DevOps, compare against local tracking state, and review PRs that have updates older than 15 minutes since the last review. Delegates each individual review to the `code-reviewer:pr-review` skill.
+Discover active PRs from the repository provider (GitHub or Azure DevOps), compare against local tracking state, and review PRs that have updates older than 15 minutes since the last review. Delegates each individual review to the `code-reviewer:pr-review` skill.
 
-> **Namespace note:** This workflow is Azure DevOps-only. When related docs refer
-> to shared workflow components, read them here as `ado:ado-publish-pr`,
-> `ado:ado-babysit-pr`, `ado:ado-work-on`, and `ado:ado-draft-work-item`.
-> GitHub counterparts use the matching `gh:gh-...` names.
+> **Provider note:** This workflow runs on **GitHub or Azure DevOps** — resolve the
+> provider once from the git remote (see
+> [provider-resolution.md](../../references/provider-resolution.md)). Shared workflow
+> components use the `ado:` namespace for Azure DevOps (`ado:ado-publish-pr`,
+> `ado:ado-babysit-pr`, `ado:ado-work-on`, `ado:ado-draft-work-item`) and the
+> matching `gh:gh-...` names for GitHub.
 
 ## Constants
 
@@ -55,38 +57,38 @@ fi
 
 Create `$STORAGE_PATH` and `$STORAGE_PATH/reviews/` if they don't exist.
 
-### 1c. Discover Repository
+### 1c. Resolve Provider & Repository
 
-Parse `git remote -v` to extract ADO variables (same pattern as `code-reviewer:pr-review` lines 70-86):
+Resolve the provider and repo coordinates from the git remote (see
+[provider-resolution.md](../../references/provider-resolution.md)):
 
-```
-origin	https://<org>.visualstudio.com/<project>/_git/<repo> (fetch)
-```
-
-Extract:
-- `AZURE_DEVOPS_ORG_URL` = `https://<org>.visualstudio.com/`
-- `AZURE_DEVOPS_PROJECT` = `<project>`
-- `AZURE_DEVOPS_REPOSITORY` = `<repo>`
-
-Template: `<AZURE_DEVOPS_ORG_URL>/<PROJECT>/_git/<REPOSITORY>`
+- **GitHub** (`github.com`): `provider = "github"`, `<owner>`, `<repo>`.
+- **Azure DevOps** (`dev.azure.com` / `visualstudio.com`): `provider = "ado"`,
+  `AZURE_DEVOPS_ORG_URL = https://<org>.visualstudio.com/`,
+  `AZURE_DEVOPS_PROJECT = <project>`, `AZURE_DEVOPS_REPOSITORY = <repo>`
+  (template `<AZURE_DEVOPS_ORG_URL>/<PROJECT>/_git/<REPOSITORY>`).
 
 ---
 
-## Step 2: List Active PRs from ADO
+## Step 2: List Active PRs
 
 ```
+# GitHub
+gh pr list --state open --json number,title,isDraft,headRefName,baseRefName,createdAt,updatedAt,author
+
+# Azure DevOps
 mcp__azure-devops__listPullRequests(status: "active", repository: "<AZURE_DEVOPS_REPOSITORY>")
 ```
 
-Extract per PR:
-- `pullRequestId`
+Extract per PR (GitHub field → ADO field):
+- PR number — `number` → `pullRequestId`
 - `title`
-- `isDraft`
-- `sourceRefName` (strip `refs/heads/` prefix)
-- `targetRefName` (strip `refs/heads/` prefix)
-- `creationDate`
-- `createdBy.displayName`
-- `lastMergeSourceCommit.committer.date` (latest push timestamp)
+- draft flag — `isDraft` (both)
+- source branch — `headRefName` → `sourceRefName` (strip `refs/heads/`)
+- target branch — `baseRefName` → `targetRefName` (strip `refs/heads/`)
+- created date — `createdAt` → `creationDate`
+- author — `author.login` → `createdBy.displayName`
+- latest push timestamp — GitHub `updatedAt` / head-commit date → `lastMergeSourceCommit.committer.date`
 
 **Filter out draft PRs**: Remove any PR where `isDraft` is `true`. Draft PRs are
 work-in-progress and should not be reviewed until the author publishes them.
@@ -105,17 +107,18 @@ Read `$STORAGE_PATH/tracking.json` using the Read tool.
 ```json
 {
   "version": 1,
-  "repository": "<AZURE_DEVOPS_REPOSITORY>",
-  "project": "<AZURE_DEVOPS_PROJECT>",
-  "orgUrl": "<AZURE_DEVOPS_ORG_URL>",
+  "provider": "<github | ado>",
+  "repository": "<repo>",
+  "project": "<project | owner>",
+  "orgUrl": "<org/owner URL>",
   "lastRunAt": null,
   "pullRequests": {}
 }
 ```
 
 **If file found**, validate:
-1. `repository` matches `AZURE_DEVOPS_REPOSITORY`
-2. `project` matches `AZURE_DEVOPS_PROJECT`
+1. `repository` matches the detected repo
+2. `project` matches the detected project/owner
 
 If mismatch: rename to `tracking.json.bak`, reinitialize, warn user.
 
@@ -184,7 +187,7 @@ If the queue exceeds MAX_REVIEWS_PER_RUN, truncate and note the remaining count.
 
 ## Step 7: Execute Reviews (Loop)
 
-For each queued PR, invoke the `code-reviewer:pr-review` skill:
+For each queued PR, use the `code-reviewer:pr-review` skill:
 
 ```
 skill: "code-reviewer:pr-review", args: "<pr-number>"
@@ -193,7 +196,7 @@ skill: "code-reviewer:pr-review", args: "<pr-number>"
 The `code-reviewer:pr-review` skill handles everything autonomously:
 - Fetches PR details, determines review mode (lightweight vs deep)
 - Detects previous comments → triggers re-review workflow if applicable
-- Runs all review agents, posts findings to ADO
+- Runs all review agents, posts findings to the PR (GitHub or Azure DevOps)
 
 After each review completes, immediately proceed to Step 8 before starting the next PR.
 
@@ -207,7 +210,7 @@ After each review completes, immediately proceed to Step 8 before starting the n
 
 ## Step 8: Verify Tracking & Update Todo (after each review)
 
-The `code-reviewer:pr-review` skill (Step 11) invokes `code-reviewer:update-pr-tracking`
+The `code-reviewer:pr-review` skill (Step 11) uses `code-reviewer:update-pr-tracking`
 to write tracking data after each review. This step verifies that happened, handles
 fallback, updates `lastRunAt`, and marks the todo item.
 
@@ -219,7 +222,7 @@ Read `$STORAGE_PATH/tracking.json` and confirm the PR entry was updated by
 - `lastReviewVerdict` should be set
 
 If `code-reviewer:pr-review` **did not** update tracking (e.g., it errored before
-reaching Step 11), invoke the shared tracking skill as a fallback:
+reaching Step 11), use the shared tracking skill as a fallback:
 
 ```
 skill: "code-reviewer:update-pr-tracking"
@@ -278,8 +281,8 @@ After all reviews complete (or exit condition reached), output:
 
 | Scenario | Action |
 |---|---|
-| ADO MCP tools unavailable | Invoke `ado:setup-ado-mcp` for this ADO workflow (`gh:setup-gh-mcp` is the GitHub counterpart), retry once. If still fails, STOP with clear error message. |
-| `listPullRequests` returns empty | Report "No active PRs found", exit normally. |
+| Provider tooling unavailable (ADO MCP, or GitHub MCP / `gh`) | Use `ado:setup-ado-mcp` or `gh:setup-gh-mcp` for the resolved provider, retry once. If still fails, STOP with clear error message. |
+| PR list returns empty | Report "No active PRs found", exit normally. |
 | `tracking.json` corrupt (invalid JSON) | Rename to `tracking.json.bak`, reinitialize, warn user. |
 | `tracking.json` repo mismatch | Warn user, rename to `tracking.json.bak`, reinitialize for current repo. |
 | Individual `code-reviewer:pr-review` fails | Log as `lastReviewStatus: "error"` in tracking, continue to next PR. |

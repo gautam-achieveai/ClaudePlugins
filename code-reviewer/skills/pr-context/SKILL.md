@@ -1,8 +1,9 @@
 ---
 name: pr-context
 description: >
-  Gather full business context for a pull request by walking the Azure DevOps work item
-  hierarchy. Given a PR number, traces linked work items up through their parent chain
+  Gather full business context for a pull request by walking the work item / issue
+  hierarchy on GitHub or Azure DevOps. Given a PR number, traces linked work items (ADO)
+  or linked issues / sub-issues (GitHub) up through their parent chain
   (Task/Bug → User Story → Feature → Epic) and down through siblings to build a complete
   context tree showing where the PR fits in the broader initiative. Use this skill when
   you need to understand the "why" behind a PR, check if a PR fully covers its parent
@@ -13,18 +14,19 @@ description: >
   needs to understand the scope of changes. Also use proactively during code reviews
   when the PR description is sparse or when cross-cutting changes suggest the reviewer
   needs to understand the bigger picture.
-allowed-tools: mcp__azure-devops__*
+allowed-tools: Read, Bash, Skill, Agent, mcp__azure-devops__*
 ---
 
-# PR Context — Work Item Hierarchy Gatherer
+# PR Context — Work Item / Issue Hierarchy Gatherer
 
-Build a complete picture of a PR's business context by traversing the ADO work item
-graph. This helps reviewers understand not just WHAT the code changes, but WHY it
-exists and WHERE it fits in the larger initiative.
+Build a complete picture of a PR's business context by traversing the work item /
+issue graph on **GitHub or Azure DevOps**. This helps reviewers understand not just
+WHAT the code changes, but WHY it exists and WHERE it fits in the larger initiative.
 
-> **Namespace note:** This skill gathers Azure DevOps work item context. When
-> related docs mention shared workflow names, use the `ado:` namespace here;
-> GitHub-side counterparts use the `gh:` namespace.
+> **Provider note:** Resolve the provider once from the git remote (see
+> [provider-resolution.md](../../references/provider-resolution.md)). On Azure DevOps
+> this walks the work-item hierarchy; on GitHub it walks linked issues and
+> sub-issues. Shared workflow names use the `ado:` / `gh:` namespaces respectively.
 
 ## When to Use
 
@@ -44,7 +46,7 @@ exists and WHERE it fits in the larger initiative.
 
 ### From pr-review Skill
 
-Invoke during Step 1 or Step 3 of the PR review workflow:
+Use during Step 1 or Step 3 of the PR review workflow:
 
 ```
 skill: "code-reviewer:pr-context"
@@ -55,32 +57,35 @@ args: "5234"
 
 ### 1. Identify the PR and Repository
 
-Parse the argument to extract the PR number. Determine the repository:
+Parse the argument to extract the PR number. Resolve the provider and repository:
 
-- If a repository name is provided (e.g., `MyRepository#5234`), use it directly
-- Otherwise, detect from git remote:
+- If a repository name is provided (e.g., `MyRepository#5234`), use it directly.
+- Otherwise resolve from the git remote (see
+  [provider-resolution.md](../../references/provider-resolution.md)):
   ```bash
   git remote get-url origin
   ```
-  Extract the repository name from the URL pattern:
-  `https://<org>.visualstudio.com/<project>/_git/<repository>`
+  - **GitHub** — `https://github.com/<owner>/<repo>`
+  - **Azure DevOps** — `https://<org>.visualstudio.com/<project>/_git/<repository>`
 
 ### 2. Dispatch the Context Gatherer Agent
 
-Launch the `pr-context-gatherer` agent with the PR number and repository:
+Launch the `pr-context-gatherer` agent with the provider, PR number, and repository:
 
 ```
 Agent:
   subagent_type: pr-context-gatherer (from code-reviewer plugin agents)
   prompt: |
-    Gather the full work item hierarchy for PR #<number> in repository <repo>.
-    Walk the parent chain up to the Epic level and collect siblings at each level.
-    Output the structured context tree.
+    Provider: <github | ado>. Gather the full linked-item hierarchy for
+    PR #<number> in repository <repo>. Walk the parent chain to the top
+    (ADO: up to Epic; GitHub: parent sub-issue / tracking issue) and collect
+    siblings at each level. Output the structured context tree.
 ```
 
 The agent handles:
-- Fetching PR details and linked work items
-- Walking the parent chain (Task → User Story → Feature → Epic)
+- Fetching PR details and linked work items (ADO) / linked issues (GitHub)
+- Walking the parent chain (ADO Task → User Story → Feature → Epic; GitHub
+  sub-issue → parent / tracking issue)
 - Collecting sibling items at each level
 - Building the structured context tree
 - Writing the Context Summary
@@ -88,7 +93,7 @@ The agent handles:
 ### 3. Present Results
 
 The agent returns a structured context document. Present it to the caller (or
-include it in the review context if invoked from pr-review).
+include it in the review context if used by pr-review).
 
 **Key sections to highlight:**
 - **Hierarchy tree** — shows the full ancestry path
@@ -97,7 +102,7 @@ include it in the review context if invoked from pr-review).
 
 ### 4. Integration with PR Review
 
-When invoked from the `pr-review` skill, the context output should inform:
+When used by the `pr-review` skill, the context output should inform:
 
 - **Step 3 (Understand the changes)** — compare the PR's changes against the
   work item's acceptance criteria and description
@@ -135,7 +140,7 @@ Compare the PR's changes against the parent User Story / Feature:
 
 ## Error Handling
 
-- **ADO MCP tools unavailable** — invoke `ado:setup-ado-mcp` for this ADO flow (`gh:setup-gh-mcp` is the GitHub counterpart), then retry
+- **ADO MCP tools unavailable** — use `ado:setup-ado-mcp` for this ADO flow (`gh:setup-gh-mcp` is the GitHub counterpart), then retry
 - **PR not found** — verify the PR number and repository name
 - **Work items inaccessible** — note which IDs couldn't be fetched; continue with available data
 - **No work items linked** — report clearly and suggest the author link the relevant work item

@@ -13,7 +13,7 @@ pr-reviewer/
 ├── .claude-plugin/
 │   └── plugin.json               # Plugin manifest
 ├── README.md                     # This file - skill documentation
-├── SKILL.md                      # Main skill definition (invoked by Claude)
+├── SKILL.md                      # Main skill definition (used by Claude)
 ├── reference/                    # Reference guides
 │   ├── code-project-alignment-guide.md     # Code alignemnt with project or frameworks
 │   ├── code-quality-guide.md     # Code quality best practices
@@ -28,7 +28,7 @@ pr-reviewer/
 
 ## How It Works
 
-### Automatic Invocation
+### Automatic Use
 
 Claude will automatically use this skill when you ask questions like:
 
@@ -37,9 +37,9 @@ Claude will automatically use this skill when you ask questions like:
 - "Check PR for security issues"
 - "Analyze changes in this PR"
 
-### Manual Invocation
+### Manual Use
 
-You can also explicitly invoke it:
+You can also explicitly use it:
 
 ```
 Use the pr-reviewer skill to analyze PR #12345
@@ -49,9 +49,14 @@ Use the pr-reviewer skill to analyze PR #12345
 
 ### 1. Fetch PR Data
 
-Using Azure DevOps MCP:
+The plugin auto-detects the repository provider (GitHub or Azure DevOps) from the
+git remote — see [references/provider-resolution.md](references/provider-resolution.md).
 
 ```
+# GitHub
+gh pr view 12345 --json number,title,author,headRefName,baseRefName,body
+
+# Azure DevOps
 mcp__azure-devops__getPullRequest -repository "YourRepo" -pullRequestId 12345
 ```
 
@@ -67,7 +72,7 @@ mcp__azure-devops__getPullRequest -repository "YourRepo" -pullRequestId 12345
 
 This creates an isolated worktree with analysis templates.
 
-### 3. Invoke the Skill
+### 3. Use the Skill
 
 In Claude Code:
 
@@ -190,7 +195,7 @@ Every review includes:
 - Git installed and in PATH
 - Access to git repositories being reviewed
 - Claude Code with skills support
-- Azure DevOps MCP (optional, for PR data fetching)
+- One of, for PR data fetching/posting: GitHub MCP or the `gh` CLI (authenticated) for GitHub repos; Azure DevOps MCP for Azure DevOps repos
 
 ## Skill Scope
 

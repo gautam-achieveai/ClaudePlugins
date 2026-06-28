@@ -4,7 +4,7 @@ description: >
   Shared search discipline rules for all reviewer agents. Prevents false
   positive and over-claimed findings by enforcing source-branch search,
   scoped queries, PR diff checks, build status evidence, and claim-strength
-  matching. Invoke before making any claim about what exists, doesn't
+  matching. Use before making any claim about what exists, doesn't
   exist, or is "only/all/always" true in a codebase.
 allowed-tools:
   - Read

@@ -80,13 +80,13 @@ skills:
 ---
 
 Before making any claim about what exists, what types are persisted, or whether a consumer
-will be affected, invoke:
+will be affected, use:
 ```
 skill: "code-reviewer:codebase-search-discipline"
 ```
 
 For the full methodology — the five lenses, the nine change patterns, severity guidance, and
-what NOT to flag — invoke:
+what NOT to flag — use:
 ```
 skill: "code-reviewer:schema-compatibility-review"
 ```

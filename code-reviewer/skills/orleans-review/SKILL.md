@@ -16,7 +16,7 @@ review-specific context on top. It does NOT maintain its own copy of Orleans rul
 
 ## Step 1: Load Domain Knowledge
 
-Invoke the orleans-dev plugin's comprehensive Orleans patterns skill:
+Use the orleans-dev plugin's comprehensive Orleans patterns skill:
 
 ```
 skill: "orleans-dev:orleans-patterns"

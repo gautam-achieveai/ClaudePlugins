@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works with PR numbers, branch names, or Azure DevOps URLs. NOT for developer performance reviews over time.
+description: Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works on GitHub or Azure DevOps, with PR numbers, branch names, or GitHub/Azure DevOps PR URLs. NOT for developer performance reviews over time.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, mcp__azure-devops__*
 ---
 # Pull Request Code Reviewer
@@ -65,45 +65,40 @@ expensive to change.
 - "Re-review PR #12345 after updates" → Use **pr-reviewer** (re-review mode) ✅
 - "Check what changed since my last review on PR #12345" → Use **pr-reviewer** (re-review mode) ✅
 
-## Basics, identify which repo to use
+## Step 0a: Resolve the Provider & Repo
 
-When you check `git remote -v`, you may see something like this:
+This skill reviews PRs on **GitHub or Azure DevOps**. Resolve the provider once
+from the git remote, then use the matching tools throughout — full mapping in
+[Provider Resolution & Tool Mapping](../../references/provider-resolution.md).
 
-```
-origin	https://dev.azure.com/<organization>/<project>/_git/<repository> (fetch)
-origin	https://dev.azure.com/<organization>/<project>/_git/<repository> (push)
-```
+- `git remote get-url origin` → host `github.com` = **GitHub** (`<owner>/<repo>`);
+  host `dev.azure.com` / `visualstudio.com` = **Azure DevOps**
+  (`AZURE_DEVOPS_ORG_URL`, `AZURE_DEVOPS_PROJECT`, `AZURE_DEVOPS_REPOSITORY`).
+- State the detected provider in one line and proceed. If no usable remote
+  exists, **ask the user** for the coordinates — do NOT guess from prior reviews
+  or hardcoded defaults.
+- **GitHub** uses GitHub MCP tools when connected, else the `gh` CLI (via `Bash`).
+  **Azure DevOps** uses `mcp__azure-devops__*`. On a tooling failure, use
+  `gh:setup-gh-mcp` or `ado:setup-ado-mcp` and retry.
 
-or:
-
-```
-origin	https://<organization>.visualstudio.com/<project>/_git/<repository> (fetch)
-origin	https://<organization>.visualstudio.com/<project>/_git/<repository> (push)
-```
-
-From this you can derive ADO variables:
-1. `AZURE_DEVOPS_ORG_URL`
-2. `AZURE_DEVOPS_PROJECT`
-3. `AZURE_DEVOPS_REPOSITORY`
-
-Use the remote to discover the repository coordinates. If no usable remote exists,
-**ask the user** for the `{organization, project, repository}` triple. Do NOT guess
-from prior reviews or hardcoded defaults.
-
-Template:
-<AZURE_DEVOPS_ORG_URL>/<PROJECT>/_git/<REPOSITORY>
+For brevity, the provider-specific steps below name the `mcp__azure-devops__*`
+tool and its GitHub `gh` equivalent; when only one is shown, use the mapped
+counterpart from the provider-resolution table for the other provider.
 
 ## Quick Start
 
 **LLM Workflow:**
 
-1. Fetch PR data using MCP:
+1. Fetch PR data using the provider's tooling (see [provider mapping](../../references/provider-resolution.md)):
 
 ```
+# GitHub
+gh pr view 12345 --json number,title,author,headRefName,baseRefName,body
+# Azure DevOps
 mcp__azure-devops__getPullRequest -pullRequestId 12345 -de
 ```
 
-2. Extract source branch from response (e.g., `sourceRefName: "refs/heads/<source-branch-as-returned-by-getPullRequest>"`)
+2. Extract source branch from response (`headRefName` on GitHub; `sourceRefName: "refs/heads/<source-branch>"` on Azure DevOps)
 3. Call `pwsh` script with parameters:
 
 ```pwsh
@@ -156,10 +151,10 @@ Use this mode when changes are **low-complexity and self-contained** — the dif
 - **No new abstractions**: The PR works within existing patterns and doesn't introduce new classes, interfaces, services, or architectural layers
 
 **How it works:**
-1. Use `mcp__azure-devops__getPullRequest` to fetch PR metadata (title, author, description, source/target branches).
-2. Use `mcp__azure-devops__getPullRequestFileChanges` and `mcp__azure-devops__getPullRequestChangesCount` to get the list and count of changed files.
+1. Fetch PR metadata (title, author, description, source/target branches) — GitHub `gh pr view <n> --json …`, ADO `mcp__azure-devops__getPullRequest`.
+2. Get the list and count of changed files — GitHub `gh pr diff <n> --name-only`, ADO `mcp__azure-devops__getPullRequestFileChanges` + `getPullRequestChangesCount`.
 3. **Assess complexity** (see [Complexity Assessment](#complexity-assessment) below). If high-complexity signals are present, switch to Deep Review.
-4. Use `mcp__azure-devops__getFileContent` or git diff commands to view the actual changes.
+4. View the actual changes — GitHub `gh pr diff <n>` or git diff, ADO `mcp__azure-devops__getFileContent` / git diff.
 5. Perform the review directly from the diffs — no worktree needed.
 
 ### Deep Review (worktree checkout)
@@ -178,7 +173,7 @@ Use this mode when the PR has **high complexity** — you need the full source t
 - **The user explicitly requests a deep review**
 
 **How it works:**
-1. Use `mcp__azure-devops__getPullRequest` to fetch PR metadata.
+1. Fetch PR metadata — GitHub `gh pr view <n> --json …`, ADO `mcp__azure-devops__getPullRequest`.
 2. Run the setup script to create an isolated worktree (see Quick Start above).
 3. Perform the review from within the worktree, where you have full access to the source tree.
 4. Use the generated templates in `scratchpad/pr_reviews/pr-<number>/analysis/` to structure your findings.
@@ -248,11 +243,11 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 1. **Setup code**: `<Use Agent to complete this step> Expectation is that agent sets up the worktree using script provided and returns basic details for further review`
 
-- **Get PR Details**: Use mcp__azure-devops__getPullRequest to get the basic pr details
-- **Triage PR scope**: Call `mcp__azure-devops__getPullRequestChangesCount` to get a quick summary (X files added, Y modified, Z deleted). Use this to gauge PR scope and decide how many parallel agents to dispatch.
-- **Checkout the pull request**: Use Start-PRReview.ps1 script to setup the code and work tree
-- **Check previous comments**: Use `getPullRequestComments` to check for any previous comments on the pull request. Take note of any ongoing discussions or issues that need to be addressed. **If previous review comments exist from this reviewer (or Claude), switch to the [Re-Review Workflow](#re-review--update-workflow) instead of continuing the initial review.**
-- **Check for work items**: Use `getWorkItemById` to check for any work items associated with the pull request, if applicable.
+- **Get PR Details**: Fetch the basic PR details — GitHub `gh pr view <n> --json …`, ADO `mcp__azure-devops__getPullRequest`.
+- **Triage PR scope**: Get a quick summary (X files added, Y modified, Z deleted) — GitHub derive from `gh pr diff <n> --name-only`, ADO `mcp__azure-devops__getPullRequestChangesCount`. Use this to gauge PR scope and decide how many parallel agents to dispatch.
+- **Checkout the pull request**: Use Start-PRReview.ps1 script to setup the code and work tree (provider-agnostic — it operates on git).
+- **Check previous comments**: Check for previous comments on the PR — GitHub `gh pr view <n> --json comments,reviews` / `gh api .../pulls/<n>/comments`, ADO `getPullRequestComments`. Note any ongoing discussions or issues that need addressing. **If previous review comments exist from this reviewer (or Claude), switch to the [Re-Review Workflow](#re-review--update-workflow) instead of continuing the initial review.**
+- **Check for linked items**: Check for any linked work items (ADO `getWorkItemById`) or linked issues (GitHub `gh pr view <n> --json closingIssuesReferences`) associated with the PR, if applicable.
 
 2. **Classify changed files**: `<Part of step 1 agent output>`
 
@@ -563,13 +558,13 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    If the grader escalates any finding, note the escalation in the review summary so the PR
    author understands why the severity differs from what a domain agent might suggest.
 
-12. **Provide Feedback**: `<Invoke post-pr-review skill>`
+12. **Provide Feedback**: `<Use post-pr-review skill>`
 
     Delegate all comment posting, question posting, and summary thread management to the
-    `post-pr-review` skill. This skill owns the full "publish review results to ADO"
-    workflow.
+    `post-pr-review` skill. This skill owns the full "publish review results to the PR
+    provider (GitHub or Azure DevOps)" workflow.
 
-    **Invoke:**
+    **Use:**
 
     ```
     skill: "code-reviewer:post-pr-review"
@@ -590,7 +585,7 @@ Use this framework after fetching PR metadata and the changes summary to decide 
     | `reviewType` | `initial` or `re-review` |
     | `outputFormatMarkdown` | The formatted review summary (from [Output Format](reference/output-format.md)) |
 
-    **Determine verdict before invoking** — default posture is skeptical; approve only when
+    **Determine verdict before using** — default posture is skeptical; approve only when
     confident the code improves (or at minimum does not degrade) the codebase:
     - **APPROVE** — No Critical/High issues, no Medium issues, code genuinely
       improves the codebase. This is the highest bar — reserve it for clean PRs.
@@ -603,8 +598,8 @@ Use this framework after fetching PR metadata and the changes summary to decide 
       individually Medium)
 
     **Posting is automatic** — do NOT ask the user for permission to post findings,
-    questions, or the summary to ADO. The whole point of the review workflow is to
-    publish feedback. Post immediately after determining the verdict.
+    questions, or the summary to the PR (GitHub or Azure DevOps). The whole point of
+    the review workflow is to publish feedback. Post immediately after determining the verdict.
 
     **Exception — approve/merge still require confirmation:**
     - Approving the PR (if verdict is APPROVE) — confirm with user first
@@ -624,12 +619,12 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 13. **Update Review Tracking** (after posting feedback):
 
    **Skip this step for Local Branch Reviews** (no PR number) — tracking only
-   applies to ADO pull requests.
+   applies to remote pull requests (GitHub or Azure DevOps).
 
    Persist this review in the local tracking state so `code-reviewer:review-pending-prs`
    (and future runs of `code-reviewer:pr-review`) know this PR was reviewed.
 
-   Invoke the shared tracking skill:
+   Use the shared tracking skill:
 
    ```
    skill: "code-reviewer:update-pr-tracking"
@@ -640,12 +635,12 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    | Field | Source |
    |-------|--------|
    | `prNumber` | PR number from Step 1 |
-   | `title` | PR title from ADO |
-   | `sourceBranch` | Source branch (without `refs/heads/`) |
-   | `targetBranch` | Target branch (without `refs/heads/`) |
-   | `author` | `createdBy.displayName` from ADO |
-   | `createdAt` | PR `creationDate` from ADO |
-   | `lastKnownPushAt` | `lastMergeSourceCommit.committer.date` from ADO |
+   | `title` | PR title from the provider |
+   | `sourceBranch` | Source branch (GitHub `headRefName`; ADO without `refs/heads/`) |
+   | `targetBranch` | Target branch (GitHub `baseRefName`; ADO without `refs/heads/`) |
+   | `author` | PR author (GitHub `author.login`; ADO `createdBy.displayName`) |
+   | `createdAt` | PR creation date from the provider |
+   | `lastKnownPushAt` | Latest push timestamp (GitHub head-commit date; ADO `lastMergeSourceCommit.committer.date`) |
    | `verdict` | Verdict from Step 12 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
    | `status` | `completed` (or `error` if review failed) |
    | `reviewType` | `initial` or `re-review` (based on whether previous comments existed) |
@@ -658,12 +653,12 @@ Use this framework after fetching PR metadata and the changes summary to decide 
    The `code-reviewer:update-pr-tracking` skill handles all storage path detection, `tracking.json` management, and per-PR review history. See its [SKILL.md](../update-pr-tracking/SKILL.md) for full details (`code-reviewer:update-pr-tracking` skill).
 
    **Error handling**: If tracking fails, the skill warns but does NOT fail the
-   review. Tracking is best-effort — the review posted to ADO is the primary output.
+   review. Tracking is best-effort — the review posted to the PR is the primary output.
 
 ## Error Handling
 
 <error_handling>
-- **getPullRequest fails** → verify PR number, check ADO connectivity, inform user
+- **PR fetch fails** → verify PR number, check provider connectivity (GitHub `gh auth status` / ADO MCP), inform user
 - **Worktree script fails** → fall back to lightweight review mode
 - **Agent dispatch fails** → skip that agent, note in findings, continue with others
 - **Comment posting fails** → retry once, then present findings to user in conversation
@@ -751,4 +746,9 @@ For tool and agent catalog, see [reference/tool-catalog.md](reference/tool-catal
 
 For output format template, load [reference/output-format.md](reference/output-format.md).
 
-Publishing comments in ADO: IMPORTANT!!!, when referencing ADO work item, use `#` prefix e.g. `#12354` where 12354 is bug/workitem id, and `!` exclamation mark for PRs, e.g. `!4212` where 4212 is PR ID. <-- VERY IMPORTANT, don't forgat `!` is for PRs and `#` is for bugs/workitems.
+Publishing comments — use the provider's mention conventions
+([GitHub](../../references/gh-mention-conventions.md) /
+[Azure DevOps](../../references/ado-mention-conventions.md)).
+IMPORTANT (Azure DevOps): reference a work item with `#` (e.g. `#12354`) and a PR
+with `!` (e.g. `!4212`) — `!` is for PRs, `#` is for bugs/work items.
+On GitHub, both issues and PRs use `#` (e.g. `#123`); there is no `!` syntax.

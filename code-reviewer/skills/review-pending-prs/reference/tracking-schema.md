@@ -26,6 +26,7 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 ```json
 {
   "version": 1,
+  "provider": "ado",
   "repository": "MyRepository",
   "project": "MyProject",
   "orgUrl": "https://dev.azure.com/my-org/",
@@ -54,9 +55,10 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 | Field | Type | Description |
 |-------|------|-------------|
 | `version` | number | Schema version for future migrations. Current: `1` |
-| `repository` | string | ADO repository name. Guard against using tracking data from wrong repo |
-| `project` | string | ADO project name |
-| `orgUrl` | string | ADO organization URL |
+| `provider` | string | `"github"` or `"ado"` — the repository provider this tracking file belongs to |
+| `repository` | string | Repository name. Guard against using tracking data from wrong repo |
+| `project` | string | ADO project name, or GitHub `owner` |
+| `orgUrl` | string | ADO organization URL, or `https://github.com/<owner>` |
 | `lastRunAt` | ISO 8601 | Timestamp of the last batch review run |
 | `pullRequests` | object | Dictionary keyed by PR number string for O(1) lookup |
 
@@ -70,12 +72,12 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 | `targetBranch` | string | Target branch name (without `refs/heads/`) |
 | `author` | string | PR author display name |
 | `status` | string | `"active"` or `"closed"`. Closed entries kept for history but not processed |
-| `lastKnownPushAt` | ISO 8601 | Latest source commit timestamp at time of last review. Compared against ADO's current `lastMergeSourceCommit.committer.date` to detect updates |
+| `lastKnownPushAt` | ISO 8601 | Latest source commit timestamp at time of last review. Compared against the provider's current head-commit date / ADO `lastMergeSourceCommit.committer.date` to detect updates |
 | `lastReviewedAt` | ISO 8601 | Timestamp of the last review |
 | `lastReviewVerdict` | string or null | `"APPROVE"`, `"APPROVE_WITH_COMMENTS"`, `"REQUEST_CHANGES"`, or `null` |
 | `lastReviewStatus` | string | `"completed"` or `"error"` |
 | `reviewCount` | number | Total number of reviews performed on this PR |
-| `createdAt` | ISO 8601 | PR creation date from ADO |
+| `createdAt` | ISO 8601 | PR creation date from the provider |
 | `closedAt` | ISO 8601 | Set when status changes to `"closed"` |
 
 ## `reviews/pr-<number>.json` Schema
@@ -113,7 +115,7 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 | `status` | string | `"completed"` or `"error"` |
 | `sourceCommitId` | string | HEAD commit hash of the source branch at time of review |
 | `findings` | object | Count of findings by severity: `critical`, `high`, `medium`, `low` |
-| `commentsSummary` | string[] | Top findings (not all). Full findings live in ADO |
+| `commentsSummary` | string[] | Top findings (not all). Full findings live on the PR |
 | `blockerCount` | number | Number of findings tagged as `[BLOCKER]` |
 
 ## Initialization
@@ -123,9 +125,10 @@ On first run (no `tracking.json` exists), create:
 ```json
 {
   "version": 1,
+  "provider": "<github | ado>",
   "repository": "<detected-repo>",
-  "project": "<detected-project>",
-  "orgUrl": "<detected-org-url>",
+  "project": "<detected-project | owner>",
+  "orgUrl": "<detected-org/owner URL>",
   "lastRunAt": null,
   "pullRequests": {}
 }

@@ -3,9 +3,11 @@
 Use these conventions when writing PR descriptions, commit messages, work item
 comments, wiki pages, and bot replies in Azure DevOps.
 
-This reference is Azure DevOps-specific. When a workflow name overlaps with the
-GitHub plugin, use the `ado:` namespace for Azure DevOps flows and the `gh:`
-namespace for GitHub flows.
+This reference is Azure DevOps-specific. For GitHub repositories, use the
+counterpart [gh-mention-conventions.md](gh-mention-conventions.md) — pick the file
+matching the provider resolved per [provider-resolution.md](provider-resolution.md).
+When a workflow name overlaps with the GitHub plugin, use the `ado:` namespace for
+Azure DevOps flows and the `gh:` namespace for GitHub flows.
 
 ## Quick Reference
 
@@ -150,7 +152,7 @@ workflow names refer to the `ado:` plugin entries; the GitHub counterparts use
 the `gh:` namespace.
 - Composing PR descriptions (`ado:ado-publish-pr`; GitHub counterpart:
   `gh:gh-publish-pr`)
-- Posting review comments (`code-reviewer:review-pr`, `ado:ado-babysit-pr`,
+- Posting review comments (`code-reviewer:pr-review`, `ado:ado-babysit-pr`,
   `ado:ado-pr-tender`; GitHub counterparts use `gh:gh-babysit-pr` / `gh:gh-pr-tender`)
 - Creating or updating work items (`ado:ado-work-items`, `ado:ado-draft-work-item`;
   GitHub counterparts: `gh:gh-work-items`, `gh:gh-draft-work-item`)
