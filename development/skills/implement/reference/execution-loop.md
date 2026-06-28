@@ -54,7 +54,7 @@ Work through the task list one task at a time, checking off each as completed.
 
 Inspect the task structure:
 - **3+ independent tasks** (touch different files/modules, no ordering
-  dependency) → invoke `development:subagent-driven-development` — a fresh
+  dependency) → use `development:subagent-driven-development` — a fresh
   subagent per task, with spec-compliance review then code-quality review after
   each. Keeps context clean and reviews automatic.
 - **Otherwise** (tightly coupled or sequential) → read and follow
@@ -63,7 +63,7 @@ Inspect the task structure:
 
 ### Test-Driven Development (both modes)
 
-Invoke `development:test-driven-development` for every task: write the failing
+Use `development:test-driven-development` for every task: write the failing
 test, watch it fail for the right reason, write the minimal code to pass, refactor
 green. Auto-detect the test runner:
 - `.csproj` with test references → `dotnet test`
@@ -84,7 +84,7 @@ context window. Do not batch many unrelated changes into one commit.
 ### Failure handling
 
 If a test fails or implementation hits a wall:
-1. Invoke `debugging:systematic-debugging` to find the root cause (read logs /
+1. Use `debugging:systematic-debugging` to find the root cause (read logs /
    evidence before changing anything — don't guess).
 2. Apply the fix and re-run the test.
 

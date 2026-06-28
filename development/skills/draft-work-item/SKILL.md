@@ -51,8 +51,8 @@ Before the first provider call, make sure the backend's tools are reachable. If 
 call fails (connection error, tool not found, auth failure), follow the matching
 plugin's auto-setup rule rather than asking the user to configure it manually:
 
-- GitHub → invoke `gh:setup-gh-mcp`, then retry; fall back to the `gh` CLI.
-- Azure DevOps → invoke `ado:setup-ado-mcp`, then retry.
+- GitHub → use `gh:setup-gh-mcp`, then retry; fall back to the `gh` CLI.
+- Azure DevOps → use `ado:setup-ado-mcp`, then retry.
 
 (When reached through a wrapper, the wrapper has usually already done this check —
 only re-run on an actual failure.)

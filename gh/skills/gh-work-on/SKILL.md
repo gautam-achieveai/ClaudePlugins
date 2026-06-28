@@ -23,7 +23,7 @@ then hands the work item off to the shared autonomous workflow.
 1. **Ensure GitHub tooling is ready.** Before the first GitHub operation, verify
    the GitHub MCP tools are available. If the first call fails (connection error,
    tool not found, missing write toolsets, or auth failure), follow the auto-setup
-   rule in `gh/CLAUDE.md`: automatically invoke the `gh:setup-gh-mcp` skill, then
+   rule in `gh/CLAUDE.md`: automatically use the `gh:setup-gh-mcp` skill, then
    retry. Fall back to the `gh` / `gh api` CLI when MCP coverage is insufficient.
 
 2. **Delegate to the shared workflow.** Load and execute the `development:work-on`

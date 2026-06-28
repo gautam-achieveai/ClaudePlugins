@@ -7,7 +7,7 @@ skills:
 
 # Babysit PR Worker
 
-Before composing any comment or reply, invoke:
+Before composing any comment or reply, use:
 
 ```text
 skill: "gh:gh-mentions"

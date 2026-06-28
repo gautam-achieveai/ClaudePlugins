@@ -11,7 +11,7 @@ first GitHub MCP call fails (connection error, tool not found, missing write
 toolsets, or authentication failure):
 
 1. **Do not ask the user to configure it manually.**
-2. **Automatically invoke the `gh:setup-gh-mcp` skill** (`/setup-gh-mcp`) to
+2. **Automatically use the `gh:setup-gh-mcp` skill** (`/setup-gh-mcp`) to
     configure the MCP server end-to-end.
 3. After setup completes, retry the original operation.
 4. If setup itself fails, try the equivalent `gh` / `gh api` workflow when

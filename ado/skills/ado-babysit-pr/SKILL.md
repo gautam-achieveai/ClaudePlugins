@@ -252,7 +252,7 @@ addressed, current PR status.
 
 ## ADO Reference Conventions
 
-Invoke the `ado:ado-mentions` skill before composing any comment or reply.
+Use the `ado:ado-mentions` skill before composing any comment or reply.
 It loads the full mention syntax reference. Key rules:
 - Use `#<id>` when referencing work items in comments or replies
 - Use `!<id>` when referencing PRs in work item discussions

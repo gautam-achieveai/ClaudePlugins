@@ -1,6 +1,6 @@
 # Azure DevOps Mention & Reference Conventions
 
-> **Loaded by** the `ado:ado-mentions` skill. Invoke the skill rather than
+> **Loaded by** the `ado:ado-mentions` skill. Use the skill rather than
 > reading this file directly.
 
 Use these conventions when writing PR descriptions, commit messages, work item
@@ -144,7 +144,7 @@ For artifacts without shorthand mention syntax, use explicit URLs:
 ## Usage in Skills
 
 Any skill that writes to Azure DevOps (PR descriptions, comments, work item
-updates) should invoke the `ado:ado-mentions` skill, which loads this document.
+updates) should use the `ado:ado-mentions` skill, which loads this document.
 Applicable skills:
 - Composing PR descriptions (`ado-publish-pr`)
 - Posting review comments (`review-pr`, `ado-babysit-pr`, `ado-pr-tender`)

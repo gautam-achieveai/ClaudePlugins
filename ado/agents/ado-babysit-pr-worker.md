@@ -7,7 +7,7 @@ skills:
 
 # Babysit PR Worker
 
-Before composing any comment or reply, invoke the ADO mention conventions:
+Before composing any comment or reply, use the ADO mention conventions:
 ```
 skill: "ado:ado-mentions"
 ```

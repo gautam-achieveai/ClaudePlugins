@@ -1,6 +1,6 @@
 # GitHub Mention & Reference Conventions
 
-> **Loaded by** the `gh:gh-mentions` skill. Invoke the skill rather than
+> **Loaded by** the `gh:gh-mentions` skill. Use the skill rather than
 > reading this file directly.
 
 Use these conventions when writing issue bodies, PR descriptions, PR comments,
@@ -108,7 +108,7 @@ For artifacts without shorthand mention syntax, use explicit URLs:
 ## Usage in Skills
 
 Any skill that writes to GitHub (issue bodies, PR descriptions, PR comments,
-issue comments, project notes) should invoke the `gh:gh-mentions` skill, which
+issue comments, project notes) should use the `gh:gh-mentions` skill, which
 loads this document. Applicable skills:
 - Composing PR descriptions (`gh-publish-pr`)
 - Posting review comments (`gh-babysit-pr`, `gh-pr-tender`)

@@ -78,7 +78,7 @@ Supported updates:
 
 ## GitHub Reference Conventions
 
-Invoke the `gh:gh-mentions` skill before composing issue bodies, comments, PR
+Use the `gh:gh-mentions` skill before composing issue bodies, comments, PR
 descriptions, or link references.
 
 ## Guidelines

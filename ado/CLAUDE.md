@@ -8,7 +8,7 @@ available. If the first ADO MCP call fails (connection error, tool not found,
 or authentication failure):
 
 1. **Do not ask the user to configure it manually.**
-2. **Automatically invoke the `ado:setup-ado-mcp` skill** (`/setup-ado-mcp`) to
+2. **Automatically use the `ado:setup-ado-mcp` skill** (`/setup-ado-mcp`) to
    configure the MCP server end-to-end.
 3. After setup completes, retry the original operation.
 4. If setup itself fails, report the error and stop.

@@ -3,4 +3,4 @@ description: "Design before code - explore requirements, propose approaches, get
 disable-model-invocation: true
 ---
 
-Invoke the development:brainstorming skill and follow it exactly. $ARGUMENTS
+Use the development:brainstorming skill and follow it exactly. $ARGUMENTS

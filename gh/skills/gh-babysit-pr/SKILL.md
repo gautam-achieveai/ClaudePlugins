@@ -156,7 +156,7 @@ Stop when:
 
 ## GitHub Reference Conventions
 
-Invoke the `gh:gh-mentions` skill before composing any comment or reply.
+Use the `gh:gh-mentions` skill before composing any comment or reply.
 
 ## Guidelines
 

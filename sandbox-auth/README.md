@@ -19,7 +19,7 @@ succeed after a lightweight probe primes the gateway's cache.
 ## Skills
 
 One **common** skill owns all the mechanics; the **service skills are thin wrappers** that just
-choose a probe URL / scopes and **invoke the common skill** (DRY — no duplicated handshake logic).
+choose a probe URL / scopes and **use the common skill** (DRY — no duplicated handshake logic).
 
 | Skill | Invocation | Role |
 |-------|-----------|------|
@@ -34,7 +34,7 @@ choose a probe URL / scopes and **invoke the common skill** (DRY — no duplicat
 | Path | Purpose |
 |------|---------|
 | `skills/egress-auth/SKILL.md` | The common skill: mental model, decision table, engine invocation, polling algorithm, HITL relay, warm-then-run, and the reusable per-URL procedure. |
-| `skills/github,azure-devops,microsoft-graph,connect/SKILL.md` | Thin user-invocable service skills that reference and invoke `egress-auth`. |
+| `skills/github,azure-devops,microsoft-graph,connect/SKILL.md` | Thin user-invocable service skills that reference and use `egress-auth`. |
 | `scripts/sandbox-auth-fetch.py` | Auth-aware fetch + `auth_pending` poller. Single JSON result to stdout, `[HITL_REQUIRED]` lines to stderr, distinct exit codes. Uses `requests` if present, else stdlib `urllib`. |
 | `scripts/warm-github-auth.py` | Warms GitHub (REST, web, or git smart-HTTP `info/refs`) and optionally runs a passthrough command (`-- <cmd>`). |
 | `references/architecture.md` | The proxy -> gateway -> auth-webhook flow and the exact 511/403 wire contracts. |

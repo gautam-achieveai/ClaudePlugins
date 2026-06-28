@@ -40,7 +40,7 @@ skill. **Do not reimplement them here.**
 2. **Tell the user** you're setting up auth for the target host and that a browser/device-code
    login may be required, which you'll relay and wait for.
 
-3. **Invoke `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
+3. **Use `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
    with `PROBE_URL = $ARGUMENTS`. That skill runs the probe engine
    (`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
    `[HITL_REQUIRED]` login prompt. **Do not write your own retry loop.**

@@ -15,7 +15,7 @@ Run a review-fix-recheck loop until the code is clean.
 
 **Each cycle:**
 
-1. **Review** — Invoke `code-reviewer:pr-review` in **local branch review mode**
+1. **Review** — Use `code-reviewer:pr-review` in **local branch review mode**
    (no PR number — review the current branch against its base). This runs the
    full review: alignment with project patterns, code quality (SOLID, smells,
    duplication), security (OWASP), performance (N+1, memory), exception handling,
@@ -35,7 +35,7 @@ Run a review-fix-recheck loop until the code is clean.
    - Run the build and tests to confirm it doesn't break anything (read output).
    - Check off any related tasks in `tasks.md`.
 
-4. **Re-review** — run `code-reviewer:pr-review` again. Confirm prior findings are
+4. **Re-review** — use `code-reviewer:pr-review` again. Confirm prior findings are
    resolved and that the fixes introduced no new issues.
 
 5. **Repeat or exit:**

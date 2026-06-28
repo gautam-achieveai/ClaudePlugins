@@ -84,17 +84,21 @@ Then: Cleanup worktree (Step 5)
 ```bash
 # Push branch
 git push -u origin <feature-branch>
+```
 
-# Create PR
-gh pr create --title "<title>" --body "$(cat <<'EOF'
+Then create the PR using the **active provider's tooling**, with a body of this shape:
+
+```markdown
 ## Summary
 <2-3 bullets of what changed>
 
 ## Test Plan
 - [ ] <verification steps>
-EOF
-)"
 ```
+
+Use whichever matches the repo's provider (examples):
+- **GitHub** — `gh pr create --title "<title>" --body "<body>"`, or the `gh:gh-publish-pr` skill.
+- **Azure DevOps** — the `ado:ado-publish-pr` skill, or `az repos pr create --title "<title>" --description "<body>"`.
 
 Then: Cleanup worktree (Step 5)
 

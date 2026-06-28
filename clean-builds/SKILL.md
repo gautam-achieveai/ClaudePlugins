@@ -7,14 +7,14 @@ description: This skill guides developers through achieving zero-warning builds,
 
 ## ⚠️ IMPORTANT: Path Resolution for LLM
 
-**All script paths in this skill are relative to the skill's base directory, which is provided when this skill is invoked.**
+**All script paths in this skill are relative to the skill's base directory, which is provided when this skill is used.**
 
 When you see paths like:
 - `scripts/format-code.ps1` → Prepend the skill's base path provided in the tool response
 - `references/troubleshooting.md` → Located at `<skill_base_path>/references/troubleshooting.md`
 
 **How to invoke scripts**:
-1. The skill's base path will be provided when this skill is invoked (e.g., `Base Path: B:\sources\DOC_Project_2025\.claude\skills\clean-builds\`)
+1. The skill's base path will be provided when this skill is used (e.g., `Base Path: B:\sources\DOC_Project_2025\.claude\skills\clean-builds\`)
 2. Prepend this base path to all script references
 3. **Run scripts from the user's current working directory** (the project root), NOT from the skill directory
 
@@ -46,7 +46,7 @@ Use this skill to:
 
 ## When to Use This Skill
 
-Invoke this skill when you need to:
+Use this skill when you need to:
 - Format and validate code changes before committing
 - Fix build warnings that are blocking progress
 - Check for NuGet package version inconsistencies

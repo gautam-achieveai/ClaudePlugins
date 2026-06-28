@@ -186,7 +186,7 @@ Errors:
 ## Error Handling
 
 - **Scanner fails** → verify Node.js and `gh auth status`, then retry
-- **GitHub auth unavailable** → invoke `gh:setup-gh-mcp` or ask the user to authenticate `gh` if MCP is not available
+- **GitHub auth unavailable** → use `gh:setup-gh-mcp` or ask the user to authenticate `gh` if MCP is not available
 - **Individual work-item errors** → log and continue
 - **Agent failures** → report and continue with the remaining items
 

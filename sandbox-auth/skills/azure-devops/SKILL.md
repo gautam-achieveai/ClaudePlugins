@@ -50,7 +50,7 @@ c. **If no org** — probe the VSSPS profile (works for any signed-in user, no o
 1. **Parse the org** from `$ARGUMENTS` (optional). Select the probe URL per the priority above.
 2. **Tell the user** you're setting up ADO auth and a browser Azure AD login may be required,
    which you'll relay and wait for.
-3. **Invoke `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
+3. **Use `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
    with `PROBE_URL = <selected URL>` and `BUDGET = 300`. It runs the engine
    (`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
    `[HITL_REQUIRED]` prompt. **Do not write your own retry loop.**

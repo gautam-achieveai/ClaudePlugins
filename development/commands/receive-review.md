@@ -3,4 +3,4 @@ description: "Triage and act on code review feedback — fix by severity/cost, p
 disable-model-invocation: true
 ---
 
-Invoke the development:receiving-code-review skill and follow it exactly. $ARGUMENTS
+Use the development:receiving-code-review skill and follow it exactly. $ARGUMENTS

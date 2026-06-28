@@ -3,7 +3,7 @@ name: gh-mentions
 description: >
   GitHub mention and reference syntax — #ID for issues and PRs, owner/repo#ID
   for cross-repo links, @login for users, closing keywords, bot comment prefix,
-  and PR description conventions. Invoke before writing any content to GitHub
+  and PR description conventions. Use before writing any content to GitHub
   (issues, PR descriptions, PR comments, review replies, project notes).
 allowed-tools:
   - Read
@@ -34,9 +34,9 @@ Note: the path is relative to the `gh` plugin root (`gh/references/`).
 | State transition | keyword + `#ID` | `Fixes #123` |
 | Bot comment prefix | `[<dev>'s bot]` | `[Jane's bot] Fixed: ...` |
 
-## When to Invoke
+## When to Use
 
-Invoke this skill before:
+Use this skill before:
 - Composing PR descriptions (`gh-publish-pr`)
 - Posting review comments or replies (`gh-babysit-pr`, `gh-pr-tender`)
 - Creating or updating issues/project items (`gh-work-items`, `gh-draft-work-item`)

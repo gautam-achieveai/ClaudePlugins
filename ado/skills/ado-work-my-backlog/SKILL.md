@@ -188,7 +188,7 @@ Next loop iteration will pick up feedback and advance items further.
 
 - **Scanner fails to run** (Node.js not available, script error): Check
   `node --version` is 18+. If persistent, report the error.
-- **ADO MCP not configured** (scanner auth fails): Invoke `ado:setup-ado-mcp`
+- **ADO MCP not configured** (scanner auth fails): Use `ado:setup-ado-mcp`
   to auto-configure, then retry the scan.
 - **Individual work item errors**: Reported in `errors[]` — log and continue.
   The scanner tracks `errorCount` per item; after 3 consecutive errors it

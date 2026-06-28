@@ -10,7 +10,7 @@ through a complete pull request lifecycle: work item creation, PR submission,
 and iterative feedback resolution.
 
 This skill has three phases. Phases 1 and 2 always run together. Phase 3 is
-opt-in and can also be invoked independently (e.g., "Tend to PR #123").
+opt-in and can also be used independently (e.g., "Tend to PR #123").
 
 ---
 
@@ -159,7 +159,7 @@ until the PR is ready to merge or the user says "stop".
 
 ## ADO Reference Conventions
 
-Invoke the `ado:ado-mentions` skill before composing any PR description, comment,
+Use the `ado:ado-mentions` skill before composing any PR description, comment,
 or reply. It loads the full mention syntax reference. Key rules for this skill:
 - Use `AB#<id>` in PR descriptions to auto-link work items
 - Use `#<id>` when referencing work items in comments

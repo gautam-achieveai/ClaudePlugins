@@ -12,7 +12,7 @@ Phase 1.2 in SKILL.md routes here when the work item type is `Bug`.
 
 ## Stage A — Reproduce & Collect Evidence
 
-Invoke the `debugging:debug-with-logs` skill. Provide it with:
+Use the `debugging:debug-with-logs` skill. Provide it with:
 - The bug description and repro steps from the work item
 - Any error messages, stack traces, or screenshots referenced
 - The component/module identified in Phase 1.1
@@ -36,7 +36,7 @@ The `debug-with-logs` skill handles Steps 1-5 of its methodology:
 - STOP — wait for answers before reattempting
 
 **If the codebase lacks structured logging:**
-- Invoke `debugging:logging-enablement` first to set up JSONL logging
+- Use `debugging:logging-enablement` first to set up JSONL logging
 - Then return to `debug-with-logs` for the actual debugging
 
 ---

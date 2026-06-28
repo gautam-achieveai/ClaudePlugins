@@ -3,7 +3,7 @@ name: ado-mentions
 description: >
   Azure DevOps mention and reference syntax — #ID for work items, !ID for PRs,
   @alias for users, AB#ID for cross-platform, state transition keywords, bot
-  comment prefix, PR description template. Invoke before writing any content to
+  comment prefix, PR description template. Use before writing any content to
   Azure DevOps (PR descriptions, comments, work item updates, wiki pages).
 allowed-tools:
   - Read
@@ -35,9 +35,9 @@ Note: the path is relative to the ado plugin root (`ado/references/`).
 | State transition | keyword + `#ID` | `Fixes #123` |
 | Bot comment prefix | `[<dev>'s bot]` | `[Jane's bot] Fixed: ...` |
 
-## When to Invoke
+## When to Use
 
-Invoke this skill before:
+Use this skill before:
 - Composing PR descriptions (`ado-publish-pr`)
 - Posting review comments or replies (`ado-babysit-pr`, `ado-pr-tender`)
 - Creating or updating work items (`ado-work-items`, `ado-draft-work-item`)

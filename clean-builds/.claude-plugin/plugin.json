@@ -1,5 +1,5 @@
 {
   "name": "clean-builds",
   "description": "Achieve zero-warning builds through systematic warning elimination, code formatting, and package version validation",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

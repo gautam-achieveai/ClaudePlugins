@@ -2,7 +2,7 @@
 name: egress-auth
 description: >-
   Core sandbox egress authentication skill — the shared engine that the
-  github / azure-devops / microsoft-graph / connect skills reference and invoke.
+  github / azure-devops / microsoft-graph / connect skills reference and use.
   Authentication is a REQUIRED FIRST STEP for any outbound call in the sandbox: the
   proxy blocks unauthenticated egress. Use whenever an outbound network call from inside
   a sandbox (git clone/fetch/push,
@@ -132,7 +132,7 @@ without polling.)
 
 ## Reusable procedure: "set up auth for a probe URL"
 
-**Other skills in this plugin invoke this procedure** — `connect`, `azure-devops`, and
+**Other skills in this plugin use this procedure** — `connect`, `azure-devops`, and
 `microsoft-graph` are thin wrappers that only choose the right probe URL/scopes and then
 delegate the handshake here. When you are sent here with a `PROBE_URL` (and optional
 `BUDGET` seconds, default `300`), do exactly this:

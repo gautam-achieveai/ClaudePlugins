@@ -10,7 +10,7 @@ complete pull request lifecycle: issue creation/linking, PR submission, and
 iterative feedback resolution.
 
 This skill has three phases. Phases 1 and 2 always run together. Phase 3 is
-opt-in and can also be invoked independently (for example, "Tend to PR #123").
+opt-in and can also be used independently (for example, "Tend to PR #123").
 
 ## Prerequisites
 
@@ -141,7 +141,7 @@ re-checking until the PR is ready to merge or the user says "stop".
 
 ## GitHub Reference Conventions
 
-Invoke the `gh:gh-mentions` skill before composing any PR description, comment,
+Use the `gh:gh-mentions` skill before composing any PR description, comment,
 or reply.
 
 ## Guidelines

@@ -12,7 +12,7 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Do NOT use any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
 
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
@@ -52,7 +52,7 @@ digraph brainstorming {
 }
 ```
 
-**The terminal state is creating an implementation plan.** Do NOT invoke any implementation skill directly. Create the plan first.
+**The terminal state is creating an implementation plan.** Do NOT use any implementation skill directly. Create the plan first.
 
 ## The Process
 
@@ -83,7 +83,7 @@ digraph brainstorming {
 
 **Implementation:**
 - Create a detailed implementation plan following the writing-plans methodology (see `development/reference/writing-plans-guide.md`)
-- Do NOT invoke any other skill. Plan creation is the next step.
+- Do NOT use any other skill. Plan creation is the next step.
 
 ## Key Principles
 

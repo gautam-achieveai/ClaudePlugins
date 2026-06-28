@@ -51,7 +51,7 @@ Branch based on what the user wants:
 
 ## ADO Reference Conventions
 
-Invoke the `ado:ado-mentions` skill before composing work item descriptions,
+Use the `ado:ado-mentions` skill before composing work item descriptions,
 comments, or link references. It loads the full mention syntax (`#ID` for work
 items, `!ID` for PRs, `@alias` for users, bot comment prefix, etc.).
 

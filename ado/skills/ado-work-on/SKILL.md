@@ -24,7 +24,7 @@ workflow.
 1. **Ensure ADO tooling is ready.** Before the first Azure DevOps operation,
    verify the ADO MCP tools are available. If the first call fails (connection
    error, tool not found, or auth failure), follow the auto-setup rule in
-   `ado/CLAUDE.md`: automatically invoke the `ado:setup-ado-mcp` skill, then
+   `ado/CLAUDE.md`: automatically use the `ado:setup-ado-mcp` skill, then
    retry.
 
 2. **Delegate to the shared workflow.** Load and execute the `development:work-on`

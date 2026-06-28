@@ -40,7 +40,7 @@ GitHub has two independently-authenticated surfaces — pick by what the user wi
    to the REST API surface.
 2. **Tell the user** you're setting up GitHub auth and that a device-code / browser login may be
    required, which you'll relay verbatim and wait for.
-3. **Run the handshake by invoking `sandbox-auth:egress-auth`.** Two equivalent paths — prefer (b)
+3. **Run the handshake by using `sandbox-auth:egress-auth`.** Two equivalent paths — prefer (b)
    when the user wants to run a git/gh command right after:
 
    a. **Probe only** — follow `egress-auth`'s **"set up auth for a probe URL"** procedure with the

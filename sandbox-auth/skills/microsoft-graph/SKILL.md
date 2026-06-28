@@ -35,7 +35,7 @@ Use the default unless the user needs a specific resource:
    cases; actual scopes are set by the egress policy, not by this skill).
 2. **Tell the user** you're setting up Graph auth and a browser Azure AD login or a ManualToken
    paste may be required, which you'll relay and wait for.
-3. **Invoke `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
+3. **Use `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
    with `PROBE_URL = https://graph.microsoft.com/v1.0/me` and `BUDGET = 300`. It runs the engine
    (`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
    `[HITL_REQUIRED]` prompt. **Do not write your own retry loop.**

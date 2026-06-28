@@ -7,7 +7,7 @@ skills:
 
 # DevOps Assistant
 
-Before composing any ADO content (comments, PR descriptions, work item updates), invoke:
+Before composing any ADO content (comments, PR descriptions, work item updates), use:
 ```
 skill: "ado:ado-mentions"
 ```

@@ -9,7 +9,7 @@ description: >
   atomic test-backed tasks, executes them one at a time with TDD and per-task
   review, runs a self-review loop, and verifies against the acceptance criteria —
   committing each green increment and STOPPING (not guessing) when blocked.
-  Invoked by development:work-on Phase 2 and usable standalone. Not for ad-hoc
+  Used by development:work-on Phase 2 and usable standalone. Not for ad-hoc
   edits or exploratory coding that has no approved plan or spec. Does NOT perform
   provider-specific finish/publish — the caller handles that.
 ---
@@ -23,8 +23,8 @@ code**. It sits between planning and publishing:
 plan / design decision  →  [ implement ]  →  verified change on a branch  →  finish & publish (caller)
 ```
 
-It orchestrates existing skills rather than re-inventing them — invoke each via
-the **Skill** tool at the right phase:
+It orchestrates existing skills rather than re-inventing them — use each (via
+the **Skill** tool) at the right phase:
 `development:test-driven-development`, `development:subagent-driven-development`,
 `debugging:systematic-debugging`, `code-reviewer:pr-review`,
 `development:verification-before-completion`.
@@ -75,7 +75,7 @@ misalignment, and "technically correct but wrong" changes.
 
 1. **Gather context.** Read the approved plan, the design decision, and the
    decision log. If there's a linked work item / issue and you need the broader
-   "why," invoke `code-reviewer:pr-context` (or pass through the context the
+   "why," use `code-reviewer:pr-context` (or pass through the context the
    caller already gathered) to walk the work-item hierarchy.
 
 2. **Write the Purpose & Consumption brief** as a section in the decision log
@@ -145,7 +145,7 @@ Read and follow [reference/execution-loop.md](reference/execution-loop.md) →
   (red → green → refactor), with the test framework auto-detected.
 - **Commit discipline** — commit each green, in-scope increment with a
   descriptive message; check the task off in `tasks.md`.
-- **Failure handling** — on a failing test or wall, invoke
+- **Failure handling** — on a failing test or wall, use
   `debugging:systematic-debugging`; **max 3 attempts** per task, then return the
   **blocked** outcome (see Guardrails) instead of thrashing.
 - **Drift detection** — stop on the drift / "cheating" signals catalogued in
@@ -169,7 +169,7 @@ and log each cycle to the decision log.
 ## Phase 4 — Verify (Definition of Done)
 
 <definition_of_done>
-Invoke `development:verification-before-completion` and produce **fresh evidence**
+Use `development:verification-before-completion` and produce **fresh evidence**
 — never assert success you haven't observed this run. Confirm:
 
 - **Build succeeds** (exit 0).

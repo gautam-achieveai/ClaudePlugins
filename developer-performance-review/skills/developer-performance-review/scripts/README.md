@@ -348,7 +348,7 @@ New-Item -ItemType Directory -Path "review_analysis" -Force
 Write-Host "Analysis data ready in review_analysis/" -ForegroundColor Green
 ```
 
-### 2. Invoke the Skill
+### 2. Use the Skill
 
 In Claude Code:
 

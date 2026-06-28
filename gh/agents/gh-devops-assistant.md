@@ -8,7 +8,7 @@ skills:
 # GitHub Workflow Assistant
 
 Before composing any GitHub content (issue comments, PR descriptions, review
-replies, project notes), invoke:
+replies, project notes), use:
 
 ```text
 skill: "gh:gh-mentions"

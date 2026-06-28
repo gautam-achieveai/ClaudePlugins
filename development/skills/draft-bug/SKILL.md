@@ -6,7 +6,7 @@ description: >
   each with a subagent, validates survivors with a scratch regression test
   (run best-effort, never committed), dispatches a blind-spot scan, then composes
   a rigorous bug write-up (Summary / Steps / Expected / Actual / Root Cause /
-  Repro Proof / Related Risk). Invoked by the development:draft-work-item router
+  Repro Proof / Related Risk). Used by the development:draft-work-item router
   once the intent is classified as a bug; the router resolved the provider and
   handles the final preview and create. Use when turning a defect report into a
   root-caused, reproducible issue rather than a quick stub.

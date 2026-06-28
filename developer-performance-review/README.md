@@ -16,7 +16,7 @@ developer-performance-review/
 │   └── plugin.json                              # Plugin manifest
 ├── README.md                                    # This file
 └── skills/developer-performance-review/
-    ├── SKILL.md                                 # Main skill definition (invoked by Claude)
+    ├── SKILL.md                                 # Main skill definition (used by Claude)
     ├── references/
     │   ├── assessment-framework.md              # 6-dimension evaluation rubric
     │   ├── pattern-catalog.md                   # Thrashing, missed cases, quality patterns
