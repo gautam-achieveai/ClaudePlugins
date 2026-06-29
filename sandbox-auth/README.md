@@ -26,7 +26,7 @@ choose a probe URL / scopes and **use the common skill** (DRY — no duplicated 
 | `egress-auth` | model-invoked (automatic) | **Common core.** Fires when any outbound call returns `511`/`auth_pending`/proxy weirdness. Owns the wire contract, the Python probe/poll engine, HITL relay, token-injection model, and the warm-then-run pattern. Exposes a reusable **"set up auth for a probe URL"** procedure the others call. |
 | `github` | `/sandbox-auth:github [repo-url]` | Set up GitHub auth FIRST; warm REST or git smart-HTTP, then run `git`/`gh`. |
 | `azure-devops` | `/sandbox-auth:azure-devops [org]` | Set up Azure DevOps auth FIRST; picks a safe probe URL (avoids the `/_apis` org-discovery ACL trap). |
-| `microsoft-graph` | `/sandbox-auth:microsoft-graph [scopes]` | Set up Microsoft Graph (M365) auth FIRST. |
+| `microsoft-graph` | `/sandbox-auth:microsoft-graph [scopes]` | Set up Microsoft Graph (M365) auth FIRST, then follow its per-domain **recipes** under `references/` (mail incl. focused inbox & shared mailboxes; calendar & shared calendars; Teams/channel/**meeting chat**; **meeting transcripts, recordings, attendance**; OneDrive/SharePoint; unified search/people/directory). |
 | `connect` | `/sandbox-auth:connect <probe-url>` | Generic FIRST-step setup for any other service configured in the egress policy. |
 
 ## Contents
