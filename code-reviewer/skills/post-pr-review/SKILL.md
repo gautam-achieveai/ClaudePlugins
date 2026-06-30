@@ -354,7 +354,7 @@ clean, we **reuse the existing summary thread** instead of creating new ones.
      -f body=<new summary markdown>
    ```
    Post the new summary as a **reply to the existing thread** using the thread ID
-   (ADO) or the root comment ID (GitHub). This keeps all review summaries in one
+   (ADO) or the root comment ID (GitHub/GH). This keeps all review summaries in one
    conversation thread.
 
    **How to reply to an existing thread:**

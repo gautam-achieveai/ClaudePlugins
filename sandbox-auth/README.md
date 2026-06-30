@@ -51,10 +51,10 @@ Docker/Linux and Windows-local sandboxes. The helpers are stdlib-only by default
 
 ```bash
 # Probe + resolve auth for the GitHub API:
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py" --url https://api.github.com/
+python3 "scripts/sandbox-auth-fetch.py" --url https://api.github.com/
 
 # Warm auth, then clone (token injected transparently by the proxy):
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" \
+python3 "scripts/warm-github-auth.py" \
   --git-url https://github.com/OWNER/REPO.git \
   -- git clone https://github.com/OWNER/REPO.git
 ```

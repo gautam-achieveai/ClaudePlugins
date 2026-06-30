@@ -84,7 +84,7 @@ Target file: `.mcp.json`
 }
 ```
 
-**macOS / Linux** — use the launch script, which also provides runtime auto-detection as a fallback:
+**macOS / Linux** — use the launch script (set `args[0]` to its **absolute path** — see notes), which also provides runtime auto-detection as a fallback:
 
 ```json
 {
@@ -92,7 +92,7 @@ Target file: `.mcp.json`
     "azure-devops": {
       "command": "bash",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh"
+        "../../scripts/launch-ado-mcp.sh"
       ],
       "env": {
         "AZURE_DEVOPS_ORG_URL": "resolved-org-url",
@@ -110,7 +110,7 @@ Target file: `.mcp.json`
 Notes:
 
 - Always resolve `AZURE_DEVOPS_REPOSITORY` from the git remote URL. If detection fails, ask the user for the repository name rather than leaving it empty.
-- On macOS/Linux, use `${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh` so the config works regardless of where the plugin is installed.
+- On macOS/Linux, use `../../scripts/launch-ado-mcp.sh` so the config works regardless of where the plugin is installed.
 - On Windows, call `npx` via `cmd /c` because Claude Code's bash environment cannot reliably spawn `npx` directly as an MCP server process.
 
 ### 3. Ensure Claude Code local settings enable the project MCP server

@@ -3,7 +3,7 @@
     "azure-devops": {
       "command": "bash",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/scripts/launch-ado-mcp.sh"
+        "/absolute/path/to/ado/scripts/launch-ado-mcp.sh"
       ],
       "env": {
         "AZURE_DEVOPS_ORG_URL": "${AZURE_DEVOPS_ORG_URL:-}",
