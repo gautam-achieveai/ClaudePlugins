@@ -1,11 +1,9 @@
 ---
 name: update-pr-tracking
 description: >
-  Update local PR review tracking state after a review completes. Detects
-  storage path, loads or initializes tracking.json, updates the PR entry, and
-  appends to the per-PR review history file. Internal skill used by
-  code-reviewer:pr-review and code-reviewer:review-pending-prs — not typically
-  used directly by users.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Bash, Glob
 ---
 

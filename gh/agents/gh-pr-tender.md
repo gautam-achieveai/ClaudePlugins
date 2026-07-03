@@ -1,6 +1,9 @@
 ---
 name: gh-pr-tender
-description: Monitors a GitHub pull request, addresses reviewer feedback, fixes failing checks, and pushes updates until the PR is ready to merge.
+description: >
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 skills:
   - gh-mentions
 ---

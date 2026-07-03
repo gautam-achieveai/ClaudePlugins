@@ -1,13 +1,9 @@
 ---
 name: autonomous-design
 description: >
-  Non-interactive design workflow for autonomous contexts (e.g., namespaced
-  `ado-work-on` / `gh-work-on` flows such as `ado:ado-work-on` or
-  `gh:gh-work-on`). Mirrors
-  brainstorming methodology but auto-selects the best approach instead of
-  requiring user approval. Use when designing features/tasks without
-  interactive user feedback — requirements come from tracked work items/issues,
-  specs, or task descriptions rather than live conversation.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Autonomous Design

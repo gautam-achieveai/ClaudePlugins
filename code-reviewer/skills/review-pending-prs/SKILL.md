@@ -1,12 +1,9 @@
 ---
 name: review-pending-prs
 description: >
-  Discover all active pull requests from GitHub or Azure DevOps, compare against
-  local tracking data, and review PRs with updates older than 15 minutes since last
-  review. Uses code-reviewer:pr-review for each PR needing review and
-  maintains persistent review history. Use when asked to "review all pending PRs",
-  "check for unreviewed PRs", "review pending pull requests", "catch up on PR
-  reviews", "batch review PRs", or "review all open PRs".
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure-devops__*
 ---
 

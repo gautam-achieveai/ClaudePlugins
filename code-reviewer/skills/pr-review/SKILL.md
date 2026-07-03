@@ -1,8 +1,12 @@
 ---
 name: pr-review
-description: Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works on GitHub or Azure DevOps, with PR numbers, branch names, or GitHub/Azure DevOps PR URLs. NOT for developer performance reviews over time.
+description: >
+  Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works on GitHub or Azure DevOps, with PR numbers, branch names, or GitHub/Azure DevOps PR URLs. NOT for developer performance reviews over time.
+user-invocable: true
+disable-model-invocation: false
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, mcp__azure-devops__*
 ---
+
 # Pull Request Code Reviewer
 
 Review individual PRs for code quality, security (OWASP Top 10), performance, and testing adequacy.
@@ -219,11 +223,11 @@ Use this mode when reviewing changes on the **current branch** before a PR has b
 
 After understanding what the user wants reviewed, state which mode you're using and why. If the user disagrees, switch modes. For example:
 
-> "This PR changes 4 files with a focused bug fix — I'll do a **lightweight review** from the diffs."
+"This PR changes 4 files with a focused bug fix — I'll do a **lightweight review** from the diffs."
 
-> "This PR touches 25 files across 3 layers and introduces a new bulk upload feature — I'll do a **deep review** with a worktree checkout so I can trace the full call chain."
+"This PR touches 25 files across 3 layers and introduces a new bulk upload feature — I'll do a **deep review** with a worktree checkout so I can trace the full call chain."
 
-> "No PR yet — I'll find the merge-base against the repo's default base branch and review your branch changes locally."
+"No PR yet — I'll find the merge-base against the repo's default base branch and review your branch changes locally."
 
 ### Complexity Assessment
 

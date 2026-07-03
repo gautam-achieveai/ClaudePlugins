@@ -1,14 +1,9 @@
 ---
 name: draft-feature
 description: >
-  Deep requirements workflow for a NEW FEATURE or user story. Gathers codebase
-  and prior-art context, loops through clarification, dispatches blind-spot and
-  over-engineering review agents, and composes well-grounded requirements
-  (Summary / Value / Acceptance Criteria) ready to post. Used by the
-  development:draft-work-item router once the intent is classified as a feature;
-  the router has already resolved the provider (GitHub or Azure DevOps) and
-  handles the final preview and create. Use when turning a rough feature idea
-  into a rigorous, reviewed work item rather than a quick stub.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Draft Feature

@@ -1,10 +1,9 @@
 ---
 name: gh-mentions
 description: >
-  GitHub mention and reference syntax — #ID for issues and PRs, owner/repo#ID
-  for cross-repo links, @login for users, closing keywords, bot comment prefix,
-  and PR description conventions. Use before writing any content to GitHub
-  (issues, PR descriptions, PR comments, review replies, project notes).
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools:
   - Read
 ---

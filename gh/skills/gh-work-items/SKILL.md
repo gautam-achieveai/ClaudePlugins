@@ -1,6 +1,9 @@
 ---
 name: gh-work-items
-description: Manage GitHub work items — create, update, query, and organize GitHub Issues and GitHub Project items
+description: >
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Work Items

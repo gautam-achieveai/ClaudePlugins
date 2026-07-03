@@ -1,32 +1,9 @@
 ---
 name: test-coverage-review
 description: >
-  Reviews whether PR changes have adequate test coverage and whether existing
-  tests actually verify the behavior being changed. Dispatch for every PR that
-  modifies production code. Catches missing tests, tests that don't cover the
-  actual fix, over-mocking, test-production coupling, and common test quality
-  issues. Focuses on practical coverage — every change should have at least a
-  basic test, but tests should not impose unnecessary design constraints on
-  production code.
-
-  <example>
-  Context: A PR adds a new service method but no test file changes
-  user: "Review PR #3456"
-  assistant: "I'll dispatch test-coverage-review to check whether the new service method has corresponding tests."
-  <commentary>
-  Production code was added without test changes — this agent will flag the gap.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR fixes a bug and modifies an existing test
-  user: "Run a full review on PR #7890"
-  assistant: "I'll dispatch test-coverage-review to verify the test actually covers the bug scenario, not just the happy path."
-  <commentary>
-  Bug fix PRs need regression tests that reproduce the original bug — this agent validates that.
-  </commentary>
-  </example>
-
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 tools:
   - Read
   - Grep

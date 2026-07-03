@@ -1,13 +1,9 @@
 ---
 name: receiving-code-review
 description: >
-  Use when receiving and acting on code review feedback — before implementing any
-  suggestion. Triages every finding by severity AND cost so effort goes where it
-  matters: Critical/Blocker always fixed (any cost), High fixed even when expensive,
-  Medium only when cheap (~1-30 LOC), Low only when trivial (~1-3 LOC). Verify each
-  claim against the codebase first, grade each suggestion for practicality and
-  alignment with project goals and existing practice, and push back on feedback that
-  is wrong or misaligned instead of blindly implementing or silently dropping it.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Acting on Code Review Feedback

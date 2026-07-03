@@ -1,16 +1,9 @@
 ---
 name: gh-work-my-backlog
 description: >
-  Autonomous backlog processor that works through assigned GitHub work items
-  (GitHub Issues + Projects), advancing each through its lifecycle. Classifies
-  every Bug, Task, and Feature into stages — fresh (needs plan), in-progress
-  (needs revision/approval/implementation), or PR-published (needs babysitting)
-  — then delegates to gh:gh-work-on or gh:gh-babysit-pr accordingly. Tracks
-  persistent state across loop iterations so it remembers what it did last pass.
-  Use when the user says "work my backlog", "process my work items", "work
-  through my sprint", "handle my assigned items", or wants to autonomously
-  progress all assigned work items through planning, implementation, and PR
-  stages.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Work My Backlog

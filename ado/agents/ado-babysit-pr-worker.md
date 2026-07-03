@@ -1,6 +1,9 @@
 ---
 name: ado-babysit-pr-worker
-description: Executes a single babysit-pr iteration — fixes build breaks, test failures, coverage gaps, and review comments, then self-reviews, builds, tests, commits, and pushes.
+description: >
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 skills:
   - ado-mentions
 ---

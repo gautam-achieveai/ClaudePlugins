@@ -1,19 +1,9 @@
 ---
 name: pr-context
 description: >
-  Gather full business context for a pull request by walking the work item / issue
-  hierarchy on GitHub or Azure DevOps. Given a PR number, traces linked work items (ADO)
-  or linked issues / sub-issues (GitHub) up through their parent chain
-  (Task/Bug → User Story → Feature → Epic) and down through siblings to build a complete
-  context tree showing where the PR fits in the broader initiative. Use this skill when
-  you need to understand the "why" behind a PR, check if a PR fully covers its parent
-  work item, see what other tasks are part of the same effort, or add business context
-  to a code review. Trigger when: reviewing a PR and needing work item context, asked
-  "what's the context for this PR", "show me the work item hierarchy", "what epic does
-  this belong to", "show related work items for PR #X", or when the pr-review skill
-  needs to understand the scope of changes. Also use proactively during code reviews
-  when the PR description is sparse or when cross-cutting changes suggest the reviewer
-  needs to understand the bigger picture.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools: Read, Bash, Skill, Agent, mcp__azure-devops__*
 ---
 

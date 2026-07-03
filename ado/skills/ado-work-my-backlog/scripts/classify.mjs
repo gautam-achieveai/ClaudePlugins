@@ -5,7 +5,7 @@
 
 // ---------------------------------------------------------------------------
 // Approval signals (case-insensitive)
-// Source: ado/skills/ado-work-on/reference/plan-comment-format.md
+// Source: development/skills/work-on/reference/plan-comment-format.md
 // ---------------------------------------------------------------------------
 
 const APPROVAL_SIGNALS = [

@@ -1,16 +1,9 @@
 ---
 name: ado-work-my-backlog
 description: >
-  Autonomous backlog processor that works through all assigned Azure DevOps work
-  items in the current sprint, advancing each through its lifecycle. Classifies
-  every Bug, Task, and User Story into stages — fresh (needs plan), in-progress
-  (needs revision/approval/implementation), or PR-published (needs babysitting) —
-  then delegates to ado:ado-work-on or ado:ado-babysit-pr accordingly. Tracks persistent
-  state across loop iterations so it remembers what it did last pass.
-  Use when the user says "work my backlog", "process my work items",
-  "work through my sprint", "handle my assigned items", "advance my work items",
-  "work on everything assigned to me", or wants to autonomously progress all
-  their current sprint work items through planning, implementation, and PR stages.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 ---
 
 # Work My Backlog

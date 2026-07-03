@@ -1,9 +1,9 @@
 ---
 name: orleans-review
 description: >
-  Orleans PR review skill — delegates to orleans-dev:orleans-patterns for domain
-  knowledge, then loads review-specific bridge content (output format, PR edge cases,
-  severity mapping).
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Skill

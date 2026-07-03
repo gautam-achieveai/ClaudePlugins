@@ -1,34 +1,9 @@
 ---
 name: nscript-review
-description: Use this agent when reviewing PR code changes involving NScript client code (C# transpiled to JavaScript via NScript SDK). Covers AutoFire/nameof enforcement, Promise patterns, IoC registration, NScript C# restrictions, MVVM/Observable patterns, template/skin bindings, and LESS/CSS conventions. Examples:
-
-  <example>
-  Context: A PR adds or modifies NScript client-side ViewModels or Views
-  user: "Review PR #1234 for NScript patterns"
-  assistant: "I'll use the nscript-review agent to check for NScript-specific anti-patterns like missing AutoFire attributes, string interpolation, and incorrect async patterns."
-  <commentary>
-  The user asks for NScript-specific review. This agent specializes in NScript C#-to-JS transpilation constraints and MVVM patterns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR review is running and changed files include NScript client code (.cs files referencing ObservableObject, Promise, or NScript SDK)
-  user: "Run a comprehensive PR review on PR #5678"
-  assistant: "I'll dispatch the nscript-review agent to check NScript restrictions and patterns alongside other review agents."
-  <commentary>
-  As part of a comprehensive PR review, if NScript client code is detected, this agent should be dispatched.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR modifies IoC registrations or adds new services in an NScript app
-  user: "Check if the dependency injection setup is correct in this PR"
-  assistant: "I'll use the nscript-review agent to verify IoC registrations, singleton correctness, and that all Resolve calls have matching Register entries."
-  <commentary>
-  IoC registration issues in NScript apps can cause runtime failures since there's no compile-time DI container validation.
-  </commentary>
-  </example>
-
+description: >
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 model: inherit
 color: cyan
 tools: ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill"]

@@ -1,15 +1,9 @@
 ---
 name: draft-work-item
 description: >
-  Router that turns rough requirements into a well-structured work item and posts
-  it to GitHub (issue) or Azure DevOps (work item). Detects the backend
-  automatically from the git remote, classifies the intent, then delegates to a
-  deep sub-skill — draft-feature for new features/user stories, draft-bug for
-  defects — or handles Tasks and trivial items inline. Owns provider resolution,
-  tooling setup, duplicate check, the confirmation preview, creation, and
-  follow-up. Use when the user says "draft a work item", "I have a rough
-  requirement", "help me write a bug report", "turn this into a user story", or
-  provides unstructured requirements and wants an issue or work item created.
+  Router that turns rough requirements into a well-structured work item and posts it to GitHub (issue) or Azure DevOps (work item). Detects the backend automatically from the git remote, classifies the intent, then delegates to a deep sub-skill — draft-feature for new features/user stories, draft-bug for defects — or handles Tasks and trivial items inline. Owns provider resolution, tooling setup, duplicate check, the confirmation preview, creation, and follow-up. Use when the user says "draft a work item", "I have a rough requirement", "help me write a bug report", "turn this into a user story", or provides unstructured requirements and wants an issue or work item created.
+user-invocable: true
+disable-model-invocation: true
 ---
 
 # Draft Work Item (Router)

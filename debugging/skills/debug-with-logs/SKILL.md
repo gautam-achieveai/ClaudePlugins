@@ -1,6 +1,9 @@
 ---
 name: debug-with-logs
-description: Debug issues using a log-first methodology — reproduce the problem, collect structured JSONL logs, query them with DuckDB to find root cause, then fix. Use when asked to "debug this issue", "find why X fails", "trace the bug", "investigate error", "analyze logs", "why is X broken", "diagnose this failure", or "find the root cause". NOT for setting up logging (use logging-enablement instead).
+description: >
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Task, mcp__duckdb__*
 ---
 

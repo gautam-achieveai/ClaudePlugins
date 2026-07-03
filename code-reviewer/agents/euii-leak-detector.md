@@ -1,6 +1,9 @@
 ---
 name: euii-leak-detector
-description: Detects End User Identifiable Information (EUII) leaks in log statements, telemetry, error messages, and other output channels.
+description: >
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 tools:
   - Read
   - Grep

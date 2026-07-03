@@ -1,30 +1,9 @@
 ---
 name: exception-handling-review
 description: >
-  Reviews exception handling patterns for correctness, consistency, and best
-  practices. Dispatch when changed files contain try-catch blocks, throw
-  statements, custom exception classes, or error-handling middleware. Catches
-  swallowed exceptions, overly broad catches, incorrect re-throws, missing
-  logging, async exception pitfalls, and exception anti-patterns.
-
-  <example>
-  Context: A PR modifies service code with multiple try-catch blocks
-  user: "Review PR #4567 for exception handling issues"
-  assistant: "I'll dispatch the exception-handling-review agent to analyze all try-catch blocks, throw statements, and error-handling patterns in the changed files."
-  <commentary>
-  The PR contains error handling code that needs specialized review for correctness and best practices.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR adds a new service with catch blocks and custom exceptions
-  user: "Run a full review on PR #8901"
-  assistant: "I'll dispatch exception-handling-review alongside other agents since the PR adds new error handling logic."
-  <commentary>
-  New error handling code should be reviewed for proper patterns — catch specificity, logging, re-throw correctness.
-  </commentary>
-  </example>
-
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 tools:
   - Read
   - Grep

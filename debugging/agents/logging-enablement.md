@@ -1,38 +1,14 @@
 ---
 name: logging-enablement
-description: Use this agent to autonomously add structured JSONL logging infrastructure to a codebase. Detects language and framework, reads the appropriate reference guides, adds logging packages and configuration, and verifies output is queryable with DuckDB. Examples:
-
-  <example>
-  Context: A C# project has no structured logging, uses Console.WriteLine for debugging
-  user: "Add structured logging to this project"
-  assistant: "I'll use the logging-enablement agent to detect the project's language and frameworks, then add JSONL logging infrastructure."
-  <commentary>
-  The project lacks structured logging. The agent will detect C#, check for test frameworks, install Serilog, configure CompactJsonFormatter, and replace Console.WriteLine calls.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A Python project with pytest needs test logging setup
-  user: "Set up test logging so I can debug failing tests with DuckDB"
-  assistant: "I'll use the logging-enablement agent to configure structured JSONL logging for the pytest test harness."
-  <commentary>
-  The user wants test-specific logging. The agent will add structlog with pytest fixtures that enrich logs with test-case-name and test-module-name.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A Node.js project has console.log statements scattered throughout
-  user: "Make this codebase debuggable with structured logging"
-  assistant: "I'll use the logging-enablement agent to replace console.log with Pino structured logging and configure JSONL file output."
-  <commentary>
-  The codebase needs conversion from unstructured to structured logging. The agent will install Pino, configure canonical field formatters, and replace console.log calls.
-  </commentary>
-  </example>
-
+description: >
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 model: inherit
 color: green
 tools: ["Read", "Grep", "Glob", "Bash", "Edit", "Write"]
 ---
+
 You are a logging enablement agent. Your mission is to add structured JSONL logging infrastructure to a codebase so it's ready for log-first debugging with DuckDB.
 
 **Your Workflow:**

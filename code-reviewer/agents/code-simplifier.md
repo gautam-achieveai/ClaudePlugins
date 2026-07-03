@@ -1,9 +1,9 @@
 ---
 name: code-simplifier
 description: >
-  Finds code blocks and method chains that are more complex than they need to be.
-  Use when reviewing PRs for overly complex control flow, verbose code patterns,
-  unnecessary method chains, or expressions that have simpler equivalents.
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 tools:
   - Read
   - Grep

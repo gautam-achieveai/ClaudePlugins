@@ -1,22 +1,9 @@
 ---
 name: schema-compatibility-review
 description: >
-  Code-review methodology for catching schema and wire-contract compatibility breaks before they
-  ship — checks that every change to a serialized type, API request/response, protobuf message,
-  Orleans grain interface, database column, or other persisted/transmitted shape is both
-  **forward** and **backward** compatible across the deploy window. Also catches rollout-ordering
-  bugs (client speaks a new dialect the server doesn't understand yet, without a flag or version
-  gate), and serializer/deserializer type-shape mismatches (sender and receiver use different
-  concrete types for the "same" payload and a renamed field silently drops data). Use this skill
-  whenever a PR touches a `.proto` file, an EF/SQL migration, a `[GenerateSerializer]` or
-  `[JsonPropertyName]` attribute, a public API DTO, an enum used in persisted data, a request/
-  response model, a column NULL constraint, a default value, a property added/removed from a
-  serialized class, or any code on either side of a serialize/deserialize boundary — even if the
-  PR description doesn't call it a "schema change." Also use when reviewing a rollout plan,
-  when the user asks "is this change safe to deploy?", "will old clients still work?", "can we
-  roll this back?", or any variant of compatibility/versioning concern. NOT for general code
-  quality, performance, security, exception handling, EUII, architecture, test coverage, or
-  scope/over-engineering review — those have dedicated skills.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Grep

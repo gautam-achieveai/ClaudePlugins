@@ -1,39 +1,9 @@
 ---
 name: blind-spot-detector
 description: >
-  Surfaces blind spots in a drafted work item — the gaps, edge cases, and
-  ripple effects that the author's focus hides. Dispatched with a type-specific
-  lens (feature / bug / task) against a working requirements draft or bug
-  understanding, BEFORE the item is finalized. Because it runs in fresh context,
-  it is not anchored to the framing that created the blind spot, so it catches
-  what inline reasoning misses. Used by the development:draft-work-item router
-  and its draft-feature / draft-bug sub-skills during work-item drafting.
-
-  <example>
-  Context: draft-feature has composed requirements for a "dark mode toggle" and
-  is about to finalize.
-  assistant: "Dispatching blind-spot-detector with the feature lens — it flags
-  that the draft never says how the preference persists across sessions, ignores
-  the system-preference (prefers-color-scheme) default, and has no acceptance
-  criterion for charts/images that assume a light background."
-  <commentary>
-  The author focused on the toggle control and missed persistence, system
-  default, and downstream visual assets. A fresh-context pass catches these.
-  </commentary>
-  </example>
-
-  <example>
-  Context: draft-bug has a validated root cause for a 500 on login and is about
-  to write the understanding.
-  assistant: "Dispatching blind-spot-detector with the bug lens — it points out
-  the same unguarded null deref exists in the password-reset path, and that
-  affected sessions may have written partial rows that need a data check."
-  <commentary>
-  The bug lens looks past the single reported symptom to other call sites sharing
-  the root cause and to data-integrity fallout.
-  </commentary>
-  </example>
-
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 model: inherit
 color: cyan
 tools:

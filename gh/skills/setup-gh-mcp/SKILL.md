@@ -1,10 +1,9 @@
 ---
 name: setup-gh-mcp
 description: >
-  Set up GitHub MCP end-to-end for both Claude Code and GitHub Copilot CLI.
-  Use when the user asks to "set up GitHub MCP", "configure GitHub for Claude
-  and Copilot", "install the GitHub MCP server", or wants one command to
-  configure everything automatically.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: false
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Write

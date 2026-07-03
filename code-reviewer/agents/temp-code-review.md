@@ -1,25 +1,9 @@
 ---
 name: temp-code-review
-description: Use this agent when reviewing PR code changes for temporary code, debugging artifacts, hacks, or mistakenly committed files that shouldn't be checked in. Examples:
-
-  <example>
-  Context: A PR is being reviewed and needs to check for accidental debug code
-  user: "Review PR #1234 for any temporary code or debug artifacts"
-  assistant: "I'll use the temp-code-review agent to scan for debugging leftovers, TODO hacks, hardcoded values, and files that shouldn't be committed."
-  <commentary>
-  The user wants to catch temporary/hack code before it gets merged. This agent specializes in detecting accidental check-ins.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A comprehensive PR review is dispatching specialized agents
-  user: "Run a full review on PR #5678"
-  assistant: "I'll dispatch the temp-code-review agent alongside other review agents to catch any debugging artifacts or temporary code."
-  <commentary>
-  As part of every comprehensive PR review, temp-code-review should be dispatched to catch accidental check-ins.
-  </commentary>
-  </example>
-
+description: >
+  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: false
+disable-model-invocation: true
 model: inherit
 color: red
 tools: ["Read", "Grep", "Glob", "Bash", "Skill"]

@@ -1,6 +1,9 @@
 ---
 name: ado-publish-pr
-description: Publish local changes as an Azure DevOps pull request — analyzes commits, creates or links a work item (bug, task, or user story), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and build failures until the PR is merged.
+description: >
+  Publish local changes as an Azure DevOps pull request — analyzes commits, creates or links a work item (bug, task, or user story), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and build failures until the PR is merged.
+user-invocable: true
+disable-model-invocation: true
 ---
 
 # Publish PR
@@ -64,19 +67,18 @@ Based on the analysis, propose a work item:
 
 Present the proposal and **wait for user confirmation before creating**:
 
-> **Proposed Work Item**
-> - Type: `<Bug | Task | User Story>`
-> - Title: `<title>`
-> - Description: `<description>`
->
-> Shall I create this? You can change the type, title, or description.
+**Proposed Work Item**
+- Type: `<Bug | Task | User Story>`
+- Title: `<title>`
+- Description: `<description>`
+Shall I create this? You can change the type, title, or description.
 
 ### Step 1.3: Create Work Item
 
 Use `createWorkItem` with the confirmed type, title, and description.
 Record the returned **work item ID** for Phase 2.
 
-> Created work item **#ID**: "title"
+Created work item **#ID**: "title"
 
 ---
 
@@ -108,8 +110,8 @@ Use `createPullRequest` with:
 
 Use `createLink` to link the work item from Phase 1 to the PR. Report:
 
-> Created **PR #ID**: "title"
-> Linked to work item **#WI_ID**
+Created **PR #ID**: "title"
+Linked to work item **#WI_ID**
 
 ---
 
@@ -120,12 +122,11 @@ start here with the given PR number.
 
 Before entering, ask:
 
-> The PR is created. Would you like me to monitor and address feedback?
->
-> - Say **yes** to start interactive tending (I'll confirm each change with you).
-> - Say **babysit** to hand off to the autonomous `ado-babysit-pr` skill instead
->   (it will fix issues and push without asking — see `ado:ado-babysit-pr`).
-> - Say **no** to stop here.
+The PR is created. Would you like me to monitor and address feedback?
+- Say **yes** to start interactive tending (I'll confirm each change with you).
+- Say **babysit** to hand off to the autonomous `ado-babysit-pr` skill instead
+(it will fix issues and push without asking — see `ado:ado-babysit-pr`).
+- Say **no** to stop here.
 
 If the user declines, the skill ends. If the user chooses babysit, load and
 execute `ado:ado-babysit-pr` with the PR number.

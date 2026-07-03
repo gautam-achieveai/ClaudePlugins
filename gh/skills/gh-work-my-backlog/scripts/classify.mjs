@@ -5,7 +5,7 @@
 
 // ---------------------------------------------------------------------------
 // Approval signals (case-insensitive)
-// Source: gh/skills/gh-work-on/reference/plan-comment-format.md
+// Source: development/skills/work-on/reference/plan-comment-format.md
 // ---------------------------------------------------------------------------
 
 const APPROVAL_SIGNALS = [
