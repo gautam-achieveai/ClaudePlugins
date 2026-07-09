@@ -1,7 +1,6 @@
 ---
 name: test-coverage-review
-description: >
-  Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
 tools:

@@ -1,5 +1,5 @@
 {
   "name": "debugging",
   "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.",
-  "version": "1.4.1"
+  "version": "1.4.2"
 }
