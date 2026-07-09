@@ -4,7 +4,7 @@ description: >
   Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works on GitHub or Azure DevOps, with PR numbers, branch names, or GitHub/Azure DevOps PR URLs. NOT for developer performance reviews over time.
 user-invocable: true
 disable-model-invocation: false
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, mcp__azure-devops__*
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, Task, TodoWrite, mcp__azure-devops__*
 ---
 
 # Pull Request Code Reviewer

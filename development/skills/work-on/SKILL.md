@@ -3,7 +3,7 @@ name: work-on
 description: >
   Provider-agnostic autonomous two-phase development workflow driven by a work item — a GitHub issue or an Azure DevOps work item. First run: analyzes the problem using all available tools (codebase, logs, database, observability, CI), designs a solution, creates a plan, posts it to the work item, and waits for explicit user approval via HITL before proceeding. Subsequent runs: incorporate feedback or execute the approved plan — implement, verify, and publish a PR. The agent NEVER proceeds to implementation without explicit approval. Resolves the backend once (explicit from a wrapper, else auto-detected from the git remote), then runs an identical flow. Used by the gh:gh-work-on and ado:ado-work-on wrappers, or directly when the user says "work on <number>", "implement work item <number>", "pick up <number>".
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Work On (Autonomous, Router)

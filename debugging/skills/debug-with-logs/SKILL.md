@@ -2,8 +2,8 @@
 name: debug-with-logs
 description: >
   Internal helper. Load only when explicitly named by another skill or agent.
-user-invocable: false
-disable-model-invocation: true
+user-invocable: true
+disable-model-invocation: false
 allowed-tools: Read, Grep, Glob, Bash, Task, mcp__duckdb__*
 ---
 

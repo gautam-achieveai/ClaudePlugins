@@ -3,7 +3,7 @@ name: gh-babysit-pr
 description: >
   Use when the user asks to "babysit a PR", "babysit my pull request", "monitor my PR", "watch my pull request", "keep my PR green", "fix PR check failures automatically", "handle PR review comments", or wants autonomous GitHub PR monitoring that fixes build breaks, test failures, coverage gaps, and review comments on a polling loop.
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Babysit PR

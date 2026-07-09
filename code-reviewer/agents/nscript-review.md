@@ -2,8 +2,8 @@
 name: nscript-review
 description: >
   Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
-user-invocable: false
-disable-model-invocation: true
+user-invocable: true
+disable-model-invocation: false
 model: inherit
 color: cyan
 tools: ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill"]

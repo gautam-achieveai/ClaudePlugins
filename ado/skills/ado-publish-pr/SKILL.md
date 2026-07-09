@@ -3,7 +3,7 @@ name: ado-publish-pr
 description: >
   Publish local changes as an Azure DevOps pull request — analyzes commits, creates or links a work item (bug, task, or user story), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and build failures until the PR is merged.
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Publish PR

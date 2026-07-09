@@ -8,21 +8,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 const targetPlugins = ["ado", "code-reviewer", "debugging", "development", "gh"];
 
-const publicModelInvocableSkills = new Set([
-  "code-reviewer/pr-review",
-  "debugging/systematic-debugging",
-]);
-
-const publicManualOnlySkills = new Set([
-  "ado/ado-babysit-pr",
-  "ado/ado-publish-pr",
-  "debugging/logging-enablement",
-  "development/draft-work-item",
-  "development/work-on",
-  "gh/gh-babysit-pr",
-  "gh/gh-publish-pr",
-]);
-
 function listFiles(relativeDir, predicate = () => true) {
   const absoluteDir = path.join(repoRoot, relativeDir);
   return readdirSync(absoluteDir, { withFileTypes: true })
@@ -102,7 +87,7 @@ function agentFiles() {
   return files;
 }
 
-test("skill invocation policy keeps only the intended public surface", () => {
+test("every skill stays launchable by both users and the model", () => {
   for (const relativePath of skillFiles()) {
     const fields = parseFrontmatter(relativePath);
     const plugin = relativePath.split(path.sep)[0];
@@ -117,25 +102,16 @@ test("skill invocation policy keeps only the intended public surface", () => {
 
     assert.ok(name, `${relativePath} must declare a skill name`);
     assert.ok(fields.get("description"), `${id} must keep a valid description`);
-
-    if (publicModelInvocableSkills.has(id)) {
-      assert.equal(userInvocable, true, `${id} should stay user-invocable`);
-      assert.equal(disableModelInvocation, false, `${id} should stay model-invocable`);
-    } else if (publicManualOnlySkills.has(id)) {
-      assert.equal(userInvocable, true, `${id} should stay visible to users`);
-      assert.equal(disableModelInvocation, true, `${id} should be manual-only`);
-    } else {
-      assert.equal(userInvocable, false, `${id} should be hidden from users`);
-      assert.equal(disableModelInvocation, true, `${id} should be explicit-only`);
-      assert.ok(
-        fields.get("description").replace(/\s+/g, " ").trim().length <= 140,
-        `${id} internal helper description should stay terse`
-      );
-    }
+    assert.equal(userInvocable, true, `${id} should stay user-invocable`);
+    assert.equal(
+      disableModelInvocation,
+      false,
+      `${id} should stay model-invocable`
+    );
   }
 });
 
-test("specialist agents are hidden from direct invocation", () => {
+test("every agent stays launchable by both users and the model", () => {
   for (const relativePath of agentFiles()) {
     const fields = parseFrontmatter(relativePath);
     const name = fields.get("name");
@@ -148,7 +124,11 @@ test("specialist agents are hidden from direct invocation", () => {
 
     assert.ok(name, `${relativePath} must declare an agent name`);
     assert.ok(fields.get("description"), `${name} must keep a valid description`);
-    assert.equal(userInvocable, false, `${name} should be hidden from users`);
-    assert.equal(disableModelInvocation, true, `${name} should be explicit-only`);
+    assert.equal(userInvocable, true, `${name} should stay user-invocable`);
+    assert.equal(
+      disableModelInvocation,
+      false,
+      `${name} should stay model-invocable`
+    );
   }
 });

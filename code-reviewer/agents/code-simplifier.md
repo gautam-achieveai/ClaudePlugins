@@ -2,8 +2,8 @@
 name: code-simplifier
 description: >
   Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
-user-invocable: false
-disable-model-invocation: true
+user-invocable: true
+disable-model-invocation: false
 tools:
   - Read
   - Grep

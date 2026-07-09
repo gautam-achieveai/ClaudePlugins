@@ -2,8 +2,8 @@
 name: gh-draft-work-item
 description: >
   Internal helper. Load only when explicitly named by another skill or agent.
-user-invocable: false
-disable-model-invocation: true
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Draft Work Item (GitHub)
