@@ -1,26 +1,3 @@
 {
-    "mcpServers": {
-        "clarify-doubt": {
-            "command": "cmd",
-            "args": [
-                "/c",
-                "npx",
-                "-y",
-                "@achieveai/hitl-mcp-server@latest"
-            ]
-        },
-        "mongodb": {
-            "command": "cmd",
-            "args": [
-                "/c",
-                "npx",
-                "-y",
-                "mongodb-mcp-server",
-                "--connectionString",
-                "mongodb://local.mongodb:27021"
-            ],
-            "env": {},
-            "defer_loading": true
-        }
-    }
+    "mcpServers": {}
 }
