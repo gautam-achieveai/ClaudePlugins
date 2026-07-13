@@ -5,7 +5,15 @@ user-invocable: true
 disable-model-invocation: false
 model: inherit
 color: red
-tools: ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill"]
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - WebSearch
+  - WebFetch
+  - Skill
+  - Agent
 skills:
   - codebase-search-discipline
   - orleans-review
