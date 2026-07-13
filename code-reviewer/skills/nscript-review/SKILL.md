@@ -1,9 +1,9 @@
 ---
 name: nscript-review
 description: >
-  NScript client code review — AutoFire/nameof enforcement, Promise patterns,
-  IoC registration, C# restrictions, MVVM patterns, template bindings, LESS
-  conventions, and JS interop attributes. Load reference files on demand.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 allowed-tools:
   - Read
 ---

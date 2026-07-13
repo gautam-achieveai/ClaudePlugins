@@ -1,15 +1,9 @@
 ---
 name: gh-work-on
 description: >
-  Autonomous two-phase development workflow driven by a GitHub work item backed
-  by a GitHub issue. First run: analyzes the problem using all available tools
-  (codebase, logs, database, observability, Actions), designs a solution,
-  creates a plan, posts it to the issue, and waits for explicit user approval
-  via HITL before proceeding. Subsequent runs: incorporate feedback or execute
-  the approved plan — implement, verify, and publish a PR. The agent NEVER
-  proceeds to implementation without explicit approval. Use when the user says
-  "work on <number>", "implement work item <number>", "pick up <number>", or
-  provides a GitHub issue to implement.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Work On (GitHub)
@@ -36,7 +30,7 @@ then hands the work item off to the shared autonomous workflow.
 
 3. **Re-runs.** The same `/gh-work-on <id>` command resumes the workflow — the
    shared skill reads the issue's comment history to decide whether to plan,
-   revise, or execute.
+   revise, or execute. To resume, re-run `/gh-work-on <id>`. On the next `/gh-work-on <id>` invocation, the shared workflow re-checks the latest issue comments before choosing the next phase.
 
 ## Notes
 

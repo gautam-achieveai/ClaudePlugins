@@ -1,13 +1,9 @@
 ---
 name: ado-draft-work-item
 description: >
-  Conversational wizard that turns rough requirements into well-structured
-  Azure DevOps work items. Asks clarifying questions one at a time, helps
-  determine work item type, area path, team assignment, and sprint, then
-  previews the item for confirmation before creating it. Use when the user
-  says "draft a work item", "I have a rough requirement", "help me write a
-  bug report", "turn this into a user story", or provides unstructured
-  requirements and wants an ADO work item created.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Draft Work Item (Azure DevOps)

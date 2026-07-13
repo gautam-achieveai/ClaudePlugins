@@ -1,54 +1,8 @@
 ---
 name: over-engineering-review
-description: >
-  Detects over-engineered, gold-plated, or scope-creeping implementations — places where
-  the delivered code does substantially more than the task or bug being addressed actually
-  required. Specializes in catching LLM-generated over-achievement: speculative abstractions
-  for hypothetical futures, drive-by refactors bundled with unrelated work, defensive code
-  for impossible scenarios, premature optimization, unrequested features, tutorial-style
-  comments, single-use helper extractions, and excessive logging or telemetry. Distinct from
-  class-design-simplifier (which judges static design in isolation) and code-simplifier (which
-  judges expression-level complexity) — this agent compares delivered scope to stated intent.
-
-  <example>
-  Context: A bug fix PR linked to a one-line typo bug also introduces a new IRetryPolicy
-  interface, a Polly-based retry decorator, and 80 lines of resilience tests.
-  user: "Review PR #4567"
-  assistant: "I'll dispatch the over-engineering-review agent — the linked bug is a typo
-  fix, but the PR adds a retry/resilience layer that wasn't requested. The agent will flag
-  the scope mismatch and suggest deferring the resilience work to a dedicated ticket."
-  <commentary>
-  The PR clearly delivers more than the bug ticket asked for. This agent compares the stated
-  task (fix a typo) to what landed (a new resilience subsystem) and flags gold-plating.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR titled "Add Status column to user list UI" also reformats three unrelated
-  files, renames a helper used in another module, and adds a CSV export feature.
-  user: "Run a full review on PR #8901"
-  assistant: "I'll dispatch over-engineering-review alongside other agents — the PR title
-  describes a UI column addition, but the diff includes drive-by reformats and an unrequested
-  CSV export. The agent will surface what falls outside the stated scope."
-  <commentary>
-  Drive-by refactors and unrequested features are LLM gold-plating tells. The agent maps
-  every changed area to the stated task and flags the leftovers.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A small feature PR introduces a new factory pattern, an abstract base class with
-  one concrete subclass, and configuration hooks that aren't called from anywhere yet.
-  user: "Review my branch"
-  assistant: "I'll dispatch over-engineering-review — the change introduces speculative
-  abstractions and unused configuration hooks that don't serve the current requirement.
-  The agent will recommend collapsing them until a second use case actually appears."
-  <commentary>
-  YAGNI violation: abstractions and hooks built for hypothetical futures. The agent applies
-  the rule "wait for the second concrete use case before abstracting."
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 model: inherit
 color: yellow
 tools:

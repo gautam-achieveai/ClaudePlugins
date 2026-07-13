@@ -1,6 +1,8 @@
 ---
 name: feature-flag-reviewer
-description: Evaluates whether changes are large or risky enough to warrant protection behind a feature flag. Assesses blast radius, reversibility, and change type to recommend safe rollout strategies.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Feature Flag Reviewer

@@ -1,38 +1,8 @@
 ---
 name: review-grader
-description: >
-  Post-review quality gate that re-evaluates all PR review findings through 11 impact
-  dimensions before the verdict is finalized. Catches findings that domain-specific agents
-  classified too softly — especially code health, convention, and completeness issues that
-  aren't bugs or security holes but still matter for long-term codebase quality.
-
-  Mandatory for every PR review. Dispatch after all findings are collected (steps 4-9) but
-  before the verdict is posted (step 10). Pass all findings as structured input. The grader
-  returns escalation recommendations and a verdict assessment that the main reviewer uses
-  to determine the final verdict.
-
-  <example>
-  Context: PR review found a LOW severity version bump issue and a LOW description length note
-  user: "Review the pending local changes"
-  assistant: "All findings collected. Dispatching review-grader to evaluate severity assignments
-  before finalizing the verdict."
-  <commentary>
-  The review-grader is dispatched as the final step before verdict determination. It receives
-  all findings and may escalate the version bump from LOW to MEDIUM, changing the verdict.
-  </commentary>
-  </example>
-
-  <example>
-  Context: PR review found 3 HIGH issues and 5 MEDIUM issues across multiple agents
-  user: "Review PR #4567"
-  assistant: "Dispatching review-grader to cross-check severity assignments and confirm the
-  REQUEST CHANGES verdict is warranted."
-  <commentary>
-  Even when the verdict seems obvious, the grader validates that HIGH findings truly warrant
-  blocking and that no MEDIUM finding should be escalated to HIGH.
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 tools:
   - Read
   - Grep

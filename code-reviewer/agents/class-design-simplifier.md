@@ -1,9 +1,8 @@
 ---
 name: class-design-simplifier
-description: >
-  Identifies unnecessary complexity in class, method, component, and layer design.
-  Use when reviewing PRs for over-engineering, over-abstracted hierarchies, unnecessary
-  layers, premature generalization, or excessive component complexity.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 tools:
   - Read
   - Grep

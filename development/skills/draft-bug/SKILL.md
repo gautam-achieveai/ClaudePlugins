@@ -1,15 +1,9 @@
 ---
 name: draft-bug
 description: >
-  Deep, evidence-based workflow for writing a BUG / defect issue. Gathers proof
-  in code and logs, enumerates multiple root-cause hypotheses and investigates
-  each with a subagent, validates survivors with a scratch regression test
-  (run best-effort, never committed), dispatches a blind-spot scan, then composes
-  a rigorous bug write-up (Summary / Steps / Expected / Actual / Root Cause /
-  Repro Proof / Related Risk). Used by the development:draft-work-item router
-  once the intent is classified as a bug; the router resolved the provider and
-  handles the final preview and create. Use when turning a defect report into a
-  root-caused, reproducible issue rather than a quick stub.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Draft Bug

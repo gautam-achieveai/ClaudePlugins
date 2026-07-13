@@ -1,15 +1,9 @@
 ---
 name: ado-work-on
 description: >
-  Autonomous two-phase development workflow driven by an Azure DevOps work item.
-  First run: analyzes the problem using all available tools (codebase, logs,
-  database, observability, builds), designs a solution, creates a plan, posts it
-  to the work item, and waits for explicit user approval via HITL before
-  proceeding. Subsequent runs: incorporates feedback or executes the approved
-  plan — implements, verifies, and publishes a PR. The agent NEVER proceeds to
-  implementation without explicit approval.
-  Use when the user says "work on <number>", "implement work item <number>",
-  "pick up <number>", or provides an ADO work item to implement.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Work On (Azure DevOps)

@@ -1,9 +1,8 @@
 ---
 name: duplicate-code-detector
-description: >
-  Finds duplicate and near-duplicate code patterns including copy-pasted blocks,
-  repeated logic with minor variations, and structural duplication. Use when reviewing
-  PRs for code that should be extracted into shared abstractions.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 tools:
   - Read
   - Grep

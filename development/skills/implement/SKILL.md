@@ -1,17 +1,9 @@
 ---
 name: implement
 description: >
-  Core, provider-agnostic engine that turns an APPROVED implementation plan into
-  working, self-reviewed, verified code on the current branch. Use after a plan or
-  design decision exists (from development:autonomous-design, a work-on plan, or
-  any spec) and before publishing a PR. First establishes the PURPOSE of the work
-  and HOW it will be consumed as the north star, then decomposes the plan into
-  atomic test-backed tasks, executes them one at a time with TDD and per-task
-  review, runs a self-review loop, and verifies against the acceptance criteria —
-  committing each green increment and STOPPING (not guessing) when blocked.
-  Used by development:work-on Phase 2 and usable standalone. Not for ad-hoc
-  edits or exploratory coding that has no approved plan or spec. Does NOT perform
-  provider-specific finish/publish — the caller handles that.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Implement

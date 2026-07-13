@@ -1,42 +1,8 @@
 ---
 name: pr-context-gatherer
-description: >
-  Gathers full work-item / issue context for a pull request on GitHub or Azure DevOps.
-  Given a PR number, fetches the PR's linked work items (ADO) or linked issues (GitHub)
-  and walks UP the parent chain (Task/Bug → User Story → Feature → Epic on ADO;
-  sub-issue → parent / tracking issue on GitHub) to build a complete ancestry tree. At
-  each level, collects sibling items and related items to show the full scope of the
-  initiative. Outputs a structured context document showing where this PR's changes fit
-  in the larger project/epic picture.
-
-  Dispatch this agent when reviewing a PR and you need to understand the business
-  context — what epic or feature this work belongs to, what other tasks are part of
-  the same effort, and how the PR's changes fit into the broader initiative. Especially
-  valuable for large PRs, cross-cutting changes, or when the PR description lacks
-  context about the "why".
-
-  <example>
-  Context: Reviewing a PR that fixes a bug, need to understand if it's part of a larger effort
-  user: "Review PR #5234"
-  assistant: "I'll dispatch pr-context-gatherer to trace the linked work items up to
-  the epic level so we understand the full scope of this change."
-  <commentary>
-  The PR links to a Bug, which is a child of a User Story, which belongs to a Feature
-  under an Epic. The agent walks the full chain and reports the hierarchy.
-  </commentary>
-  </example>
-
-  <example>
-  Context: PR touches multiple areas and the reviewer needs to understand if changes are complete
-  user: "What's the full context for PR #5890?"
-  assistant: "I'll dispatch pr-context-gatherer to map the work item hierarchy and show
-  sibling tasks to understand if this PR covers the full scope or is part of a series."
-  <commentary>
-  Walking the hierarchy reveals sibling tasks under the same User Story, showing what
-  other PRs are expected and whether this one is self-contained.
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # PR Context Gatherer Agent

@@ -1,15 +1,9 @@
 ---
 name: post-pr-review
 description: >
-  Publish PR review results to GitHub or Azure DevOps — posts findings as
-  inline/file/general comments, posts context questions as inline `[QUESTION]` comments,
-  manages the review summary thread (replies to existing thread instead of creating
-  duplicates), and optionally approves or merges the PR. Use this skill when the
-  pr-review workflow reaches Step 12 and needs to publish its collected findings,
-  questions, and verdict to the PR. Also usable standalone for any workflow that needs
-  structured comment posting to a PR. Trigger when: "post review results", "publish
-  findings to PR", or when used by pr-review Step 12. NOT for analysis or grading —
-  this skill only handles the publishing/posting workflow.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 allowed-tools: Read, Bash, Skill, mcp__azure-devops__*
 ---
 

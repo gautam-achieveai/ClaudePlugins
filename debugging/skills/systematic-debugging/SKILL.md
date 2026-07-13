@@ -1,6 +1,9 @@
 ---
 name: systematic-debugging
-description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+description: >
+  Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Systematic Debugging
@@ -42,6 +45,14 @@ Use for ANY technical issue:
 - Issue seems simple (simple bugs have root causes too)
 - You're in a hurry (rushing guarantees rework)
 - Manager wants it fixed NOW (systematic is faster than thrashing)
+
+## Related Workflow Routing
+
+When root-cause investigation needs runtime visibility — failing tests, logs,
+traces, request flows, or production-style symptoms — explicitly load
+`debugging:debug-with-logs` and use its log-first workflow. Keep this skill as
+the lightweight entrypoint; let `debug-with-logs` own structured JSONL logging,
+DuckDB queries, and evidence collection.
 
 ## The Four Phases
 

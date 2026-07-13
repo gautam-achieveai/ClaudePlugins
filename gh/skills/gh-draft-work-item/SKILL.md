@@ -1,13 +1,9 @@
 ---
 name: gh-draft-work-item
 description: >
-  Conversational wizard that turns rough requirements into a well-structured
-  GitHub issue. Asks clarifying questions one at a time, helps determine the
-  issue type, labels, project placement, and iteration, then previews the issue
-  for confirmation before creating it. Use when the user says "draft a work
-  item", "I have a rough requirement", "help me write a bug report", "turn this
-  into a user story", or provides unstructured requirements and wants a GitHub
-  issue created.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Draft Work Item (GitHub)

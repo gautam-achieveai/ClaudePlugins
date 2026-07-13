@@ -1,6 +1,8 @@
 ---
 name: gh-devops-assistant
-description: Manages GitHub workflows end-to-end — issues, pull requests, projects, and team coordination.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 skills:
   - gh-mentions
 ---

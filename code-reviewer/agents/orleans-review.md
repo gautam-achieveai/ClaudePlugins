@@ -1,37 +1,19 @@
 ---
 name: orleans-review
-description: Use this agent when reviewing PR code changes involving Microsoft Orleans grains, silos, streams, or virtual actor patterns. Examples:
-
-  <example>
-  Context: A PR modifies or adds Orleans grain implementations
-  user: "Review PR #1234 for Orleans patterns"
-  assistant: "I'll use the orleans-review agent to analyze the grain implementations for reentrancy risks, state management, and stream usage patterns."
-  <commentary>
-  The user asks for Orleans-specific review. This agent specializes in Orleans grain patterns and anti-patterns.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR review is running and changed files include Orleans grain code
-  user: "Run a comprehensive PR review on PR #5678"
-  assistant: "I'll dispatch the orleans-review agent to check Orleans grain patterns alongside other review agents."
-  <commentary>
-  As part of a comprehensive PR review, if Orleans code is detected, this agent should be dispatched.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR adds a new grain that calls other grains in a chain
-  user: "Check if there are any deadlock risks in this PR"
-  assistant: "I'll use the orleans-review agent to trace the grain call graph and identify potential reentrancy deadlocks."
-  <commentary>
-  Deadlock risk analysis in Orleans requires understanding the grain call graph and reentrancy semantics.
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 model: inherit
 color: red
-tools: ["Read", "Grep", "Glob", "Bash", "WebSearch", "WebFetch", "Skill"]
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - WebSearch
+  - WebFetch
+  - Skill
+  - Agent
 skills:
   - codebase-search-discipline
   - orleans-review

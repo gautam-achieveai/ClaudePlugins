@@ -1,11 +1,9 @@
 ---
 name: ado-babysit-pr
 description: >
-  This skill should be used when the user asks to "babysit a PR", "babysit my
-  pull request", "monitor my PR", "watch my pull request", "keep my PR green",
-  "fix PR build failures automatically", "handle PR review comments", or wants
-  autonomous Azure DevOps PR monitoring that fixes build breaks, test failures,
-  code coverage gaps, and review comments on a polling loop.
+  This skill should be used when the user asks to "babysit a PR", "babysit my pull request", "monitor my PR", "watch my pull request", "keep my PR green", "fix PR build failures automatically", "handle PR review comments", or wants autonomous Azure DevOps PR monitoring that fixes build breaks, test failures, code coverage gaps, and review comments on a polling loop.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Babysit PR

@@ -1,6 +1,9 @@
 ---
 name: ado-work-items
-description: Manage Azure DevOps work items — create, update, query, and organize
+description: >
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Work Items

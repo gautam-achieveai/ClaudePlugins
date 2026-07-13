@@ -1,10 +1,9 @@
 ---
 name: ado-mentions
 description: >
-  Azure DevOps mention and reference syntax — #ID for work items, !ID for PRs,
-  @alias for users, AB#ID for cross-platform, state transition keywords, bot
-  comment prefix, PR description template. Use before writing any content to
-  Azure DevOps (PR descriptions, comments, work item updates, wiki pages).
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 allowed-tools:
   - Read
 ---

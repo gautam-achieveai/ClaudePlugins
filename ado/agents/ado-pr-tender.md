@@ -1,6 +1,8 @@
 ---
 name: ado-pr-tender
-description: Monitors an Azure DevOps pull request, addresses reviewer feedback, fixes build failures, and pushes updates until the PR is ready to merge.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 skills:
   - ado-mentions
 ---

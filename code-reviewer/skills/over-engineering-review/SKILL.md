@@ -1,21 +1,9 @@
 ---
 name: over-engineering-review
 description: >
-  Code-review methodology for detecting over-engineering, gold-plating, and scope creep
-  — places where the implementation does meaningfully more than the linked task, bug,
-  or PR title actually required. Compares delivered diff to stated intent, not raw
-  complexity in isolation. Particularly catches what AI- and LLM-generated PRs tend to
-  produce: speculative abstractions for hypothetical futures, single-use helper
-  extractions, defensive code for impossible scenarios, drive-by refactors bundled with
-  bug fixes, premature optimization without measurement, unused configuration hooks,
-  excessive logging, tutorial-style comments, unrequested features, and duplicate code
-  paths added next to existing ones. Use whenever a reviewer says or thinks the diff
-  feels too big for what was asked — e.g., "this bug fix introduces a new interface
-  for one impl", "the AI added five helpers used once each", "fix login bug PR has 14
-  files", "is this YAGNI?", or any audit of AI-generated code against an original
-  prompt. NOT for general code quality, performance, security, exception handling,
-  duplicate-finding, EUII, architecture, test generation, logging setup, or implementing
-  work items — those have dedicated tools.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 allowed-tools:
   - Read
   - Grep

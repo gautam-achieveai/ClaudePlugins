@@ -1,10 +1,9 @@
 ---
 name: setup-ado-mcp
 description: >
-  Set up the Azure DevOps MCP server end-to-end for both Claude Code and GitHub Copilot CLI.
-  Use when the user asks to "set up Azure DevOps MCP", "configure Azure DevOps for Claude
-  and Copilot", "install the Azure DevOps MCP server", or wants one command to configure
-  everything automatically.
+  Internal helper. Load only when explicitly named by another skill or agent.
+user-invocable: true
+disable-model-invocation: false
 allowed-tools:
   - Read
   - Write

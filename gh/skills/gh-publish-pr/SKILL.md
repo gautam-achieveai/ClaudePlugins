@@ -1,6 +1,9 @@
 ---
 name: gh-publish-pr
-description: Publish local changes as a GitHub pull request — analyzes commits, creates or links a work item (backed by a GitHub issue), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and failing checks until the PR is merged.
+description: >
+  Publish local changes as a GitHub pull request — analyzes commits, creates or links a work item (backed by a GitHub issue), pushes the branch, composes a PR description, and optionally tends to reviewer feedback and failing checks until the PR is merged.
+user-invocable: true
+disable-model-invocation: false
 ---
 
 # Publish PR
@@ -107,11 +110,10 @@ start here with the given PR number.
 
 Before entering, ask:
 
-> The PR is created. Would you like me to monitor and address feedback?
->
-> - Say **yes** to start interactive tending (I'll confirm each change with you).
-> - Say **babysit** to hand off to the autonomous `gh:gh-babysit-pr` skill instead.
-> - Say **no** to stop here.
+The PR is created. Would you like me to monitor and address feedback?
+- Say **yes** to start interactive tending (I'll confirm each change with you).
+- Say **babysit** to hand off to the autonomous `gh:gh-babysit-pr` skill instead.
+- Say **no** to stop here.
 
 If the user declines, the skill ends. If the user chooses babysit, load and
 execute `gh:gh-babysit-pr` with the PR number.

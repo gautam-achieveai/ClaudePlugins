@@ -1,71 +1,8 @@
 ---
 name: schema-compatibility-review
-description: >
-  Specialized reviewer that audits a PR for schema and wire-contract compatibility breaks
-  before they can ship. Checks every modified serialized type, public API DTO, protobuf
-  message, Orleans grain interface, database migration, queue payload, and configuration
-  shape against three questions: (1) is the change forward AND backward compatible across
-  the deploy window; (2) if the client speaks a new dialect, will the deployed server
-  understand it (or is it gated behind a flag or version check); (3) do serializer and
-  deserializer agree on the type shape, or have they drifted into independent copies that
-  silently lose data on rename? Also catches the classic database-migration footguns — NOT
-  NULL columns added without defaults, removed columns whose data is gone forever, dropped
-  enum values that strand persisted rows, and tightened constraints applied to existing data.
-
-  Dispatch this agent whenever a PR touches a .proto, .thrift, .avsc; an EF Core or SQL
-  migration; a `[GenerateSerializer]`, `[DataContract]`, `[JsonPropertyName]`, or
-  `[ProtoMember]` annotated type; a request/response DTO; a queue or event payload; or any
-  type on either side of a serialize/deserialize boundary. Also dispatch when the PR
-  description, work item, or commit message mentions rollout order, deploy window, rolling
-  deploy, feature flag gating a wire change, capability negotiation, "client must not call
-  this until server supports it", schema versioning, or backward/forward compatibility.
-
-  <example>
-  Context: A PR adds a new `TenantId` column as NOT NULL with no default to a 200-million-row
-  table, and the controller now requires it on every request.
-  user: "Review PR #4321"
-  assistant: "I'll dispatch schema-compatibility-review — the migration as written will fail
-  on any non-empty table because the NOT NULL constraint can't be satisfied by existing rows,
-  and the new required request field will also break every old client. The agent will walk
-  the migration through the expand–migrate–contract pattern and flag both the DB and the
-  request-DTO break."
-  <commentary>
-  NOT NULL without a default is the classic migration footgun. The agent must flag this as
-  BLOCKER and require a backfill plan.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR adds a new client-side feature that sends `preferredCurrency` in the request
-  body and reads it back in the response. The matching server change is in the same PR. The
-  client and server deploy from separate pipelines.
-  user: "Review my branch"
-  assistant: "I'll dispatch schema-compatibility-review — the client and server land
-  together in source but deploy independently. During the rollout window, either old clients
-  hit new servers (safe) or new clients hit old servers (the new field is silently dropped
-  and the feature silently fails for users). The agent will flag the missing flag/version
-  gate and recommend server-first or a capability check."
-  <commentary>
-  Rollout sequence violation — the client speaks a new dialect with no gating mechanism for
-  the deploy window.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR renames `OrderStatus.Pending` to `OrderStatus.Awaiting` and removes an
-  `[Id(3)]` field from an Orleans grain state class.
-  user: "Run a full review on PR #9876"
-  assistant: "I'll dispatch schema-compatibility-review — renaming an enum value used in
-  persisted state and removing an `[Id]`-tagged field from a `[GenerateSerializer]` type
-  are both backward-incompat. Persisted grain state still references both. The agent will
-  flag both as BLOCKER and recommend the Orleans-specific mitigations (`[Alias]`, marking
-  obsolete, retiring the id number without reuse)."
-  <commentary>
-  Two distinct schema breaks: enum value rename + `[Id]` removal. Both are sticky because
-  grain state outlives every deploy.
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 model: inherit
 color: red
 tools:

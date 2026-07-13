@@ -1,39 +1,8 @@
 ---
 name: performance-review
-description: >
-  Reviews code for performance anti-patterns that cause out-of-memory crashes,
-  thread pool starvation, excessive network requests, incorrect async usage,
-  unnecessary re-renders, and other runtime performance degradation. Covers both
-  backend (.NET/C#) and frontend (React/JavaScript/TypeScript) domains —
-  auto-detects which applies based on changed files.
-
-  Dispatch when changed files contain: async/await patterns, HttpClient or HTTP
-  request usage, database access (EF Core, MongoDB, raw SQL), large collection
-  operations (ToList, ToArray on queries), caching logic, serialization/
-  deserialization, React components with hooks (useState, useEffect, useMemo,
-  useCallback), fetch/axios calls, state management (Redux, Context), or bundle
-  configuration (webpack, vite, next.config). Also dispatch when the PR
-  description mentions performance, optimization, scaling, latency, memory, or
-  throughput — or when the work item is tagged as performance-related.
-
-  <example>
-  Context: A PR adds a new service that calls an external API in a loop
-  user: "Review PR #5678"
-  assistant: "I'll dispatch performance-review to check for N+1 HTTP calls, missing parallelization, and connection management patterns in the new service."
-  <commentary>
-  HTTP calls inside loops are a top performance killer — the performance agent catches patterns that general code review misses.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR refactors a React dashboard with multiple data-fetching components
-  user: "Run a full review on PR #9012"
-  assistant: "I'll dispatch performance-review alongside other agents since the PR modifies React components with data fetching — checking for request waterfalls, unnecessary re-renders, and missing memoization."
-  <commentary>
-  Frontend performance issues like request waterfalls and cascading re-renders compound silently until the UI becomes sluggish.
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 tools:
   - Read
   - Grep

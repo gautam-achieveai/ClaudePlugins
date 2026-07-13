@@ -1,40 +1,8 @@
 ---
 name: architecture-review
-description: >
-  Senior software architect agent performing comprehensive architectural design review.
-  Detects structural issues that compound over time: layer boundary violations (Clean
-  Architecture/Hexagonal), full SOLID principle violations (SRP god classes, DIP violations,
-  LSP breaks, fat ISP interfaces, OCP type-dispatch chains), anemic domain models, component
-  coupling patterns (circular, stamp, temporal, shared mutable state), DI anti-patterns
-  (service locator, captive dependencies), bounded context breaches, composition-over-inheritance
-  violations, Orleans-specific architectural issues, cross-cutting concern misplacement, and
-  scalability architecture anti-patterns. Dispatch when a PR introduces new services, classes,
-  or interfaces; changes cross-cutting architecture; adds new dependency relationships between
-  layers; modifies DI registrations; or when the PR description mentions architecture,
-  refactoring, or structural changes. Focuses on long-term structural health — not code style,
-  exception handling, or duplication (covered by other agents).
-
-  <example>
-  Context: A PR adds a new service that directly references a data access layer from a controller
-  user: "Review PR #5678 for architectural issues"
-  assistant: "I'll dispatch the architecture-review agent to check for layer violations, dependency
-  direction issues, and coupling problems in the new service."
-  <commentary>
-  The PR introduces cross-layer dependencies that need architectural review beyond class-level design.
-  </commentary>
-  </example>
-
-  <example>
-  Context: A PR creates three new projects and moves code between layers
-  user: "Run a full review on PR #9012"
-  assistant: "I'll dispatch architecture-review alongside other agents since the PR restructures
-  project boundaries and could introduce architectural violations."
-  <commentary>
-  Structural changes to project layout require checking dependency direction, bounded contexts,
-  and layer discipline.
-  </commentary>
-  </example>
-
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 tools:
   - Read
   - Grep

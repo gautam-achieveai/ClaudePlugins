@@ -330,39 +330,36 @@ test("eval manifests point at renamed work-my-backlog skill names", () => {
 });
 
 test("plan-comment-format reference docs use prefixed commands and explicit HITL approval", () => {
-  const refFiles = [
-    {
-      path: path.join("ado", "skills", "ado-work-on", "reference", "plan-comment-format.md"),
-      expectedCommand: "/ado-work-on",
-    },
-    {
-      path: path.join("gh", "skills", "gh-work-on", "reference", "plan-comment-format.md"),
-      expectedCommand: "/gh-work-on",
-    },
-  ];
+  const relPath = path.join(
+    "development",
+    "skills",
+    "work-on",
+    "reference",
+    "plan-comment-format.md"
+  );
+  const content = readRepoFile(relPath);
+  const expectedCommands = ["/ado-work-on", "/gh-work-on"];
 
-  for (const { path: relPath, expectedCommand } of refFiles) {
-    const content = readRepoFile(relPath);
+  // Must not contain bare /work-on as a command reference
+  assert.ok(
+    !/ \/work-on[ \n]/.test(content),
+    `${relPath} still contains bare '/work-on'`
+  );
 
-    // Must not contain bare /work-on as a command reference
-    assert.ok(
-      !/ \/work-on[ \n]/.test(content),
-      `${relPath} still contains bare '/work-on' — should use '${expectedCommand}'`
-    );
+  // Must not teach implicit approval as the behavior
+  assert.ok(
+    !content.includes("IMPLICIT APPROVAL"),
+    `${relPath} still teaches 'IMPLICIT APPROVAL' — should describe explicit HITL checkpoint`
+  );
 
-    // Must not teach implicit approval as the behavior
-    assert.ok(
-      !content.includes("IMPLICIT APPROVAL"),
-      `${relPath} still teaches 'IMPLICIT APPROVAL' — should describe explicit HITL checkpoint`
-    );
+  // Must not say silence/no-comments means approval
+  assert.ok(
+    !content.includes("treated as implicit approval"),
+    `${relPath} says 'treated as implicit approval' — contradicts SKILL.md HITL requirement`
+  );
 
-    // Must not say silence/no-comments means approval
-    assert.ok(
-      !content.includes("treated as implicit approval"),
-      `${relPath} says 'treated as implicit approval' — contradicts SKILL.md HITL requirement`
-    );
-
-    // Must contain the prefixed command form
+  // Must contain both prefixed command forms
+  for (const expectedCommand of expectedCommands) {
     assert.ok(
       content.includes(expectedCommand),
       `${relPath} should reference '${expectedCommand}'`
@@ -374,11 +371,11 @@ test("repo-relative work-on reference strings resolve to renamed plugin paths", 
   const expectations = new Map([
     [
       path.join("ado", "skills", "ado-work-my-backlog", "scripts", "classify.mjs"),
-      "ado/skills/ado-work-on/reference/plan-comment-format.md",
+      "development/skills/work-on/reference/plan-comment-format.md",
     ],
     [
       path.join("gh", "skills", "gh-work-my-backlog", "scripts", "classify.mjs"),
-      "gh/skills/gh-work-on/reference/plan-comment-format.md",
+      "development/skills/work-on/reference/plan-comment-format.md",
     ],
   ]);
 
@@ -449,23 +446,17 @@ test("no old unprefixed component names survive in commands, agents, or delegati
 });
 
 test("reference docs do not use bare /work-on command form", () => {
-  // Check all reference .md files in both work-on skills for bare /work-on commands
-  const refDirs = [
-    { dir: path.join("ado", "skills", "ado-work-on", "reference"), prefix: "/ado-work-on" },
-    { dir: path.join("gh", "skills", "gh-work-on", "reference"), prefix: "/gh-work-on" },
-  ];
+  const dir = path.join("development", "skills", "work-on", "reference");
+  const entries = listEntries(dir).filter((f) => f.endsWith(".md"));
 
-  for (const { dir, prefix } of refDirs) {
-    const entries = listEntries(dir).filter((f) => f.endsWith(".md"));
-    for (const entry of entries) {
-      const relPath = path.join(dir, entry);
-      const content = readRepoFile(relPath);
-      // Bare /work-on as a command (preceded by space/backtick, followed by space/newline/angle)
-      const bareCommandHits = content.match(/(?:[ `])\/work-on(?=[ \n<`])/g);
-      assert.ok(
-        !bareCommandHits,
-        `${relPath} uses bare '/work-on' command form (${bareCommandHits?.length} hits) — should use '${prefix}'`
-      );
-    }
+  for (const entry of entries) {
+    const relPath = path.join(dir, entry);
+    const content = readRepoFile(relPath);
+    // Bare /work-on as a command (preceded by space/backtick, followed by space/newline/angle)
+    const bareCommandHits = content.match(/(?:[ `])\/work-on(?=[ \n<`])/g);
+    assert.ok(
+      !bareCommandHits,
+      `${relPath} uses bare '/work-on' command form (${bareCommandHits?.length} hits)`
+    );
   }
 });

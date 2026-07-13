@@ -1,6 +1,8 @@
 ---
 name: ado-devops-assistant
-description: Manages Azure DevOps workflows end-to-end — work items, pull requests, sprints, and team coordination.
+description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
+user-invocable: true
+disable-model-invocation: false
 skills:
   - ado-mentions
 ---
