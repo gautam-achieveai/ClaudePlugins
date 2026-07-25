@@ -127,6 +127,40 @@ Post findings in priority order (most severe first):
 4. **LOW findings** → post last (only if total findings ≤ 20; otherwise skip LOW
    and note count in summary)
 
+> **GitHub — batch findings + questions into ONE review. Do NOT post them one at a time.**
+> `POST /repos/<owner>/<repo>/pulls/<pr>/comments` creates a *standalone* review comment,
+> and GitHub wraps every standalone review comment in its own empty-bodied review — so
+> posting N findings that way produces **N empty reviews** (the spam this skill must avoid).
+> Instead, **accumulate** every GitHub inline finding (this step) and every new question
+> (Step 5c) into a single `comments[]` array and submit them in ONE review **before Step 6**:
+>
+> ```
+> # commit_id = PR head SHA (`gh pr view <prNumber> --json headRefOid -q .headRefOid`).
+> # event=COMMENT SUBMITS it (never a PENDING draft). Assemble comments in priority order.
+> gh api repos/<owner>/<repo>/pulls/<prNumber>/reviews --input - <<'JSON'
+> {
+>   "commit_id": "<headSha>",
+>   "event": "COMMENT",
+>   "comments": [
+>     { "path": "<file>", "line": <line>, "side": "RIGHT", "body": "<formatted comment>" }
+>   ]
+> }
+> JSON
+> ```
+> - Submit **exactly once per run**, carrying ALL findings + new questions in `comments[]`.
+>   Omit the top-level `body` (the overall summary is its own thread in Step 6).
+> - A finding/question whose line is NOT in the PR diff cannot go in `comments[]` (GitHub
+>   422s the whole review). Anchor it to the nearest changed line in that file, or post it
+>   as a general issue comment `gh pr comment <prNumber> --body <comment>` — an issue comment
+>   does NOT create a review, so no empty review.
+> - If the batch is empty (no new findings, no new questions), submit **no** review at all.
+> - NEVER use `POST .../pulls/<pr>/comments` on GitHub. Thread *replies*
+>   (`.../pulls/<pr>/comments/<id>/replies`, Step 6) are fine — they add to a thread and
+>   do not create a review.
+>
+> (Azure DevOps has no review-wrapper: post each comment individually via the MCP tools
+> below — that never creates empty reviews.)
+
 **For each finding, select the comment type:**
 
 1. **Inline comment** (preferred) — when `Line` is not null:
@@ -139,10 +173,9 @@ Post findings in priority order (most severe first):
      position: { line: <line>, offset: 1 }
      comment: <formatted comment>
 
-   # GitHub (gh CLI; commit_id = PR head SHA from `gh pr view <n> --json headRefOid`)
-   gh api repos/<owner>/<repo>/pulls/<prNumber>/comments \
-     -f body=<formatted comment> -f commit_id=<headSha> \
-     -f path=<file> -F line=<line> -f side=RIGHT
+   # GitHub — do NOT post now. Add this finding to the batched review (see "GitHub —
+   # batch findings + questions into ONE review" above) as one comments[] entry:
+   #   { path: <file>, line: <line>, side: "RIGHT", body: <formatted comment> }
    ```
 
 2. **File comment** (fallback) — when `Line` is null or inline fails:
@@ -277,10 +310,9 @@ mcp__azure-devops__addPullRequestInlineComment
   position: { line: <line>, offset: 1 }
   comment: <formatted question>
 
-# GitHub
-gh api repos/<owner>/<repo>/pulls/<prNumber>/comments \
-  -f body=<formatted question> -f commit_id=<headSha> \
-  -f path=<file> -F line=<line> -f side=RIGHT
+# GitHub — do NOT post now. Add this question to the SAME batched review as the findings
+# (see Step 4's "GitHub — batch findings + questions into ONE review") as one comments[] entry:
+#   { path: <file>, line: <line>, side: "RIGHT", body: <formatted question> }
 ```
 
 **Question comment format:**
@@ -301,8 +333,13 @@ gh api repos/<owner>/<repo>/pulls/<prNumber>/comments \
 **Key rules:**
 - Questions are **always non-blocking** — never use the `[BLOCKER]` tag
 - Questions do NOT affect the verdict
-- Each question is a separate comment thread (one question per comment)
-- If the line is not in the diff, fall back to file comment, then general comment
+- Each question is a separate comment thread (one question per `comments[]` entry / ADO comment)
+- **GitHub:** once findings (Step 4) and new questions are assembled, SUBMIT the ONE batched
+  `pulls/<pr>/reviews` review (event=COMMENT) carrying every finding + question in `comments[]`
+  — exactly once per run, before Step 6. Never post via `pulls/<pr>/comments`. (ADO posts each
+  comment individually as shown above.)
+- If the line is not in the diff: **GitHub** — anchor to the nearest changed line or post a
+  general issue comment (`gh pr comment`); **ADO** — fall back to file comment, then general comment
 - Cap: if `newQuestions[]` has more than 10 items, post the top 10 (highest review
   impact) and note the remainder in the summary
 - If all questions were duplicates, skip posting entirely and note in the summary:
