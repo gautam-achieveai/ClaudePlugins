@@ -1,5 +1,5 @@
 {
   "name": "sandbox-auth",
   "description": "Authenticate outbound network calls from inside a sandbox running behind a MITM egress-proxy + gateway auth-webhook (e.g. SandboxedOstoolsMcpServer). Tokens are injected server-side and the agent never holds them. A common egress-auth skill owns the wire contract (HTTP 511 auth_pending handshake, 403 deny), backoff polling, human-in-the-loop device-code relay, and a portable Python probe engine; thin user-invocable skills (connect, azure-devops, microsoft-graph) reference and use it with service-specific probe URLs, scopes, and endpoints.",
-  "version": "2.1.0"
+  "version": "2.1.1"
 }

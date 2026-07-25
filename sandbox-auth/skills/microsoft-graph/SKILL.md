@@ -74,7 +74,7 @@ On a **Windows-local** backend, native `curl.exe` rejects the proxy MITM CA — 
 through the egress-auth helper and read the `.body`:
 
 ```bash
-python3 "/skills/egress-auth/scripts/sandbox-auth-fetch.py" --url "<graph-url>" --method GET --once
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py" --url "<graph-url>" --method GET --once
 ```
 
 For OData query params in `curl`, percent-encode `$` as `%24` (e.g. `%24filter`, `%24select`,

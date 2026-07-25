@@ -51,13 +51,22 @@ Docker/Linux and Windows-local sandboxes. The helpers are stdlib-only by default
 
 ```bash
 # Probe + resolve auth for the GitHub API:
-python3 "scripts/sandbox-auth-fetch.py" --url https://api.github.com/
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py" --url https://api.github.com/
 
 # Warm auth, then clone (token injected transparently by the proxy):
-python3 "scripts/warm-github-auth.py" \
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" \
   --git-url https://github.com/OWNER/REPO.git \
   -- git clone https://github.com/OWNER/REPO.git
 ```
+
+`${CLAUDE_PLUGIN_ROOT}` above is **not a shell variable — do not paste these lines into a terminal
+as-is.** It is a placeholder Claude Code expands to the plugin's install directory when it loads
+skill and agent content, and it is exported as a genuine environment variable only to hook
+processes and MCP/LSP subprocesses. Neither applies to this README or to an interactive shell, so
+substitute the real path yourself — `claude plugin list --json` reports it as `installPath` for each
+installed plugin. An unset variable expands to nothing and leaves you running
+`/scripts/sandbox-auth-fetch.py`. The skills carry the resolved path automatically — this caveat is
+for humans reading the repo.
 
 Exit codes: `0` allowed * `10` denied * `11` auth-pending timeout * `12` proxy env missing *
 `20` allowed-but-upstream-non-2xx * `30` transport error.

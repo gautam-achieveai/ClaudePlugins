@@ -47,13 +47,13 @@ GitHub has two independently-authenticated surfaces — pick by what the user wi
       probe URL chosen above (`BUDGET = 300`).
 
    b. **Warm-then-run** — use `egress-auth`'s **warm-then-run** section, which drives
-      `../egress-auth/scripts/warm-github-auth.py` and can execute the real command after the
+      `${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py` and can execute the real command after the
       cache is primed, e.g.:
       ```bash
-      python3 "../egress-auth/scripts/warm-github-auth.py" \
+      python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" \
         --git-url "$ARGUMENTS" -- git clone "$ARGUMENTS"
       ```
-      For the REST surface: `python3 "../egress-auth/scripts/warm-github-auth.py" --api` then `gh api /user`.
+      For the REST surface: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" --api` then `gh api /user`.
 
    In both paths, **relay any `[HITL_REQUIRED]` line verbatim** and **do not write your own retry
    loop** — the engine polls internally.

@@ -42,7 +42,7 @@ skill. **Do not reimplement them here.**
 
 3. **Use `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
    with `PROBE_URL = $ARGUMENTS`. That skill runs the probe engine
-   (`../egress-auth/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
+   (`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
    `[HITL_REQUIRED]` login prompt. **Do not write your own retry loop.**
 
 4. **Report** the SUCCESS / FAILED / TIMEOUT verdict exactly as the `egress-auth` exit-code table

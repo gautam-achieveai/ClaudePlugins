@@ -79,16 +79,18 @@ Check, in this order: the **header**, then the **status + body shape**.
 
 ## The helper — your primary tool
 
-`/skills/egress-auth/scripts/sandbox-auth-fetch.py` performs a request through the injected
+`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py` performs a request through the injected
 proxy + CA, classifies the response, and polls through `auth_pending` with capped exponential
 backoff until Allow, Deny, or timeout.
 
-NOTE: invoke the helper by its absolute sandbox path (below) — the skill mounts at
-`/skills/egress-auth/`, and your working directory is the workspace, so a relative path will not
-resolve.
+NOTE — the helper paths in this document are already absolute and correct for this install; Claude
+Code resolves them when it loads the skill. **Run them exactly as shown.** Do not rewrite one as a
+relative path (`scripts/…` or `../egress-auth/scripts/…`) — your working directory is the workspace,
+not the plugin, so it will not resolve. Do not expect a plugin-path variable to be set in your
+shell either; none is. (This plugin's README explains how the path is resolved.)
 
 ```bash
-python3 "/skills/egress-auth/scripts/sandbox-auth-fetch.py" \
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py" \
   --url "https://api.github.com/" \
   --method GET \
   --timeout 300 \
@@ -141,7 +143,7 @@ delegate the handshake here. When you are sent here with a `PROBE_URL` (and opti
    **not** wrap it in your own retry loop):
 
    ```bash
-   python3 "/skills/egress-auth/scripts/sandbox-auth-fetch.py" \
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py" \
      --url "$PROBE_URL" --method GET --timeout "${BUDGET:-300}" --max-body-bytes 0
    ```
 
@@ -184,24 +186,24 @@ These tools cannot parse `auth_pending`, so **warm the cache first** with an ide
 probe, then run the real command — which now sails through because the token is injected
 transparently and cached (keyed on session+provider+rule+host+port+scopes).
 
-`/skills/egress-auth/scripts/warm-github-auth.py` drives the probes for you:
+`${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py` drives the probes for you:
 
 ```bash
 # Warm the REST API surface (default probe = https://api.github.com/):
-python3 "/skills/egress-auth/scripts/warm-github-auth.py" --api
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" --api
 gh api /user
 
 # Warm the git smart-HTTP endpoint for a specific repo, then clone:
-python3 "/skills/egress-auth/scripts/warm-github-auth.py" --git-url https://github.com/OWNER/REPO.git
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" --git-url https://github.com/OWNER/REPO.git
 git clone https://github.com/OWNER/REPO.git
 
 # Warm AND run the real command in one call (everything after `--`):
-python3 "/skills/egress-auth/scripts/warm-github-auth.py" \
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" \
   --git-url https://github.com/OWNER/REPO.git \
   -- git clone https://github.com/OWNER/REPO.git
 
 # Warm an arbitrary host before installing from it:
-python3 "/skills/egress-auth/scripts/warm-github-auth.py" --no-api --probe-url https://<registry>/
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/warm-github-auth.py" --no-api --probe-url https://<registry>/
 ```
 
 Rules for warming:

@@ -52,7 +52,7 @@ c. **If no org** — probe the VSSPS profile (works for any signed-in user, no o
    which you'll relay and wait for.
 3. **Use `sandbox-auth:egress-auth`** — follow its **"set up auth for a probe URL"** procedure
    with `PROBE_URL = <selected URL>` and `BUDGET = 300`. It runs the engine
-   (`../egress-auth/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
+   (`${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-auth-fetch.py`), polls internally, and relays any
    `[HITL_REQUIRED]` prompt. **Do not write your own retry loop.**
 4. **Report** SUCCESS / FAILED / TIMEOUT per the `egress-auth` exit-code table. On SUCCESS the
    user can call `dev.azure.com` and `*.visualstudio.com`; the token is cached for the session.
