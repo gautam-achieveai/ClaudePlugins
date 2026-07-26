@@ -3,6 +3,8 @@ name: logging-enablement
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 1
+effort: xhigh
 model: inherit
 color: green
 tools: ["Read", "Grep", "Glob", "Bash", "Edit", "Write"]

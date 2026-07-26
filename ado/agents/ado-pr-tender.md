@@ -3,6 +3,8 @@ name: ado-pr-tender
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 1
+effort: xhigh
 skills:
   - ado-mentions
 ---

@@ -3,6 +3,8 @@ name: orleans-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 5
+effort: high
 model: inherit
 color: red
 tools:

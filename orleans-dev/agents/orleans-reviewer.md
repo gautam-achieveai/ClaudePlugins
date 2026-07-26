@@ -1,6 +1,8 @@
 ---
 name: orleans-reviewer
 description: Senior Microsoft Orleans expert performing comprehensive code reviews — covers grain design, concurrency, cross-grain communication, streams, and serialization.
+modelintelligence: 5
+effort: high
 ---
 
 # Orleans Code Reviewer

@@ -3,6 +3,8 @@ name: pr-context-gatherer
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 3
+effort: xhigh
 ---
 
 # PR Context Gatherer Agent
