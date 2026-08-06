@@ -21,8 +21,9 @@ pr-reviewer/
 │   ├── security-checklist.md     # Security vulnerability checklist
 │   └── testing-guide.md          # Testing best practices
 ├── templates/                    # Review templates
-└── scripts/                      # PowerShell automation scripts
-    ├── Start-PRReview.ps1        # Initialize PR review workflow
+└── scripts/                      # Cross-platform review automation
+    ├── Start-PRReview.ps1        # Initialize review workflow on PowerShell
+    ├── Start-PRReview.sh         # Initialize review workflow on Linux/Bash
     └── README.md                 # Script documentation
 ```
 
@@ -68,6 +69,16 @@ mcp__azure-devops__getPullRequest -repository "YourRepo" -pullRequestId 12345
     -SourceBranch "feature/add-bulk-upload" `
     -PRTitle "Add bulk upload feature" `
     -PRAuthor "Example Developer"
+```
+
+On Linux:
+
+```bash
+bash <PATH_FOR_PR-REVIEWER_SKILL_ROOT_DIRECTORY>/scripts/Start-PRReview.sh \
+    --pr-number 12345 \
+    --source-branch feature/add-bulk-upload \
+    --pr-title "Add bulk upload feature" \
+    --pr-author "Example Developer"
 ```
 
 This creates an isolated worktree with analysis templates.

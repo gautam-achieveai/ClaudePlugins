@@ -12,10 +12,27 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
 
 ## Step 1: Detect re-review context
 
-- Fetch existing review comments — ADO `mcp__azure-devops__getPullRequestComments`, GitHub `gh api repos/<owner>/<repo>/pulls/<n>/comments`
+- Fetch existing review comments and resolution state — ADO
+  `mcp__azure-devops__getPullRequestComments`; GitHub GraphQL
+  `pullRequest.reviewThreads` (`id`, `isResolved`, `isOutdated`, `path`, `line`,
+  and comments) plus `issues/<n>/comments` for the canonical summary. Do not use
+  REST review comments alone to infer resolved/open state.
 - If previous review comments exist from this reviewer (or Claude), this is a re-review
 - Extract the previous issue list (numbered issues with severities) from the last review summary comment
 - Note which issues the author responded to (replies to review threads)
+- Recover the complete serialized **Review Intent**, full non-terminal
+  `reviewThreads[]`, compact `closedThreadArchive[]`, and cumulative
+  `closedThreadArchiveOmittedCount` from the canonical summary. Non-terminal
+  state includes acceptance criteria, non-goals,
+  delivered approach, evidence, thread status, attempt count, and last-attempt
+  commit. Closed archive records retain finding/thread identity, provider
+  closure time, and the last completed action. Keep them unchanged unless newly
+  discovered authoritative context or a verified state transition applies.
+  Never reset or decrement the recovered omission count. Review comments do not
+  redefine scope.
+- For a legacy summary without these objects, reconstruct them once from the
+  original work item/PR and provider threads, mark unknown fields explicitly,
+  and persist the canonical objects in this re-review summary.
 - **Extract previous `[QUESTION]` threads** — identify which questions were answered
   and which remain unanswered. Read the answers to build additional review context.
 
@@ -30,22 +47,21 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
 
 Create a table tracking each previous issue:
 
-```
-| # | Previous Issue | Severity | Status | Evidence |
-|---|---|---|---|---|
-| 1 | MockDistributionMetricManager | CRITICAL | RESOLVED | Replaced with CachedDistributionMetricManager |
-| 2 | Code duplication 400+ lines | HIGH | RESOLVED | Reduced via ProficiencyMapCalculator |
-| 3 | No fallback mechanism | HIGH | RESOLVED | ExecuteWithFallbackAsync added |
-| 4 | No automated tests | HIGH | WON'T FIX | Author: "Will follow up in separate PR" |
+```text
+| ID | Issue | Severity | Blocker | Status | Attempts | Last Attempt | Pending Action | Action ID | Last Completed Action | Required Outcome / Done When | Evidence |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| F-001 | Incorrect cache lifetime | HIGH | Yes | RESOLVED | 1 | abc123 | NONE | null | F-001:REPLY:abc123:1 | Requests cannot share user state / isolation test passes | Author supplied a fix; verification pending |
+| F-002 | Duplicate helper | MEDIUM | No | WONT_FIX_ACCEPTED | 0 | null | CLOSE | F-002:CLOSE:head456:0 | null | Optional follow-up | Deferral accepted |
 ```
 
-Status values: `RESOLVED`, `ACTIVE`, `WON'T FIX`
+Status values: `NEW`, `ACTIVE`, `RESOLVED`, `VERIFIED`,
+`WONT_FIX_ACCEPTED`, `CLOSED`, `HANDOFF_REQUIRED`.
 
 ### Build question resolution tracker
 
 Create a separate table tracking each previous `[QUESTION]` thread:
 
-```
+```text
 | # | Previous Question | File:Line | Status | Answer Summary |
 |---|---|---|---|---|
 | 1 | Why is retry count hardcoded to 3? | RetryService.cs:45 | ANSWERED | "Business rule: max 3 retries per SLA" |
@@ -55,6 +71,7 @@ Create a separate table tracking each previous `[QUESTION]` thread:
 Status values: `ANSWERED`, `UNANSWERED`
 
 **Using answered questions:**
+
 - Feed answered questions into the re-review context — the reviewer now has
   information they lacked in the previous review
 - An answer may cause previously uncertain code to become a finding (if the
@@ -66,100 +83,121 @@ Status values: `ANSWERED`, `UNANSWERED`
 ## Step 3.5: Satisfaction Check
 
 For each thread in the tracker, verify the resolution using the delta diff and
-the [Review Thread State Machine](../references/review-thread-state-machine.md):
+the [Review Thread State Machine](../../../references/review-thread-state-machine.md):
 
 **RESOLVED threads** — verify fix in the delta diff:
-1. Find the code change that addresses the original finding
-2. Confirm it actually fixes the issue (not just a cosmetic change)
-3. Confirm no regressions were introduced
-4. If the fix is good → use `updatePullRequestThread` to close the thread
-5. If the fix is insufficient → reply with `replyToComment` explaining what is
-   still wrong or missing. The thread stays Active.
 
-<severity_enforcement>
-**WON'T FIX threads** — evaluate by severity:
+1. Find the code or evidence that addresses the original finding.
+2. Evaluate it against the original `Required Outcome` and `Done When`, not the
+   reviewer's suggested implementation.
+3. Accept any safe equivalent solution that meets those conditions.
+4. Check only for regressions caused by the fix.
+5. If the conditions are met, set `status = VERIFIED`,
+   `pendingAction = CLOSE`, and a deterministic `actionId`. `RESOLVED` alone
+   means the author supplied a fix; it remains blocking until this verification.
+6. If a source commit attempts the fix but the conditions are not met, increment
+  `authorAttemptCount` and store the commit only when it is different from
+  `lastAuthorAttemptCommit`. Do not count repeated review runs, the same commit,
+  or unrelated commits.
+7. After the first unsuccessful author attempt, keep `status = ACTIVE` and set
+   `pendingAction = REPLY` with the exact unmet condition and evidence. Derive
+   `actionId` from finding ID, action, source commit, and attempt count.
+8. After the second unsuccessful author attempt, set
+   `status = HANDOFF_REQUIRED`, `pendingAction = HANDOFF`, and a new
+   deterministic `actionId`. Do not generate a third AI fix suggestion or add
+   new requirements to the thread.
 
-The guardian does not let CRITICAL, HIGH, or MEDIUM issues slide. The developer's
-reply must be **satisfactory** — meaning it proves the finding was wrong, or
-demonstrates the risk is fully mitigated. "Will fix later" is not satisfactory.
+<blocker_enforcement>
+**WON'T FIX threads — evaluate by blocker status and concrete risk:**
 
-**CRITICAL — Won't Fix is almost never acceptable:**
-- Accept ONLY if the developer proves the finding is factually incorrect (the
-  code path is unreachable, the reviewer misread the code, a test already
-  covers the scenario)
-- "Out of scope", "will fix later", or a deferred work item are NOT acceptable
-- If the rationale does not prove the finding wrong → reopen (thread returns to ACTIVE state)
+- **Blocking finding**: accept when the author proves the finding is factually
+  incorrect, supplies evidence that the required outcome already holds, or fully
+  mitigates the merge risk in this PR. A follow-up item alone is insufficient when
+  the demonstrated risk would remain live after merge.
+- **Non-blocking finding**: accept a reasonable one-line rationale, explicit
+  deferral, or author preference among valid alternatives. Close the thread; it
+  must not create another required review cycle.
+- **Security finding**: require evidence proportional to the concrete exploit or
+  exposure. Do not accept an unmitigated security blocker as merely out of scope.
 
-**HIGH — Requires strong technical justification:**
-- The developer must provide specific technical reasoning showing why the issue
-  does not apply or is already mitigated in this PR
-- A deferred work item is acceptable ONLY if the risk is mitigated in this PR
-  (guard clause, feature flag, documented known limitation)
-- "Will fix in follow-up" without mitigation → reopen
+If the original thread has no implementation-neutral `Required Outcome` and
+objective `Done When`, clarify those once before rejecting the author's response.
+The reviewer may not keep the thread open against an unwritten standard.
 
-**MEDIUM — Requires reasonable technical rationale:**
-- The developer must explain why the suggestion doesn't apply or would be
-  net-negative for the codebase
-- A deferred work item with brief justification is acceptable
-- Bare "won't fix" or "style preference" without reasoning → reopen
+When a rationale is accepted, set `status = WONT_FIX_ACCEPTED`,
+`pendingAction = CLOSE`, and a deterministic `actionId`. The posting skill moves
+it to `CLOSED` only after provider reconciliation succeeds.
+</blocker_enforcement>
 
-**LOW — Accept readily:**
-- Any reasonable one-line explanation suffices → close
+**ACTIVE threads** (no developer reply):
 
-**Security issues (any severity) — strictest bar:**
-- Always reopen unless the developer proves the finding is factually incorrect
-- "Out of scope" is never acceptable for security findings
-</severity_enforcement>
-
-**ACTIVE threads** (no developer reply at all) — escalate:
-1. Reply with `replyToComment`: "This issue is still outstanding — please address
-   or provide a rationale for Won't Fix."
-2. The thread stays Active.
+- For blockers, keep the thread active and list its existing closure condition in
+  the summary with `pendingAction = NONE`. Do not post a generic reminder on
+  every run or increment the attempt count without a new fix commit.
+- For non-blockers, do not chase a response or carry the item into the verdict.
 
 ## Step 4: Review only the delta
 
 - Run the same domain-specific agents (step 7) but ONLY on files changed since last review
 - Focus on: Did the fix actually address the issue? Did the fix introduce new issues?
 - Look for regressions: Did fixing issue A break something else?
+- Pass the original Review Intent to every agent and to `review-grader`.
+- New findings must arise from the delta, newly supplied authoritative context, or
+  a newly demonstrated material risk directly activated by the delta. Do not add
+  new Medium/Low comments on unchanged code that was available in the initial review.
+- Do not regrade an existing thread or change its closure criteria without new evidence.
+- Do not dispatch domain agents for a `HANDOFF_REQUIRED` finding unless a
+  maintainer records a decision or new authoritative evidence changes the risk.
 
 ## Step 5: Post re-review summary
 
 <verdict_gate>
 **Before determining the verdict, apply the unresolved gate:**
 
-If ANY CRITICAL, HIGH, or MEDIUM thread is still ACTIVE (unresolved or Won't Fix
-rejected) → the verdict MUST be **REQUEST CHANGES**. No exceptions. The guardian
-does not approve PRs with unresolved substantive issues regardless of how many
-iterations have passed or how long the PR has been open.
+If any blocker is `NEW`, `ACTIVE`, `RESOLVED`, or `HANDOFF_REQUIRED` after
+evaluating its original closure criteria, the verdict is **REQUEST_CHANGES**.
+Severity alone does not determine this gate; non-blocking Critical/High/Medium
+guidance does not prevent approval.
 
-Only when every CRITICAL, HIGH, and MEDIUM thread is satisfactorily resolved or
-has an accepted Won't Fix rationale (meeting the severity bar above) can the
-verdict be APPROVE or APPROVE WITH COMMENTS.
+When the stated problem is solved, the solution remains in the right ballpark,
+and every blocker is `VERIFIED`, `WONT_FIX_ACCEPTED`, or `CLOSED`, use the
+provisional verdict `APPROVE` or `APPROVE_WITH_COMMENTS` according to the
+remaining optional feedback. The posting skill casts an approval only after all
+closure candidates become `CLOSED` and canonical state persistence succeeds.
 
 The verdict is the MORE restrictive of:
-- The unresolved gate result (from CRITICAL/HIGH/MEDIUM thread status)
+
+- Review Intent (goal coverage and solution direction)
+- The unresolved gate result (from blocker status)
 - The delta review result (new issues found in Step 4)
 </verdict_gate>
 
-<verdict-monotonicity>
+### Verdict Stability
+
 On re-review, the verdict MUST NOT regress unless:
   (a) a new finding was introduced in the delta, OR
-  (b) an existing finding was previously under-graded and the grader now escalates, OR
+  (b) new authoritative evidence proves an existing finding was materially misgraded, OR
   (c) a previously RESOLVED thread was reopened as ACTIVE because the attempted fix was insufficient.
 If none of (a)-(c) happened, carry the previous verdict forward.
 
+Changing reviewer preference, discovering optional cleanup in unchanged code, or
+rewriting an already-satisfied closure condition cannot regress the verdict.
+
 `APPROVE` from iteration N must stay `APPROVE` on iteration N+1 when the
 incremental diff introduces no new issues and no prior thread was reopened.
-</verdict-monotonicity>
 
 Unless small-delta mode applies, use a structured format:
 
 ```markdown
 ## Re-Review Summary: PR #XXXX
 
+### Intent Check
+- Goal coverage: SOLVED / PARTIALLY_SOLVED / NOT_SOLVED / UNCLEAR
+- Solution direction: RIGHT_BALLPARK / FUNDAMENTALLY_MISALIGNED / UNCLEAR
+
 ### Previous Issues Resolution Status
-| # | Issue | Severity | Resolution |
-|---|---|---|---|
+| # | Issue | Severity | Blocker | Resolution / Remaining Done When |
+|---|---|---|---|---|
 
 ### Previous Questions Status
 | # | Question | Status | Impact on Review |
@@ -173,30 +211,55 @@ Unless small-delta mode applies, use a structured format:
 (if any new uncertainties arose from the delta or from answered questions)
 
 ### Verdict
-APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
+APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
 
 ### Unresolved Issues Blocking Approval (if any)
-- [List each CRITICAL/HIGH/MEDIUM thread still active]
+- [List only active blockers as: required outcome — done when closure evidence]
+
+### Shortest Path to Approval (if REQUEST_CHANGES)
+1. [Required outcome] — done when [objective evidence]
+
+### Maintainer Decision Required (if any)
+- [F-NNN: evidence-backed blocker after two author attempts; no further AI reply]
+
+### Canonical Review State
+- [Complete serialized reviewIntent]
+- [Complete non-terminal reviewThreads with action IDs and reconciled provider state]
+- [Compact closedThreadArchive with terminal finding/thread identities]
 ```
 
 ## Re-review rules
 
 <re_review_rules>
-- **Max 5 re-review iterations** — after 5 re-review cycles, post a final summary and stop. If CRITICAL/HIGH/MEDIUM issues remain, the final verdict is still REQUEST CHANGES — iteration count does not reduce severity or lower the bar.
+
+- **Two-attempt convergence limit per blocker** — the first unsuccessful fix gets
+  one precise reply naming the unmet `Done When`. If the same blocker remains
+  disputed after a second author attempt, stop generating alternative AI review
+  suggestions. Post one consolidated statement of the remaining evidence and
+  route the decision to a synchronous discussion or code owner/maintainer. Keep
+  `REQUEST_CHANGES` only while the blocker remains evidence-backed; do not start a
+  third asynchronous AI loop over the same unchanged issue.
+- **Persist handoff state** — `HANDOFF_REQUIRED`, `authorAttemptCount = 2`, and
+  `lastAuthorAttemptCommit` stay in the canonical summary. Automated review does
+  not clear or reply to this state; only a maintainer decision or new
+  authoritative evidence can transition it.
+- **Reconcile actions before retrying** — if a provider comment already contains
+  the deterministic action marker, or a CLOSE target is already resolved, record
+  `lastCompletedActionId` and do not repeat the action.
 - **Don't re-litigate resolved issues** — if the author fixed it, acknowledge and move on
-- **Track DEFERRED items** — note them as "acknowledged, not blocking" but keep them visible, ask to open bug or work item for it. 
+- **Track deferred blockers only when needed** — optional items can be acknowledged
+  and closed without requiring a follow-up work item. A deferred blocker needs a
+  mitigation in this PR plus an owner/tracking item for the remaining risk.
 - **Focus on the delta** — only flag new issues in the updated code
-- **Won't Fix must meet the severity bar** — evaluate the developer's rationale
-  against the finding's severity tier (see Satisfaction Check). CRITICAL and HIGH
-  Won't Fix replies are challenged by default. Only accept when the developer
-  proves the finding was wrong or the risk is fully mitigated in this PR.
-- **Don't lower the bar over iterations** — the third re-review applies the same
-  standards as the first. Time pressure and iteration count are not reasons to
-  accept unresolved CRITICAL/HIGH/MEDIUM issues.
+- **Won't Fix must meet the blocker bar** — evaluate whether concrete merge risk
+  remains, not whether the author used the suggested implementation.
+- **Keep the bar stable over iterations** — neither time pressure nor a fresh
+  reviewer preference changes the original `Required Outcome` or `Done When`.
 - **Call out NEW issues** — clearly distinguish new findings from previous ones
-- **Post summary in same thread** — always reply to the existing review summary
-  thread (the `post-pr-review` skill handles thread detection automatically).
-  Do NOT create a new top-level summary comment.
+- **Update the existing summary** — on ADO, reply to the existing summary
+  thread; on GitHub, PATCH the canonical flat issue comment in place. The
+  `post-pr-review` skill handles provider-specific detection. Do not create a
+  new top-level summary item when the canonical one exists.
 - **Use small-delta mode for trivial re-reviews** — if the delta is limited to
   doc string edits, URL updates, formatting, or config/MCP tweaks under ~30
   changed lines, set `isSmallDelta = true` and pass a 1-3 sentence
@@ -205,6 +268,9 @@ APPROVE / APPROVE WITH COMMENTS / REQUEST CHANGES (still)
   verdict unless it changed. If the delta touches business logic, authorization,
   error handling, or security-relevant code, do a full re-review regardless of
   size.
+- **Disable small-delta mode when state changes** — any Review Intent, verdict,
+  thread status, attempt count, or pending-action change requires the full
+  structured summary so durable state is not lost.
 - **DO NOT POST** anything if nothing changed in the PR since last review.
 - **Incorporate answered questions** — read answers to previous `[QUESTION]`
   threads. Use the context they provide to inform the re-review. Close answered

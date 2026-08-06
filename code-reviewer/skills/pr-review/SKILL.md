@@ -1,7 +1,7 @@
 ---
 name: pr-review
 description: >
-  Conduct code reviews of individual pull requests analyzing performance, code alignment, correct usage of external libraries, testing coverage, and code quality. Provides structured feedback with file:line references and code examples. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works on GitHub or Azure DevOps, with PR numbers, branch names, or GitHub/Azure DevOps PR URLs. NOT for developer performance reviews over time.
+  Conduct goal-aligned code reviews of individual pull requests, analyzing correctness, solution fit, performance, code alignment, testing coverage, and code quality while helping authors converge quickly on a mergeable change. Provides prioritized, actionable feedback with stable closure criteria. Use when asked to "review PR #[number]", "code review pull request", "check PR for issues", or "analyze PR changes". Works on GitHub or Azure DevOps, with PR numbers, branch names, or GitHub/Azure DevOps PR URLs. NOT for developer performance reviews over time.
 user-invocable: true
 disable-model-invocation: false
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, Task, TodoWrite, mcp__azure-devops__*
@@ -12,46 +12,54 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, Task, TodoW
 Review individual PRs for code quality, security (OWASP Top 10), performance, and testing adequacy.
 
 <reviewer_philosophy>
-## Guardian Mindset
+## Rigorous Reviews That Converge
 
-The reviewer is the **guardian of the codebase**. Every PR is a gate — code that
-passes through lives in the codebase indefinitely. Slow, incremental slippage is
-the primary threat: one missing null check, one untested edge case, one
-copy-pasted block, one swallowed exception — each individually minor, but
-compounding over months into a codebase that is fragile, unpredictable, and
-expensive to change.
+The reviewer protects the codebase **and** helps the developer land the right
+change without avoidable review rounds. Rigor and flow are not competing goals:
+the review succeeds when material risk is exposed early, the author knows the
+shortest path to resolve it, and the acceptance bar remains stable.
+
+Apply this decision order throughout the review:
+
+1. **Does the code solve the stated problem?** Check the linked work item, PR
+   description, acceptance criteria, and explicit non-goals.
+2. **Is the solution substantially in the right ballpark?** The implementation
+   may not be the reviewer's preferred design, but it must be sound, fit the
+   codebase, and avoid a fundamental architectural dead end.
+3. **What must change before merge?** Be ruthless about demonstrated correctness,
+   security, data-loss, compatibility, and material operability risks. Do not
+   block on perfection, personal preference, or unrelated cleanup.
+4. **How can the author close each blocker efficiently?** State the required
+   outcome, offer a minimal viable path when useful, and define objective
+   evidence that will close the thread.
 
 **Core beliefs:**
 
-- **No "just this once"** — If a pattern is wrong, it's wrong regardless of PR
-  size, deadline pressure, or author seniority. Letting it slide once creates
-  precedent. The next developer will copy the pattern and cite this PR.
-- **Entropy is the default** — Without active resistance, codebases degrade.
-  Every review is an opportunity to hold the line or push quality forward.
-  Accepting "good enough" repeatedly is how good codebases become bad ones.
-- **Small issues compound** — A missing test today means a regression tomorrow.
-  A duplicated block today means divergent behavior next quarter. Flag it now.
-- **The PR is the last checkpoint** — Once merged, fixing issues costs 5-10x
-  more (context switching, regression risk, discovery lag). Catching problems
-  here is the cheapest intervention point.
-- **Protect future developers** — The person reading this code next year should
-  not have to wonder "why was this done this way?" or discover a latent bug
-  through a production incident.
+- **The PR goal is the invariant anchor.** Never let accumulated review comments
+  replace the original problem as the purpose of the PR.
+- **Improve, do not perfect.** Favor approval once a PR solves its stated problem,
+  uses a substantially sound approach, and improves or preserves overall code
+  health, even when optional improvements remain.
+- **Severity and blocking are separate decisions.** Severity describes impact;
+  `[BLOCKER]` means the issue must be resolved in this PR. A Medium observation
+  is not automatically a reason for another iteration.
+- **Evidence outranks reviewer taste.** Accept any implementation that satisfies
+  the required outcome safely; do not require the author to use the reviewer's
+  exact suggestion.
+- **Do not move the goalposts.** Re-reviews verify the original closure criteria
+  against the delta. New blocking findings require new evidence or new code, not
+  a fresh preference about unchanged code.
 
-**What this means in practice:**
+For every Critical, High, or blocking Medium finding, provide:
 
-- Do NOT soften findings to be "nice" — be direct, specific, and honest. A
-  clear `[BLOCKER]` tag is kinder than a production outage.
-- Do NOT skip issues because "it's a small PR" — small PRs with bad patterns
-  are the most dangerous because they fly under the radar.
-- Do NOT approve with known issues just because the PR has been open too long.
-  Time pressure is not a reason to lower the bar.
-- DO acknowledge genuinely good work — but only when it's genuinely good, not
-  as a social lubricant before delivering criticism.
-- DO provide the fix, not just the complaint — every finding should include a
-  concrete suggestion or code example.
-- DO distinguish between BLOCKER (must fix) and non-blocking (should fix) —
-  not everything is equally important, but nothing is beneath notice.
+- **Why it matters** — the concrete consequence, tied to this PR and its goal.
+- **Required outcome** — what must be true before merge, without over-prescribing.
+- **Suggested path** — the smallest safe fix or 1-2 viable options when helpful.
+- **Done when** — a test, behavior, build result, or observable condition that
+  lets the next reviewer close the thread without reinterpretation.
+
+Keep non-blocking feedback visibly optional. Consolidate nits and follow-up ideas
+instead of turning them into additional asynchronous review cycles.
 </reviewer_philosophy>
 
 ## Skill Scope
@@ -103,15 +111,23 @@ mcp__azure-devops__getPullRequest -pullRequestId 12345 -de
 ```
 
 2. Extract source branch from response (`headRefName` on GitHub; `sourceRefName: "refs/heads/<source-branch>"` on Azure DevOps)
-3. Call `pwsh` script with parameters:
+3. Call the setup script for the current operating system:
 
 ```pwsh
 <PATH_FOR_PR-REVIEWER_SKILL_ROOT_DIRECTORY>\scripts\Start-PRReview.ps1 `
     -PRNumber 12345 `
-    -SourceBranch "<source-branch-as-returned-by-getPullRequest>" `
+  -SourceBranch "<source-branch-without-refs/heads-prefix>" `
     -PRTitle "<pull-request-title>" `
     -PRAuthor "<pull-request-author>"
 ```
+
+  ```bash
+  bash <PATH_FOR_PR-REVIEWER_SKILL_ROOT_DIRECTORY>/scripts/Start-PRReview.sh \
+    --pr-number 12345 \
+    --source-branch "<source-branch-or-full-refs/heads-ref>" \
+    --pr-title "<pull-request-title>" \
+    --pr-author "<pull-request-author>"
+  ```
 
 Creates isolated worktree with analysis templates.
 
@@ -157,7 +173,7 @@ Use this mode when changes are **low-complexity and self-contained** — the dif
 **How it works:**
 1. Fetch PR metadata (title, author, description, source/target branches) — GitHub `gh pr view <n> --json …`, ADO `mcp__azure-devops__getPullRequest`.
 2. Get the list and count of changed files — GitHub `gh pr diff <n> --name-only`, ADO `mcp__azure-devops__getPullRequestFileChanges` + `getPullRequestChangesCount`.
-3. **Assess complexity** (see [Complexity Assessment](#complexity-assessment) below). If high-complexity signals are present, switch to Deep Review.
+3. **Assess complexity** using the Complexity Assessment below. If high-complexity signals are present, switch to Deep Review.
 4. View the actual changes — GitHub `gh pr diff <n>` or git diff, ADO `mcp__azure-devops__getFileContent` / git diff.
 5. Perform the review directly from the diffs — no worktree needed.
 
@@ -249,8 +265,10 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 - **Get PR Details**: Fetch the basic PR details — GitHub `gh pr view <n> --json …`, ADO `mcp__azure-devops__getPullRequest`.
 - **Triage PR scope**: Get a quick summary (X files added, Y modified, Z deleted) — GitHub derive from `gh pr diff <n> --name-only`, ADO `mcp__azure-devops__getPullRequestChangesCount`. Use this to gauge PR scope and decide how many parallel agents to dispatch.
-- **Checkout the pull request**: Use Start-PRReview.ps1 script to setup the code and work tree (provider-agnostic — it operates on git).
-- **Check previous comments**: Check for previous comments on the PR — GitHub `gh pr view <n> --json comments,reviews` / `gh api .../pulls/<n>/comments`, ADO `getPullRequestComments`. Note any ongoing discussions or issues that need addressing. **If previous review comments exist from this reviewer (or Claude), switch to the [Re-Review Workflow](#re-review--update-workflow) instead of continuing the initial review.**
+- **Checkout the pull request**: Use `Start-PRReview.ps1` on PowerShell or
+  `Start-PRReview.sh` on Linux/Bash to set up the code and worktree. Both are
+  provider-agnostic and operate on Git.
+- **Check previous comments**: Check for previous comments on the PR — GitHub `gh pr view <n> --json comments,reviews` / `gh api .../pulls/<n>/comments`, ADO `getPullRequestComments`. Note any ongoing discussions or issues that need addressing. **If previous review comments exist from this reviewer (or Claude), switch to the [Re-Review Workflow](reference/re-review-workflow.md) instead of continuing the initial review.**
 - **Check for linked items**: Check for any linked work items (ADO `getWorkItemById`) or linked issues (GitHub `gh pr view <n> --json closingIssuesReferences`) associated with the PR, if applicable.
 
 2. **Classify changed files**: `<Part of step 1 agent output>`
@@ -282,6 +300,47 @@ Use this framework after fetching PR metadata and the changes summary to decide 
   config), emit a `[QUESTION]` on the first review pass. Do not re-raise the same
   scope concern on later re-reviews unless the new delta introduces additional
   unrelated work.
+
+   <review_intent_gate>
+   **Create the Review Intent before judging individual findings.** This record
+   is the stable anchor for domain agents, grading, verdict selection, and every
+   re-review:
+
+   ```yaml
+   reviewIntent:
+     statedProblem: <the user/developer outcome the PR must deliver>
+     acceptanceCriteria: [<observable condition>, ...]
+     explicitNonGoals: [<out-of-scope item>, ...]
+     deliveredApproach: <brief implementation summary>
+     goalCoverage: SOLVED | PARTIALLY_SOLVED | NOT_SOLVED | UNCLEAR
+     solutionDirection: RIGHT_BALLPARK | FUNDAMENTALLY_MISALIGNED | UNCLEAR
+     evidence: [<work item, PR description, test, or code-path reference>, ...]
+   ```
+
+   Use empty arrays when acceptance criteria, non-goals, or evidence are not
+   supplied. Keep these exact lower-camel field names at every handoff and
+   persist the complete object in the review summary for future re-reviews.
+
+   Use sources in this order: explicit acceptance criteria and non-goals, linked
+   work item, PR description, implementation plan, then commit/user context. Do
+   not silently substitute a reviewer's preferred scope for the stated scope.
+
+   - `NOT_SOLVED` or `PARTIALLY_SOLVED`: identify the smallest concrete gaps
+     between delivered behavior and the stated outcome. These gaps can block.
+   - `FUNDAMENTALLY_MISALIGNED`: explain the unsafe or unsustainable direction
+     and guide the author toward the nearest sound correction, not a wholesale
+     redesign unless one is genuinely required.
+   - `SOLVED` + `RIGHT_BALLPARK`: enter **convergence mode**. Continue reviewing
+     rigorously, but create blockers only for evidence-backed merge risks. Keep
+     preferences, polish, and unrelated cleanup non-blocking.
+   - `UNCLEAR`: ask one consolidated, high-value context question. Uncertainty
+     alone is not a blocker; inability to verify a core acceptance condition can
+     become a blocker only when the missing evidence itself creates merge risk.
+
+   Pass this exact Review Intent unchanged to every dispatched reviewer and to
+   `review-grader`. Revisions require newly discovered authoritative context and
+   must be called out explicitly; review comments themselves never redefine it.
+   </review_intent_gate>
 
 4. **Check the code for coding Guidelines**: `<parallel agent — use reference/code-project-alignment-guide.md>`
 
@@ -334,6 +393,14 @@ Use this framework after fetching PR metadata and the changes summary to decide 
     4. If you cannot safely verify a repo-wide or doc-wide prescription, downgrade
        to a scoped suggestion or emit a `[QUESTION]`.
     </claim_strength_discipline>
+
+    <convergence_guidance>
+    Include the Review Intent in every agent prompt. Require each finding to say
+    how the changed code affects the stated goal or creates a concrete merge risk.
+    A different-but-valid implementation is not a finding. For Critical, High,
+    and Medium findings, ask agents for a required outcome and objective closure
+    check; suggestions should describe a minimal path, not impose one exact design.
+    </convergence_guidance>
 
 - **Code alignment (CRITICAL FIRST)**: Read [Code Alignment Guide](reference/code-project-alignment-guide.md) and verify code follows existing project patterns, no duplication, proper framework usage, consistency with team standards.
 - **Review the code**: Look for adherence to coding standards, best practices, and project guidelines.
@@ -531,36 +598,87 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 11. **Severity Grading — Quality Gate**: `<Dispatch review-grader agent>`
 
    Before determining the verdict, dispatch the `review-grader` agent to re-evaluate all
-   findings through 11 impact dimensions. This is **mandatory for every review** — the grader
-   catches findings that domain agents classified too softly, especially code health,
-   convention, and completeness issues.
+  findings against the Review Intent and impact dimensions. This is **mandatory for every
+  review** — the grader protects both code quality and convergence by correcting over- and
+  under-weighted findings, separating severity from blocking status, and making substantive
+  feedback ready to resolve in one focused pass.
 
    **How to dispatch:**
 
-   1. Consolidate all findings from steps 4-9 into a structured list
-   2. De-duplicate first: when multiple agents flag the same issue, keep the more detailed version
-   3. Format each finding as:
-      ```
-      ## Finding [N]
-      - Original Severity: [CRITICAL/HIGH/MEDIUM/LOW]
-      - Blocker: [Yes/No]
-      - Category: [e.g., Conventions, Architecture, Security, etc.]
-      - File: [path:line]
-      - Issue: [description]
-      - Suggestion: [proposed fix]
-      ```
-   4. Dispatch `review-grader` with the formatted findings list
-   5. When the grader returns, **use the graded severities** (not the originals) for verdict
-      determination in Step 12
+  1. Start the grader input with the unchanged Review Intent from Step 3.
+  2. Consolidate all findings from steps 4-9 into a structured list.
+  3. De-duplicate first: when multiple agents flag the same issue, keep the more detailed version.
+  4. Assign each finding a stable ID (`F-001`, `F-002`, ...). Reuse the same ID
+    on re-review; IDs never change when severity or wording changes.
+  5. Format each finding as:
+
+    ```text
+    ## Finding [N]
+    - Id: [F-NNN]
+    - Original Severity: [CRITICAL/HIGH/MEDIUM/LOW]
+    - Blocker: [Yes/No]
+    - Category: [e.g., Conventions, Architecture, Security, etc.]
+    - File: [path]
+    - Line: [1-based line or null]
+    - Issue: [description]
+    - Why It Matters: [concrete consequence for this PR, or "not supplied"]
+    - Required Outcome: [condition that must be true, or "not supplied"]
+    - Suggested Path: [minimal fix or options, or "not supplied"]
+    - Done When: [objective closure evidence, or "not supplied"]
+    ```
+
+  6. Dispatch `review-grader` with the Review Intent and formatted findings list.
+  7. Require the grader to return each surviving finding using the exact
+    posting schema from `post-pr-review`: `id`, `severity`, `blocker`,
+    `category`, `file`, `line`, `issue`, `whyItMatters`, `requiredOutcome`,
+    `suggestedPath`, and `doneWhen`. Merge by stable `id`; never reconstruct
+    location or issue text from grader prose.
+  8. Use both the **graded severity and graded blocker status** for verdict
+    determination in Step 12. Do not infer blocking from severity alone.
 
    **What the grader returns:**
-   - Escalated findings with dimension scores and rationale
-   - Confirmed findings (correctly graded, no change)
-   - Graded verdict recommendation (may differ from what original severities would imply)
-   - Pushback narrative (if the grader recommends a stricter verdict)
 
-   If the grader escalates any finding, note the escalation in the review summary so the PR
-   author understands why the severity differs from what a domain agent might suggest.
+  - Posting-ready final findings with stable IDs and the exact schema above
+  - Regrading rationale and dimension scores, including de-escalations
+  - IDs of out-of-scope or unsubstantiated findings to omit
+   - Graded verdict recommendation (may differ from what original severities would imply)
+  - Verdict rationale and the shortest path to approval when changes are requested
+
+  If the grader changes severity or blocker status, use the final classification without
+  exposing internal agent disagreement. Explain the concrete impact and closure condition
+  to the author; that is what helps them act.
+
+  **Assemble durable thread state before Step 12.** Build `reviewThreads[]`
+  from existing bot-owned finding threads plus new final findings:
+
+  ```text
+  - findingId: F-NNN
+  - threadId: provider thread/comment ID, or null for a new finding
+  - status: NEW | ACTIVE | RESOLVED | VERIFIED | WONT_FIX_ACCEPTED | HANDOFF_REQUIRED
+  - blocker: true | false
+  - authorAttemptCount: non-negative integer
+  - lastAuthorAttemptCommit: source commit SHA, or null
+  - pendingAction: POST | REPLY | CLOSE | HANDOFF | NONE
+  - actionId: <findingId>:<pendingAction>:<sourceCommit-or-none>:<authorAttemptCount>, or null
+  - lastCompletedActionId: last provider-reconciled action ID, or null
+  - requiredOutcome: stable implementation-neutral condition
+  - doneWhen: stable objective closure evidence
+  - evidence: current resolution or remaining-risk evidence
+  ```
+
+  Increment `authorAttemptCount` only when a new source commit, different from
+  `lastAuthorAttemptCommit`, attempts to address that finding. A review
+  invocation by itself is not an attempt. Set exactly one `pendingAction` from
+  the state transition and derive a deterministic `actionId`; the posting skill
+  reconciles that ID and resets the action to `NONE` after success. Emit exactly
+  one thread record for every final finding, with matching blocker and closure
+  fields, while retaining unresolved historical blocker records.
+
+  `NEW`, `ACTIVE`, `RESOLVED`, and `HANDOFF_REQUIRED` are substantive blocker
+  states. `VERIFIED` and `WONT_FIX_ACCEPTED` are closure candidates and must have
+  `pendingAction = CLOSE`. After provider closure, move the record out of
+  `reviewThreads[]` and into `closedThreadArchive[]`; only then may the posting
+  skill cast an approval vote after canonical state persistence succeeds.
 
 12. **Provide Feedback**: `<Use post-pr-review skill>`
 
@@ -581,7 +699,11 @@ Use this framework after fetching PR metadata and the changes summary to decide 
     | `prNumber` | PR number from Step 1 |
     | `repository` | Repository name from Step 1 |
     | `botPrefix` | `[<dev name>'s bot]` — the standard bot prefix for all comments |
-    | `findings[]` | Graded findings list from Step 11 (with graded severities) |
+    | `reviewIntent` | Stable Review Intent record from Step 3 |
+    | `findings[]` | Posting-ready final findings from Step 11 using the exact schema |
+    | `reviewThreads[]` | Full durable state for non-terminal and new finding threads |
+    | `closedThreadArchive[]` | Compact terminal records recovered from the canonical summary plus newly closed records |
+    | `closedThreadArchiveOmittedCount` | Cumulative omitted archive count; `0` on initial review |
     | `questions[]` | Consolidated context questions from Step 10 |
     | `isSmallDelta` | `true` when a re-review delta qualifies for small-delta mode per `reference/re-review-workflow.md`; otherwise `false` |
     | `smallDeltaSummary` | A 1-3 sentence delta-only reply used when `isSmallDelta` is `true` |
@@ -589,31 +711,44 @@ Use this framework after fetching PR metadata and the changes summary to decide 
     | `reviewType` | `initial` or `re-review` |
     | `outputFormatMarkdown` | The formatted review summary (from [Output Format](reference/output-format.md)) |
 
-    **Determine verdict before using** — default posture is skeptical; approve only when
-    confident the code improves (or at minimum does not degrade) the codebase:
-    - **APPROVE** — No Critical/High issues, no Medium issues, code genuinely
-      improves the codebase. This is the highest bar — reserve it for clean PRs.
-    - **APPROVE WITH COMMENTS** — No Critical/High issues, some Medium/Low
-      issues that should be addressed but are non-blocking. The PR is net
-      positive for the codebase despite minor issues.
-    - **REQUEST CHANGES** — Any Critical/High issues, or a pattern of Medium
-      issues that collectively indicate quality slippage (e.g., missing tests +
-      duplicated code + no error handling = systemic problem even if each is
-      individually Medium)
+    **Determine verdict before using** — use the Review Intent and graded blocker status:
+    - **`APPROVE`** — The stated problem is solved, the solution is in the right
+      ballpark, and no blockers remain. Reserve this for reviews with no
+      substantive follow-up; optional nits may be summarized without delaying merge.
+    - **`APPROVE_WITH_COMMENTS`** — The stated problem is solved, the solution is
+      in the right ballpark, and no blockers remain, but useful non-blocking
+      Medium/Low follow-up exists. These comments must not create another required cycle.
+    - **`REQUEST_CHANGES`** — The stated problem is not solved, the solution is
+      fundamentally misaligned, or one or more evidence-backed blockers remain.
+      Multiple Medium findings justify this verdict only when their combined,
+      concrete impact makes the PR unsafe or incomplete to merge; an abstract
+      pattern of polish concerns is not enough.
+
+    If Review Intent is `UNCLEAR` and no merge risk is demonstrated, use
+    `APPROVE_WITH_COMMENTS` and ask one non-blocking question. If the missing
+    evidence prevents verification of a core outcome or safety property, create
+    one evidence blocker with objective `Done When` and use `REQUEST_CHANGES`.
+    Do not invent a fourth `COMMENT` verdict.
+
+    Never request changes solely for personal style, a valid alternative design,
+    unrelated cleanup, speculative precedent, or perfection beyond the PR goal.
+    When requesting changes, the summary must give a prioritized **shortest path
+    to approval** using the stable `Required Outcome` and `Done When` fields.
 
     **Posting is automatic** — do NOT ask the user for permission to post findings,
     questions, or the summary to the PR (GitHub or Azure DevOps). The whole point of
     the review workflow is to publish feedback. Post immediately after determining the verdict.
 
     **Exception — approve/merge still require confirmation:**
-    - Approving the PR (if verdict is APPROVE) — confirm with user first
+    - Approving the PR (if verdict is `APPROVE` or `APPROVE_WITH_COMMENTS`) — confirm with user first
     - Merging the PR — always confirm with user first
 
     The `post-pr-review` skill handles:
     - Posting inline/file/general comments for findings (3-tier priority with fallback)
     - Posting inline comments for context questions (with `[QUESTION]` tag)
-    - Detecting existing summary threads and replying to them (instead of creating new ones)
-    - Optionally approving the PR (if verdict is APPROVE and user confirms)
+    - Updating the existing summary: reply in the ADO thread, or PATCH the
+      canonical GitHub issue comment in place (instead of creating a new one)
+    - Optionally approving the PR (for either no-blocker verdict when the user confirms)
     - Optionally merging the PR (if user requests, with merge strategy confirmation)
 
     After the skill completes, proceed to Step 13 to update tracking state.
@@ -675,11 +810,12 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 - ❌ "This code has issues"
 - ✅ "Line 45: Missing null check for `user` parameter can cause NullReferenceException when called from endpoint X"
 
-**2. Include Code Examples**
+**2. Guide the Finding to Closure**
 
-- Show current problematic code
-- Explain why it's problematic
-- Show recommended fix
+- Tie the consequence to the stated PR goal or a concrete merge risk
+- State the required outcome without prescribing the author's exact implementation
+- Offer a minimal fix or code example when it materially reduces author effort
+- Define observable evidence that will close the thread
 
 **3. Reference Exact Locations**
 
@@ -687,21 +823,26 @@ Use this framework after fetching PR metadata and the changes summary to decide 
 
 **4. Lead with Substance**
 
+- Start with whether the PR solves its stated problem and whether the solution
+  is substantially sound.
 - Acknowledge genuinely good patterns when they exist — but never manufacture
   praise to soften criticism. Empty compliments dilute the signal.
 - Lead with the most important findings. The reviewer's job is to protect the
-  codebase, not to make the author feel good.
-- End with clear action items prioritized by severity.
+  codebase and help the author reach a mergeable result.
+- End with the shortest path to approval, prioritized by blocker status and impact.
 
-**5. Hold the Line on Standards**
+**5. Hold a Stable, Evidence-Based Bar**
 
 - Do not lower the bar because a PR is small, the author is senior, or the
   deadline is tight. Standards exist precisely for when it's inconvenient to
   follow them.
-- Flag patterns that would be copied by future developers — a bad pattern in
-  the codebase is an implicit recommendation to repeat it.
-- When the same issue appears in multiple files, flag every instance — not just
-  the first one. Partial fixes create inconsistency.
+- Do not raise or reinterpret the bar after the author addresses the stated
+  required outcome. Accept equivalent safe fixes.
+- Consolidate repeated instances into one pattern-level finding with bounded,
+  verified locations and one closure condition. Do not create a thread per
+  occurrence when one fix strategy addresses all of them.
+- Keep optional improvements explicitly non-blocking and out of future required
+  re-review cycles.
 
 **6. Verify Before Claiming — Avoid False Positives**
 
@@ -722,6 +863,8 @@ For full rules, see [Codebase Search Discipline](../../references/codebase-searc
 Start with [Code Alignment Guide](reference/code-project-alignment-guide.md) — verifying project patterns, duplication, and framework usage is the highest-priority check.
 
 - [ ] **Code Alignment** (do first): Follows project patterns, no duplication, framework best practices
+- [ ] **Goal Alignment**: Solves the stated problem and satisfies acceptance criteria
+- [ ] **Solution Direction**: Substantially sound and in the right ballpark
 - [ ] Bugs & Correctness: Logic errors, off-by-one, null/undefined handling, edge cases, incorrect API usage
 - [ ] Security: OWASP Top 10, injection, hardcoded secrets, input validation, insecure defaults
 - [ ] Performance: N+1 queries, memory leaks, algorithm efficiency, redundant computations, missing caching
@@ -730,7 +873,8 @@ Start with [Code Alignment Guide](reference/code-project-alignment-guide.md) —
 - [ ] Testing: Coverage, edge cases, integration tests
 - [ ] EUII / PII: No user-identifiable info in logs, telemetry, or error messages
 - [ ] Specific feedback with file:line references
-- [ ] Code examples for issues and fixes
+- [ ] Required outcome and objective closure check for every blocker
+- [ ] Minimal fix guidance or code examples where they reduce iteration time
 - [ ] Balanced positive and constructive feedback
 
 ## Detailed Guides
