@@ -142,7 +142,7 @@ on first Python run — copying it would embed a stale, platform-specific binary
 |---|---|---|
 | `.claude-plugin/marketplace.json` | new file | Authored per "Marketplace registry stays extensible" above — two entries copied verbatim from source, version reset to `1.0.0`, `name` changed. |
 | `.gitattributes` | `claude_plugins/.gitattributes` | Copied as-is — generic line-ending rules (`*.md`/`*.json`/`*.yml`/`*.yaml`/`*.sh` → LF; `*.bat`/`*.cmd`/`*.ps1` → CRLF), nothing source-specific. |
-| `.gitignore` | `claude_plugins/.gitignore`, trimmed | Copied with two dead lines removed: `.ai/work-my-backlog/` and `code-reviewer/skills/pr-review/claude_plugins.code-workspace` / `code-reviewer/skills/over-engineering-review-workspace/` (paths belonging to plugins that don't exist in the new repo). Everything else kept (node/python/IDE/log/env/build/OS/temp rules, `.mcp.json` user-config rule, `*.mcpb`/`.mcp-build/`, the `scratchpad/**` + `!scratchpad/README.md` pair, `inspirations/`). |
+| `.gitignore` | `claude_plugins/.gitignore`, trimmed | Copied with three dead lines removed: `.ai/work-my-backlog/`, `code-reviewer/skills/pr-review/claude_plugins.code-workspace`, and `code-reviewer/skills/over-engineering-review-workspace/` (paths belonging to plugins/workflows that don't exist in the new repo). Everything else kept (node/python/IDE/log/env/build/OS/temp rules, `.mcp.json` user-config rule, `*.mcpb`/`.mcp-build/`, the `scratchpad/**` + `!scratchpad/README.md` pair, `inspirations/`). |
 | `CLAUDE.md` | `claude_plugins/CLAUDE.md` | Copied as-is — it documents the generic plugin/skill/agent/command file-format conventions and naming rules; none of it is source-repo-specific. |
 | `README.md` | new file | Rewritten from scratch, scoped to the two seed plugins and describing the marketplace as extensible (see below). |
 | `scratchpad/README.md` | `claude_plugins/scratchpad/README.md` | Copied as-is, to carry forward the scratchpad/conversation-memory convention the user's global CLAUDE.md instructions already require. |
@@ -182,7 +182,7 @@ alone.
    count) that a mechanical strip could miss.
 3. **Copied-as-is root files get no edits.** `.gitattributes` and `CLAUDE.md` are copied without
    modification because they are already generic. `scratchpad/README.md` likewise.
-4. **`.gitignore` gets a minimal, enumerated trim.** Only the two dead-path lines identified in
+4. **`.gitignore` gets a minimal, enumerated trim.** Only the three dead-path lines identified in
    the inventory table are removed; every other line is preserved unchanged and in its original
    order.
 5. **Version numbers are not renumbered on copy.** The two plugin.json files
@@ -206,7 +206,8 @@ alone.
   file/line before proceeding.
 - **Verify no personal absolute paths.** Grep the staged tree for `/b/sources/claude_plugins`,
   `B:\sources\claude_plugins`, and the current OS username, confirming zero hits.
-- **Confirm plugin trees are exact supersets/subsets of `git ls-files` output**, i.e. re-run
+- **Confirm plugin trees are an exact match against `git ls-files` output** (no extra files, no
+  missing files), i.e. re-run
   `git -C <source-repo> ls-files sandbox sandbox-auth` at copy time and diff the resulting path
   list against the inventory in this spec — catches drift if either plugin has changed since this
   design was written.
