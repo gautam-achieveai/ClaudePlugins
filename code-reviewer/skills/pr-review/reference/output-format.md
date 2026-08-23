@@ -2,12 +2,32 @@
 
 Present findings in severity-grouped format:
 
-```markdown
+````markdown
 # PR Review: [Title]
 
+## Review Intent
+
+Persist this complete object unchanged unless authoritative PR/work-item context
+changes. Use empty arrays rather than omitting fields.
+
+```json
+{
+   "statedProblem": "...",
+   "acceptanceCriteria": ["..."],
+   "explicitNonGoals": ["..."],
+   "deliveredApproach": "...",
+   "goalCoverage": "SOLVED",
+   "solutionDirection": "RIGHT_BALLPARK",
+   "evidence": ["..."]
+}
+```
+
 ## Summary
+- Goal coverage rationale: [brief evidence]
+- Solution direction rationale: [brief evidence]
 - Total files reviewed: X
 - Findings: X Critical, X High, X Medium, X Low
+- Blockers: X
 - Context questions: X (non-blocking clarifications asked)
 - Test coverage: adequate / needs improvement / missing
 - Domain areas touched: [NScript Client, Server, Orleans, Tests, etc.]
@@ -18,20 +38,29 @@ Genuinely good patterns worth noting (with file:line references).
 Only include if there are real strengths — do not manufacture praise.
 
 ## Critical Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
+| # | File | Line | Blocker? | Fix Size | Underlying Problem | Issue / Why It Matters | Required Outcome | Done When |
+|---|---|---|---|---|---|---|---|---|
 
 ## High Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
+| # | File | Line | Blocker? | Fix Size | Underlying Problem | Issue / Why It Matters | Required Outcome | Done When |
+|---|---|---|---|---|---|---|---|---|
 
 ## Medium Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
+| # | File | Line | Blocker? | Fix Size | Underlying Problem | Issue / Why It Matters | Required Outcome | Done When |
+|---|---|---|---|---|---|---|---|---|
 
-## Low Issues
-| # | File | Line | Blocker? | Issue | Fix |
-|---|---|---|---|---|---|
+A clustered finding occupies ONE row; list its instances in the Issue cell as
+`file:line` references. `Fix Size` is the remediation estimate
+(TRIVIAL/SMALL/SUBSTANTIAL/REDESIGN).
+
+## Optional Follow-up
+
+Non-blocking Medium/Low ideas that may improve the code but do not require a
+response, another review cycle, or inclusion in this PR. Offer to file each as
+a work item / issue so it stays tracked without holding the merge.
+
+| # | File | Line | Observation | Suggested Path |
+|---|---|---|---|---|
 
 ## Context Questions (non-blocking)
 
@@ -48,20 +77,83 @@ Coverage gaps, suggested tests, missing test project mappings
 ## Security Review
 OWASP issues found (if any)
 
-## Recommendations
-Specific, actionable improvements
+## Shortest Path to Approval
+
+Include only when the verdict is `REQUEST_CHANGES`. List blockers in priority
+order using their stable closure contracts:
+
+1. [Required outcome] — done when [objective evidence]
+2. [...]
+
+## Maintainer Decision Required
+
+Include only `HANDOFF_REQUIRED` blockers. State the evidence and decision owner;
+do not add another AI fix suggestion.
+
+<details>
+<summary>Review state (machine-readable)</summary>
+
+## Active Review Threads
+
+Persist every non-terminal bot-owned finding thread and every new finding to
+post. The posting skill updates provider IDs/statuses and resets successful
+actions to `NONE` before writing this canonical summary.
+
+```json
+[
+  {
+    "findingId": "F-001",
+    "threadId": "provider-id-or-null",
+    "status": "ACTIVE",
+    "blocker": true,
+    "authorAttemptCount": 1,
+    "lastAuthorAttemptCommit": "abc123-or-null",
+    "pendingAction": "NONE",
+      "actionId": null,
+      "lastCompletedActionId": "F-001:REPLY:abc123:1",
+    "requiredOutcome": "...",
+    "doneWhen": "...",
+    "evidence": "..."
+  }
+]
+```
+
+## Closed Thread Archive
+
+```json
+{
+   "closedThreadArchiveOmittedCount": 0,
+   "closedThreadArchive": [
+      {
+         "findingId": "F-000",
+         "threadId": "provider-id",
+         "status": "CLOSED",
+         "blocker": false,
+         "closedAt": "2026-08-06T12:00:00Z",
+         "lastCompletedActionId": "F-000:CLOSE:def456:0"
+      }
+   ]
+}
+```
+
+</details>
 
 ## Verdict
-**APPROVE** / **APPROVE WITH COMMENTS** / **REQUEST CHANGES**
-- APPROVE — No Critical/High/Medium issues, code genuinely improves the codebase
-- APPROVE WITH COMMENTS — No Critical/High issues, some Medium/Low issues that are non-blocking but should be addressed
-- REQUEST CHANGES — Any Critical/High issues, or a pattern of Medium issues that collectively indicate quality slippage
-```
+**APPROVE** / **APPROVE_WITH_COMMENTS** / **REQUEST_CHANGES**
+- APPROVE — Stated problem solved, solution in the right ballpark, no blockers,
+   and no substantive follow-up
+- APPROVE_WITH_COMMENTS — Stated problem solved, solution in the right ballpark,
+   no blockers, and useful optional feedback remains
+- REQUEST_CHANGES — Stated problem not solved, solution fundamentally
+   misaligned, or one or more evidence-backed blockers remain
+````
 
 ## Remember
 
-**Goal:** Guard the codebase — catch bugs before production, prevent quality
-erosion, ensure every merge leaves the codebase better than or equal to before.
+**Goal:** Help the developer land a solution that addresses the PR's stated
+problem while protecting the codebase from material risk. Be ruthless about
+real blockers and equally ruthless about keeping preferences, perfection, and
+unrelated cleanup from creating extra review cycles.
 
 **Focus on:**
 
@@ -69,14 +161,16 @@ erosion, ensure every merge leaves the codebase better than or equal to before.
 2. **Maintainability** (future developers inherit what merges today)
 3. **Performance** (problems compound — an N+1 in a hot path today is a P1 next quarter)
 4. **Testing** (untested code is unverified code — it's a liability, not an asset)
-5. **Pattern integrity** (bad patterns get copied — one bad example becomes ten)
+5. **Convergence** (stable required outcomes, objective closure checks, no moved goalposts)
 
 Be thorough and direct. **Be specific, actionable, and honest.** Acknowledge
-good work when it's genuinely good. Do not soften findings — a clear finding
-now prevents a production incident later.
+good work when it is genuinely good. Separate severity from blocker status and
+accept any safe implementation that meets the required outcome.
 
-<claim-strength-discipline>
+### Claim-Strength Discipline
+
 When proposing doc changes or prescriptive fixes:
+
 1. If a finding enumerates N instances, verify the corrective wording holds for
    each instance before recommending a universal rule.
 2. `only`, `all`, `always`, `never`, and `every` require exhaustive-search
@@ -84,4 +178,3 @@ When proposing doc changes or prescriptive fixes:
    name the scope.
 3. Do not use the same pattern in your own verified evidence that you are
    telling the author to avoid.
-</claim-strength-discipline>

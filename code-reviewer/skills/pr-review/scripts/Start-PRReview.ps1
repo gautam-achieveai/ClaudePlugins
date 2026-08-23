@@ -184,7 +184,7 @@ $RepoRoot = Split-Path (Split-Path (Split-Path (Split-Path $ScriptDir -Parent) -
 # Validate we're in a git repository
 Push-Location $RepoRoot
 try {
-    $gitCheck = git rev-parse --git-dir 2>&1
+    git rev-parse --git-dir 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Not in a git repository. Expected repository root at: $RepoRoot"
     }
@@ -507,19 +507,19 @@ $prDescription
 ## Quick Commands
 
 ### View specific file diff:
-\`\`\`bash
+~~~bash
 git diff $gitMergeBase...HEAD -- path/to/file.cs
-\`\`\`
+~~~
 
 ### View commit history for PR:
-\`\`\`bash
+~~~bash
 git log $gitMergeBase..HEAD --oneline
-\`\`\`
+~~~
 
 ### Check file at specific commit:
-\`\`\`bash
+~~~bash
 git show <commit>:path/to/file.cs
-\`\`\`
+~~~
 
 ## Review Checklist
 
@@ -539,10 +539,10 @@ git show <commit>:path/to/file.cs
 ## Cleanup
 
 When review is complete:
-\`\`\`powershell
+~~~powershell
 cd $RepoRoot
 git worktree remove $worktreePath
-\`\`\`
+~~~
 
 ## Worktree Location
 
@@ -576,13 +576,13 @@ $templates = @{
 **Location**: \`path/to/file.cs:123\`
 **Severity**: [Critical / High / Medium / Low]
 **Issue**: [Description]
-\`\`\`csharp
+~~~csharp
 // Current code
-\`\`\`
+~~~
 **Recommendation**: [How to improve]
-\`\`\`csharp
+~~~csharp
 // Suggested code
-\`\`\`
+~~~
 
 ---
 
@@ -705,14 +705,14 @@ $templates = @{
 **OWASP Category**: [Category]
 **Severity**: Critical
 **Description**: [What's vulnerable]
-\`\`\`csharp
+~~~csharp
 // Vulnerable code
-\`\`\`
+~~~
 **Attack Scenario**: [How it could be exploited]
 **Fix**: [How to secure]
-\`\`\`csharp
+~~~csharp
 // Secure code
-\`\`\`
+~~~
 
 ---
 
@@ -743,13 +743,13 @@ $templates = @{
 
 **Details**:
 **Location**: \`path/to/file.cs:123\`
-\`\`\`csharp
+~~~csharp
 // Current code causing N+1
-\`\`\`
+~~~
 **Recommendation**:
-\`\`\`csharp
+~~~csharp
 // Use eager loading
-\`\`\`
+~~~
 
 ### Missing Indexes
 - [Any queries that might benefit from indexes]
@@ -775,13 +775,13 @@ $templates = @{
 **Location**: \`path/to/file.cs:45-67\`
 **Current Complexity**: O(n²)
 **Issue**: [Description]
-\`\`\`csharp
+~~~csharp
 // Current O(n²) code
-\`\`\`
+~~~
 **Improved Complexity**: O(n)
-\`\`\`csharp
+~~~csharp
 // Optimized O(n) code
-\`\`\`
+~~~
 
 ### Unnecessary Iterations
 - [Multiple passes over same data]
@@ -852,13 +852,13 @@ $templates = @{
 1. **Scenario**: [Description]
    **Why Critical**: [Business impact]
    **Suggested Test**:
-   \`\`\`csharp
+    ~~~csharp
    [TestMethod]
    public void TestScenario()
    {
        // Suggested test code
    }
-   \`\`\`
+    ~~~
 
 ## Integration Tests
 
@@ -886,21 +886,39 @@ $templates = @{
     "pr_feedback.md"           = @"
 # PR Review Feedback: PR #$PRNumber
 
+## Review Intent
+
+~~~json
+{
+    "statedProblem": "...",
+    "acceptanceCriteria": ["..."],
+    "explicitNonGoals": ["..."],
+    "deliveredApproach": "...",
+    "goalCoverage": "SOLVED",
+    "solutionDirection": "RIGHT_BALLPARK",
+    "evidence": ["..."]
+}
+~~~
+
 ## Summary
 
-- **Overall Assessment**: [Approve / Request Changes / Comment]
+- **Goal Coverage Rationale**: [Evidence]
+- **Solution Direction Rationale**: [Evidence]
+- **Overall Assessment**: [APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES]
 - **Files Changed**: $filesCount
 - **Risk Level**: [Low / Medium / High]
+- **Blockers**: [Number]
 
-## What Was Done Well ✨
+## What Was Done Well
 
 1. [Specific positive with file:line reference]
 2. [Another positive aspect]
 3. [Good practice observed]
 
-## Critical Issues (Must Fix Before Merge) 🚨
+## Blocking Issues
 
 ### Issue 1: [Title]
+**Finding ID**: F-001
 **Location**: \`path/to/file.cs:123\`
 **Severity**: Critical
 **Category**: [Bug / Security / Performance / Design]
@@ -909,29 +927,32 @@ $templates = @{
 [Clear description of the issue]
 
 **Current Code**:
-\`\`\`csharp
+~~~csharp
 // Problematic code
-\`\`\`
+~~~
 
-**Why This Matters**:
-[Business/technical impact]
+**Why This Matters**: [Concrete consequence for this PR and its stated goal]
 
-**Recommended Fix**:
-\`\`\`csharp
+**Required Outcome**: [Implementation-neutral condition that must hold]
+
+**Suggested Path**:
+~~~csharp
 // Suggested solution
-\`\`\`
+~~~
+
+**Done When**: [Objective test, behavior, validation result, or observable state]
 
 ---
 
-## Important Issues (Should Fix) ⚠️
+## Non-Blocking Feedback
 
-[Non-blocking but important concerns]
+[Useful Medium findings that do not require another review cycle]
 
-## Suggestions (Nice to Have) 💡
+## Optional Follow-up
 
-[Optional improvements]
+[Low-severity observations; no response required]
 
-## Testing Feedback 🧪
+## Testing Feedback
 
 **Coverage**: [Assessment]
 
@@ -939,39 +960,91 @@ $templates = @{
 1. [Test scenario]
 2. [Another scenario]
 
-## Security Review 🔒
+## Security Review
 
 [Security assessment - reference security_concerns.md]
 
-## Performance Considerations ⚡
+## Performance Considerations
 
 [Performance impact - reference performance_review.md]
 
-## Documentation 📚
+## Documentation
 
 - [ ] Code comments adequate
 - [ ] README updated
 - [ ] API documentation updated
 - [ ] Breaking changes documented
 
-## Questions for Author ❓
+## Questions for Author
 
 1. [Clarification question]
 2. [Design decision question]
 
-## Next Steps
+## Shortest Path to Approval
 
-- [ ] Author addresses critical issues
-- [ ] Author responds to questions
-- [ ] Additional review after changes
-- [ ] Approval
+Include only when requesting changes. List blockers in priority order:
+
+1. [Required outcome] - done when [objective evidence]
+2. [...]
+
+Optional feedback is explicitly excluded from this list and does not require
+another review cycle.
+
+## Maintainer Decision Required
+
+[HANDOFF_REQUIRED findings only; include evidence and owner, not another AI fix suggestion]
+
+<details>
+<summary>Review state (machine-readable)</summary>
+
+## Active Review Threads
+
+~~~json
+[
+    {
+        "findingId": "F-001",
+        "threadId": null,
+        "status": "NEW",
+        "blocker": true,
+        "authorAttemptCount": 0,
+        "lastAuthorAttemptCommit": null,
+        "pendingAction": "POST",
+        "actionId": "F-001:POST:<head-sha>:0",
+        "lastCompletedActionId": null,
+        "requiredOutcome": "...",
+        "doneWhen": "...",
+        "evidence": "..."
+    }
+]
+~~~
+
+## Closed Thread Archive
+
+~~~json
+{
+    "closedThreadArchiveOmittedCount": 0,
+    "closedThreadArchive": [
+        {
+            "findingId": "F-000",
+            "threadId": "provider-id",
+            "status": "CLOSED",
+            "blocker": false,
+            "closedAt": "<provider-closure-time>",
+            "lastCompletedActionId": "F-000:CLOSE:<head-sha>:0"
+        }
+    ]
+}
+~~~
+
+</details>
 
 ## Approval Decision
 
-**Status**: [Approve / Request Changes / Comment Only]
+**Status**: [APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES]
 
 **Reasoning**:
-[Why this decision]
+[Does the PR solve the stated problem? Is the solution in the right ballpark?
+What evidence-backed blockers remain, if any?]
 
 ---
 
@@ -1000,9 +1073,9 @@ $templates = @{
 2. [Step 2]
 
 **Code**:
-\`\`\`csharp
+~~~csharp
 // Recommended implementation
-\`\`\`
+~~~
 
 ---
 

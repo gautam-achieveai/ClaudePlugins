@@ -25,7 +25,17 @@ cd .claude/skills/pr-reviewer/scripts
 
 This creates an isolated worktree with complete review setup.
 
-## Start-PRReview.ps1
+**Linux / Bash:**
+
+```bash
+bash ./Start-PRReview.sh \
+    --pr-number 12345 \
+    --source-branch "$sourceBranch" \
+    --pr-title "$prTitle" \
+    --pr-author "$prAuthor"
+```
+
+## Start-PRReview.ps1 / Start-PRReview.sh
 
 **Purpose**: All-in-one script to set up a complete PR review environment
 
@@ -46,7 +56,14 @@ This creates an isolated worktree with complete review setup.
 - `-PRTitle` (Optional): PR title (LLM fetches via MCP)
 - `-PRAuthor` (Optional): PR author (LLM fetches via MCP)
 - `-PRDescription` (Optional): PR description (LLM fetches via MCP)
-- `-SkipWorktree` (Optional): Skip worktree creation, use current directory
+- `-SkipWorktree` (Optional): Skip worktree creation and use the current
+    directory. Its `HEAD` must already match the fetched source-branch tip.
+
+The Bash version uses `--pr-number`, `--source-branch`, `--base-branch`,
+`--pr-title`, `--pr-author`, `--pr-description`, and `--skip-worktree`. With
+`--skip-worktree`, check out the source branch tip first; the script rejects a
+different `HEAD` rather than reviewing the wrong commit.
+Run `bash ./Start-PRReview.sh --help` for the complete Linux usage.
 
 **Example - Full Parameters** (Recommended):
 ```powershell
@@ -68,6 +85,15 @@ This creates an isolated worktree with complete review setup.
     -PRNumber 98765 `
     -SourceBranch "feature/new-api" `
     -SkipWorktree
+```
+
+**Example - Linux**:
+
+```bash
+bash ./Start-PRReview.sh \
+    --pr-number 98765 \
+    --source-branch feature/new-api \
+    --skip-worktree
 ```
 
 **Output Structure**:
@@ -103,7 +129,11 @@ git worktree remove worktrees/pr-12345-review
 
 ### 1. Setup
 ```powershell
-.\Start-PRReview.ps1 -PRNumber 12345
+.\Start-PRReview.ps1 -PRNumber 12345 -SourceBranch "feature/example"
+```
+
+```bash
+bash ./Start-PRReview.sh --pr-number 12345 --source-branch feature/example
 ```
 
 ### 2. Review Templates
