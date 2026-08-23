@@ -24,7 +24,15 @@ function extractPowerShellHereString(content, key) {
   return match[1];
 }
 
-const prReview = readRepoFile("code-reviewer/skills/pr-review/SKILL.md");
+// pr-review is a progressive-disclosure skill: SKILL.md is the workflow spine
+// and per-step contracts live in reference files loaded at their step. The
+// policy assertions apply to the skill as a whole, so concatenate the spine
+// with the reference files that carry its contracts.
+const prReview = [
+  readRepoFile("code-reviewer/skills/pr-review/SKILL.md"),
+  readRepoFile("code-reviewer/skills/pr-review/reference/agent-guidance.md"),
+  readRepoFile("code-reviewer/skills/pr-review/reference/publish-and-track.md"),
+].join("\n");
 const reviewGrader = readRepoFile("code-reviewer/agents/review-grader.md");
 const reReview = readRepoFile(
   "code-reviewer/skills/pr-review/reference/re-review-workflow.md"

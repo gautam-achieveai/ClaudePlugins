@@ -62,11 +62,14 @@ Each item in `findings[]` must have:
 ```text
 - id: F-NNN
 - severity: CRITICAL | HIGH | MEDIUM | LOW
+- remediation: TRIVIAL | SMALL | SUBSTANTIAL | REDESIGN
 - blocker: true | false
 - category: string (e.g., "Security", "Performance", "Code Quality")
 - file: string (path relative to repo root)
 - line: integer (1-based line number, or null for file-level)
+- instances: string[] (file:line list for clustered findings; empty otherwise)
 - issue: string (description of the problem)
+- underlyingProblem: string (mechanism behind the symptom, one sentence — REQUIRED)
 - whyItMatters: string (concrete consequence for this PR)
 - requiredOutcome: string (implementation-neutral condition; required for blockers)
 - suggestedPath: string (minimal safe route or 1-2 viable options)
@@ -365,33 +368,48 @@ Post `newFindings[]` in action priority, then severity order:
 
 For blocking findings:
 ```markdown
-<botPrefix> [BLOCKER] [<id>] **<severity>** (<category>)
+<botPrefix> [BLOCKER] [<id>] **<severity>** / fix: <remediation> (<category>)
 
 <!-- review-action:<actionId> -->
 
 <issue>
 
+**Underlying problem:** <underlyingProblem>
+
 **Why this matters:** <whyItMatters>
 
 **Required outcome:** <requiredOutcome>
 
-**Suggested path:** <suggestedPath>
+**Minimal fix (floor, not spec):** <suggestedPath>
 
 **Done when:** <doneWhen>
 ```
 
 For non-blocking findings:
 ```markdown
-<botPrefix> [NON-BLOCKING] [<id>] **<severity>** (<category>)
+<botPrefix> [NON-BLOCKING] [<id>] **<severity>** / fix: <remediation> (<category>)
 
 <!-- review-action:<actionId> -->
 
 <issue>
 
+**Underlying problem:** <underlyingProblem>
+
 **Why this may help:** <whyItMatters>
 
 **Consider:** <suggestedPath; an equivalent choice or deferral is acceptable>
+
+_Non-blocking — can be filed as a work item instead of holding this PR._
 ```
+
+For clustered findings (either kind), insert after the issue description:
+```markdown
+**Instances (<count>):**
+- <file:line — one-line variant description>
+- <file:line — ...>
+```
+One comment covers the whole cluster; anchor it at the first instance. Never
+post one comment per instance of the same mechanism.
 
 **Do not reclassify findings while posting.** Use the grader's `Blocker` value.
 Severity and category alone do not make a finding blocking. If the classification

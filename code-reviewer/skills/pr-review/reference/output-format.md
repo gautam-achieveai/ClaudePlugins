@@ -38,21 +38,26 @@ Genuinely good patterns worth noting (with file:line references).
 Only include if there are real strengths — do not manufacture praise.
 
 ## Critical Issues
-| # | File | Line | Blocker? | Issue / Why It Matters | Required Outcome | Done When |
-|---|---|---|---|---|---|---|
+| # | File | Line | Blocker? | Fix Size | Underlying Problem | Issue / Why It Matters | Required Outcome | Done When |
+|---|---|---|---|---|---|---|---|---|
 
 ## High Issues
-| # | File | Line | Blocker? | Issue / Why It Matters | Required Outcome | Done When |
-|---|---|---|---|---|---|---|
+| # | File | Line | Blocker? | Fix Size | Underlying Problem | Issue / Why It Matters | Required Outcome | Done When |
+|---|---|---|---|---|---|---|---|---|
 
 ## Medium Issues
-| # | File | Line | Blocker? | Issue / Why It Matters | Required Outcome | Done When |
-|---|---|---|---|---|---|---|
+| # | File | Line | Blocker? | Fix Size | Underlying Problem | Issue / Why It Matters | Required Outcome | Done When |
+|---|---|---|---|---|---|---|---|---|
+
+A clustered finding occupies ONE row; list its instances in the Issue cell as
+`file:line` references. `Fix Size` is the remediation estimate
+(TRIVIAL/SMALL/SUBSTANTIAL/REDESIGN).
 
 ## Optional Follow-up
 
 Non-blocking Medium/Low ideas that may improve the code but do not require a
-response, another review cycle, or inclusion in this PR.
+response, another review cycle, or inclusion in this PR. Offer to file each as
+a work item / issue so it stays tracked without holding the merge.
 
 | # | File | Line | Observation | Suggested Path |
 |---|---|---|---|---|

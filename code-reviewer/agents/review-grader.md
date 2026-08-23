@@ -65,16 +65,28 @@ Findings follow this format:
 ## Finding [N]
 - Id: [F-NNN]
 - Original Severity: [CRITICAL/HIGH/MEDIUM/LOW]
+- Remediation: [TRIVIAL/SMALL/SUBSTANTIAL/REDESIGN]
 - Blocker: [Yes/No]
 - Category: [e.g., Conventions, Architecture, Security, etc.]
 - File: [path]
 - Line: [1-based line or null]
+- Instances: [file:line list — only for clustered findings, else "none"]
 - Issue: [description]
+- Underlying Problem: [mechanism behind the symptom, one sentence]
 - Why It Matters: [concrete consequence for this PR, or "not supplied"]
 - Required Outcome: [condition that must be true, or "not supplied"]
 - Suggested Path: [minimal fix or options, or "not supplied"]
 - Done When: [objective closure evidence, or "not supplied"]
 ```
+
+If `Remediation` is missing, assign it yourself — impact severity alone is half a
+grade. A one-cell HIGH and a redesign HIGH need completely different author
+responses.
+
+A **clustered finding** (3+ raw findings sharing one mechanism) arrives as ONE
+finding with an `Instances` list. Grade the mechanism once with one closure
+condition covering every instance. Never split a cluster back into per-instance
+findings, and never grade instances separately.
 
 Parse and evaluate every finding. Do not presume that Critical/High findings are correct or that
 Low/Medium findings are under-weighted. Check the evidence, relevance, severity, blocker status,
@@ -298,19 +310,39 @@ Recommend `[BLOCKER]` when at least one is true:
 - The finding is a `GOAL_GAP` that prevents a stated acceptance outcome
 - The changed code introduces a concrete security, correctness, data-loss, compatibility, or
   operational risk that is not adequately mitigated
+- A schema, migration, or wire-compatibility gap leaves existing state or existing
+  consumers with undefined behavior (undefined behavior for existing rows is a
+  future minefield, not a "maybe")
+- A documented or enforced convention contract is violated — semver, release
+  metadata, repository policy, wire format, public API shape — and the concrete
+  consequence for consumers or automation is stated
 - Deferring would make the issue materially harder or irreversible after release
 - A documented, applicable merge/release policy requires resolution
 
 Critical and High findings normally meet this bar, but verify rather than infer it. A Medium finding
 may block when its concrete combined impact makes the PR unsafe or incomplete. Low findings do not
-block. Convention, code-health, testing, or precedent concerns without a demonstrated merge risk
-remain non-blocking even when worth posting.
+block. Informal-preference convention, code-health, testing, or precedent concerns without a
+demonstrated merge risk remain non-blocking even when worth posting.
+
+**Remediation size routes borderline Mediums.** A MEDIUM defect with
+TRIVIAL/SMALL remediation in the changed code may block — a real defect that is
+cheap to fix now should be fixed now. A MEDIUM that needs SUBSTANTIAL/REDESIGN
+work stays non-blocking: file it as a follow-up work item instead of holding the
+PR hostage to a redesign. Findings with `blocker: true` form the
+**merge-blocking lane**; `blocker: false` findings are the **follow-up lane**
+and never gate the verdict.
 
 For every Critical, High, and Medium finding, normalize the author guidance:
 
+- **Underlying problem**: the mechanism behind the symptom, one sentence —
+  required for every finding, in the summary AND in the inline comment
 - **Why it matters**: consequence in this PR's real execution or delivery context
 - **Required outcome**: implementation-neutral condition to satisfy
-- **Suggested path**: smallest safe route or 1-2 viable options; never the only accepted design
+- **Suggested path**: smallest safe route or 1-2 viable options; never the only
+  accepted design. State the defect, don't prescribe the remedy: the smallest
+  correction is a floor, not a spec. A suggestion that adds API surface — new
+  types, actions, endpoints, tables, config — must state why no smaller
+  correction exists.
 - **Done when**: objective test, behavior, validation result, or observable state
 
 If a blocking finding lacks a safe, objective `Done When`, it is not ready to post. Narrow the claim,
@@ -360,11 +392,14 @@ factual error; never make the caller recover them from narrative prose.
 ```yaml
 - id: F-NNN
   severity: CRITICAL | HIGH | MEDIUM | LOW
+  remediation: TRIVIAL | SMALL | SUBSTANTIAL | REDESIGN
   blocker: true | false
   category: <category>
   file: <repo-relative path>
   line: <1-based integer or null>
+  instances: [<file:line>, ...] # only for clustered findings; else []
   issue: <posting-ready issue description>
+  underlyingProblem: <mechanism behind the symptom, one sentence>
   whyItMatters: <concrete consequence for this PR>
   requiredOutcome: <implementation-neutral condition, or empty when non-blocking>
   suggestedPath: <minimal route or 1-2 viable options>

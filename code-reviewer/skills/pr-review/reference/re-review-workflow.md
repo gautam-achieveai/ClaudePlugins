@@ -149,6 +149,33 @@ it to `CLOSED` only after provider reconciliation succeeds.
 - Do not dispatch domain agents for a `HANDOFF_REQUIRED` finding unless a
   maintainer records a decision or new authoritative evidence changes the risk.
 
+## Step 4.5: Self-Contribution Count
+
+<self_contribution_count>
+Before writing the summary, count your own contribution to this round:
+
+1. For each NEW finding, determine whether it sits inside text or code that was
+   **added or rewritten to satisfy a previous round of this review** (trace the
+   delta hunks back to the prior findings that caused them).
+2. Compute: "Of my N new findings, M are inside changes made to satisfy my
+   previous review."
+3. **This line MUST open the re-review summary.** It is the reviewer's own
+   convergence metric, visible to the author.
+
+When M is a majority of N, the review loop itself is generating the review
+surface. Respond by **converging, not expanding**:
+
+- Keep every fix suggestion to the smallest scope that resolves the defect
+  (one cell, one sentence, one guard — not a new section or subsystem).
+- Do not request a different shape for content whose shape your previous
+  round demanded — genuine defects inside it still count, redesigns do not.
+- If the growth added in response to your review is itself the main source of
+  new defects, consider recommending that the growth be reverted or simplified
+  instead of patched further.
+- Real merge-blocking defects (per their closure contracts) are still reported
+  regardless of self-contribution — this rule shapes scope, never silence.
+</self_contribution_count>
+
 ## Step 5: Post re-review summary
 
 <verdict_gate>
@@ -191,6 +218,10 @@ Unless small-delta mode applies, use a structured format:
 ```markdown
 ## Re-Review Summary: PR #XXXX
 
+**Self-contribution**: Of my [N] new findings, [M] are inside changes made to
+satisfy my previous review. [One sentence on what that means for this round's
+scope — converge vs. expand.]
+
 ### Intent Check
 - Goal coverage: SOLVED / PARTIALLY_SOLVED / NOT_SOLVED / UNCLEAR
 - Solution direction: RIGHT_BALLPARK / FUNDAMENTALLY_MISALIGNED / UNCLEAR
@@ -216,6 +247,10 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
 ### Unresolved Issues Blocking Approval (if any)
 - [List only active blockers as: required outcome — done when closure evidence]
 
+### Follow-up Issues (do NOT block approval)
+- [Non-blocking findings — offer to file each as a work item / issue so it
+  leaves the merge gate but stays tracked]
+
 ### Shortest Path to Approval (if REQUEST_CHANGES)
 1. [Required outcome] — done when [objective evidence]
 
@@ -232,6 +267,10 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
 
 <re_review_rules>
 
+- **Open with the self-contribution count** — the summary's first line states
+  how many of this round's new findings sit inside changes made to satisfy the
+  previous round (Step 4.5). A majority means converge: smallest-scope fixes
+  only, no reshaping of content your own review caused to exist.
 - **Two-attempt convergence limit per blocker** — the first unsuccessful fix gets
   one precise reply naming the unmet `Done When`. If the same blocker remains
   disputed after a second author attempt, stop generating alternative AI review
