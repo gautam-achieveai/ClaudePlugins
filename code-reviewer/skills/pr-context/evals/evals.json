@@ -1,0 +1,151 @@
+{
+  "skill_name": "pr-context",
+  "notes": "These evals distinguish pre-supplied-context mode (daemon already fetched linkage) from ordinary autonomous invocation. Both dispatch the pr-context-gatherer agent; the assertions check which discovery calls it makes, not just its final output shape. Evals 5-7 pin the linkage-state control flow: only an explicit NoneLinked may be reported as 'no work items linked'; Failed/Unavailable/omitted must fall back to normal Step 1 discovery, and a failed fallback must report linkage unknown.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "pre-supplied-context-skips-linkage-discovery",
+      "prompt": "Dispatch code-reviewer:pr-context-gatherer for the PR under review, PR #5234 in repo MyRepository, with a prompt containing a `## Daemon-Supplied Context` block whose linkage state is Linked and whose linked-items line names work item #4821, plus base/head/merge-base SHAs and no title, author, or branch metadata.",
+      "expected_output": "The agent does not rediscover PR #5234's linked items. It performs only the metadata fetch needed to obtain the PR title, author, source branch, and target branch; fetches work item #4821's full details (getWorkItemById/gh issue view); walks its parent chain; collects siblings; and returns the unchanged header, full Context Tree, and Context Summary. Header metadata is either the provider's real values when the metadata fetch succeeds, or `(not available)` for each field it could not resolve — never fabricated.",
+      "assertions": [
+        {
+          "name": "no_redundant_linkage_fetch",
+          "description": "No PR call requests linked items or closing issues, since work item #4821 was already supplied; a metadata-only PR call is allowed"
+        },
+        {
+          "name": "header_fields_present",
+          "description": "The unchanged output header carries a title, author, source branch, and target branch for PR #5234 — each is either the provider's real fetched value or the literal `(not available)` when the metadata fetch failed or was unavailable. No field is blank and no value is invented"
+        },
+        {
+          "name": "linked_item_still_fetched",
+          "description": "getWorkItemById/gh issue view is called for work item #4821 to get its full details"
+        },
+        {
+          "name": "hierarchy_still_built",
+          "description": "Output includes the parent chain, siblings, and a Context Summary — not just an echo of the supplied block"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "autonomous-mode-unchanged-without-supplied-context",
+      "prompt": "Dispatch code-reviewer:pr-context-gatherer with only 'Provider: ado. Gather the full linked-item hierarchy for PR #5234 in repository MyRepository.' — no Daemon-Supplied Context block.",
+      "expected_output": "The agent runs Step 1 as written: fetches the PR via getPullRequest(include: [\"workItems\"]) to discover linked work items, then proceeds through Steps 2-6 exactly as in today's behavior.",
+      "assertions": [
+        {
+          "name": "pr_fetch_performed",
+          "description": "getPullRequest (or gh pr view) is called to discover the PR's linked work items — Step 1 is not skipped"
+        },
+        {
+          "name": "hierarchy_built",
+          "description": "Output includes the parent chain, siblings, and a Context Summary, matching autonomous-mode behavior"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "full-navigation-block-is-tolerant-and-paths-stay-navigation-only",
+      "prompt": "Dispatch code-reviewer:pr-context-gatherer for PR #5234 in MyRepository with a `## Daemon-Supplied Context` block containing all field kinds, several with renamed or reordered labels and one field absent: linkage state Linked; linked issue #4821 plus link; related PR #5200 plus link; changed files `src/Foo.cs` and `tests/FooTests.cs`; base, head, and merge-base SHAs; review-thread refs `gh-review:77` and `gh-issue:88`; workspace root `/workspace`; and an extra unrecognized `Pipeline run: 9912` line.",
+      "expected_output": "The agent accepts the prose block without rigid-schema validation — extra, renamed, reordered, and missing labels are all tolerated, and the unrecognized `Pipeline run` line is ignored rather than treated as an error. It uses linked issue #4821 to build the normal hierarchy, and treats related PR, changed files, review-thread refs, and workspace root as navigation data rather than work-item fetch targets. The output shape remains the existing PR Context header, hierarchy, related items, and Context Summary.",
+      "assertions": [
+        {
+          "name": "all_navigation_fields_tolerated",
+          "description": "Extra, renamed, reordered, and missing labels are accepted without schema or indentation failure; the unrecognized `Pipeline run` line is ignored rather than raised as an error"
+        },
+        {
+          "name": "changed_paths_not_fetch_targets",
+          "description": "No provider issue/work-item fetch is attempted for `src/Foo.cs`, `tests/FooTests.cs`, workspace root, or review-thread refs"
+        },
+        {
+          "name": "output_shape_unchanged",
+          "description": "Output uses the existing PR Context header, hierarchy, Related Items section, and Context Summary; navigation-only related PR #5200 is not invented as a hierarchy item"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "skill-entry-path-passes-supplied-context-to-agent",
+      "prompt": "I already fetched this PR's navigation data. Run /pr-context MyRepository#5234 using it.\n\n## Daemon-Supplied Context\n- Linkage state: Linked\n- Linked work items/issues: 4821 — https://dev.azure.com/org/proj/_workitems/edit/4821\n- Base SHA: aaaa111\n- Head SHA: bbbb222\n- Merge-base SHA: cccc333",
+      "expected_output": "The pr-context skill runs its Step 2 (Dispatch the Context Gatherer Agent) and passes the supplied linkage state (`Linked`) and linked item ID (#4821) verbatim into the pr-context-gatherer agent prompt under a `## Daemon-Supplied Context` heading. The agent therefore runs in pre-supplied-context mode: it does not rediscover linkage, fetches work item #4821's full details, walks its parent chain, collects siblings, and returns the Context Tree and Summary, which the skill returns to the caller.",
+      "assertions": [
+        {
+          "name": "agent_prompt_carries_exact_supplied_linkage",
+          "description": "The dispatched pr-context-gatherer prompt contains a `## Daemon-Supplied Context` heading carrying the exact supplied linkage state `Linked` and the exact linked item ID 4821 — unaltered, not summarized away, and not replaced with rediscovered values"
+        },
+        {
+          "name": "agent_takes_pre_supplied_mode",
+          "description": "The agent branches into pre-supplied-context mode: it uses #4821 as its starting linkage instead of calling getPullRequest(include:[\"workItems\"]) / gh pr view --json closingIssuesReferences to rediscover linked items"
+        },
+        {
+          "name": "hierarchy_still_built",
+          "description": "The agent still fetches #4821's details, walks the parent chain, and collects siblings — the supplied block is a starting point, not the answer"
+        },
+        {
+          "name": "output_structure_intact",
+          "description": "The skill returns the agent's structured context with header, hierarchy, related items, and summary — matching the autonomous output format"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "explicit-none-linked-stops-truthfully",
+      "prompt": "Dispatch code-reviewer:pr-context-gatherer for PR #5234 in MyRepository with a `## Daemon-Supplied Context` block whose only linkage line is `- Linkage state: NoneLinked` and which supplies base/head SHAs but no linked-items line.",
+      "expected_output": "NoneLinked is an explicit, trustworthy statement that the PR has no linked items. The agent applies the existing **No work items linked to PR** edge case: it reports \"No work items linked to this PR\", suggests the author link the relevant work item, and stops without building a hierarchy.",
+      "assertions": [
+        {
+          "name": "reports_no_links_and_stops",
+          "description": "Output states no work items are linked to the PR and suggests linking one; no hierarchy walk is attempted"
+        },
+        {
+          "name": "no_fallback_discovery",
+          "description": "Because the state is explicitly NoneLinked, the agent does not fall back to getPullRequest(include:[\"workItems\"]) / gh pr view linkage rediscovery"
+        },
+        {
+          "name": "none_linked_supplies_no_ids",
+          "description": "No work-item IDs are reported as linked — NoneLinked is not read as a source of item IDs"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "unknown-linkage-falls-back-to-step-1",
+      "prompt": "Dispatch code-reviewer:pr-context-gatherer for PR #5234 in MyRepository with a `## Daemon-Supplied Context` block that carries `- Linkage state: Failed`, plus changed files, base/head/merge-base SHAs, workspace root, and KB path — and no linked-items line.",
+      "expected_output": "Failed means linkage is unknown, not absent. The agent falls back to normal Step 1 discovery: it fetches the PR with its linked items (getPullRequest include workItems / gh pr view --json closingIssuesReferences), then proceeds through Steps 2-6 on whatever it discovers. It does not report that the PR has no linked items.",
+      "assertions": [
+        {
+          "name": "falls_back_to_pr_linkage_fetch",
+          "description": "A full PR fetch requesting linked items / closing issues is performed despite the block being present"
+        },
+        {
+          "name": "does_not_claim_no_links",
+          "description": "The agent never reports 'No work items linked to this PR' on the basis of the Failed state; only an explicit NoneLinked may produce that claim"
+        },
+        {
+          "name": "hierarchy_built_from_discovered_ids",
+          "description": "Items discovered by the fallback fetch are carried through Steps 2-6 into the Context Tree and Context Summary"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "omitted-state-with-failed-fallback-reports-unknown",
+      "prompt": "Dispatch code-reviewer:pr-context-gatherer for PR #5234 in MyRepository with a `## Daemon-Supplied Context` block that supplies changed files, base/head/merge-base SHAs, workspace root, and KB path — but no linkage state line and no linked-items line.",
+      "precondition": "The provider is unreachable for this PR (offline or permissions denied), so the fallback PR linkage fetch fails.",
+      "expected_output": "An omitted linkage state means unknown, so the agent falls back to Step 1 discovery. When that fallback fetch also fails, it reports \"Linkage could not be read from the supplied context or discovered from the PR\" and stops. The presence of other supplied metadata (files, SHAs, workspace root, KB path) does not change this outcome.",
+      "assertions": [
+        {
+          "name": "fallback_attempted_then_unknown_reported",
+          "description": "The agent attempts the Step 1 PR linkage fetch and, on its failure, emits the linkage-unknown message rather than proceeding or going silent"
+        },
+        {
+          "name": "never_reports_no_links",
+          "description": "The output does not say the PR has no linked work items; unknown linkage is never downgraded into a no-links claim"
+        },
+        {
+          "name": "other_metadata_does_not_suppress_the_report",
+          "description": "Supplied changed files, SHAs, workspace root, and KB path do not cause the agent to skip or soften the linkage-unknown report"
+        }
+      ]
+    }
+  ]
+}

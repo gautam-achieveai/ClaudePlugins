@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.15.0"
+    "version": "1.16.0"
   },
   "plugins": [
     {
@@ -181,7 +181,7 @@
       "name": "code-reviewer",
       "source": "./code-reviewer",
       "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility assessment), severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects the repository provider (GitHub or Azure DevOps) and tech stack and publishes findings to the PR, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.21.0",
+      "version": "1.22.0",
       "category": "development",
       "tags": [
         "review",
