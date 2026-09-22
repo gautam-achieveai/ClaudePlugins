@@ -169,16 +169,86 @@ State the chosen mode and why; switch if the user disagrees.
      reviewer (or Claude), load
      [reference/re-review-workflow.md](reference/re-review-workflow.md) and
      switch to the re-review workflow instead of continuing.**
-   - Check linked work items (ADO `getWorkItemById`) or issues (GitHub
-     `closingIssuesReferences`).
+   - **Gather business context** — exactly one of the two branches below runs;
+     never both, never neither when a hierarchy is expected:
+     - **Daemon-direct mode**: if this invocation's dispatch prompt carries the
+       literal marker `Context Gatherer Owner: daemon-direct`, the caller (the
+       review daemon) has already launched `pr-context-gatherer` directly and
+       owns that dispatch itself. In this mode, do **not** dispatch
+       `skill: "code-reviewer:pr-context"` and do **not** launch
+       `pr-context-gatherer` yourself by any path — consume the gatherer's
+       already-rendered context tree as the Step 3 input. That tree is
+       delimited by the labeled heading
+       `## Context Gatherer Result (Daemon-Supplied):`, which follows the
+       marker line; everything after that heading, verbatim, is the
+       daemon-direct context tree, and Step 3 treats it as the exact
+       equivalent of a `code-reviewer:pr-context` hierarchy — never as a
+       reason to gather again. This mode is mutually exclusive with the
+       branch below: a daemon-direct invocation never also dispatches
+       `code-reviewer:pr-context`.
+     - **Otherwise** (the `Context Gatherer Owner: daemon-direct` marker is
+       absent — this covers standalone/interactive use): dispatch
+       `skill: "code-reviewer:pr-context"` with the PR number (and repository,
+       when resolved) — this invokes the `pr-context-gatherer` agent to walk
+       the linked work-item / issue hierarchy. Do not fetch linked work items
+       or issues ad hoc; the returned context tree is consumed in Step 3.
+       Always forward the PR details fetched above as the seed — this step's
+       own routine fetch (title, branch, author, body) already qualifies as
+       `Review-setup Context:` on its own, with no prior gather or caller
+       payload required; a prior gather this run or a caller-supplied payload
+       only makes that same seed more complete. Forward whatever is on hand,
+       partial or complete, to the skill as `Review-setup Context:` instead of
+       dispatching a second live lookup with nothing: this is the default,
+       enrichment-mode seed described in
+       [Context modes](../pr-context/SKILL.md#context-modes), reused verbatim
+       and enriched rather than re-fetched from scratch. Missing pieces (e.g.
+       discussion) are fetched by the gatherer itself; a gap in one piece
+       never blocks reusing the pieces already known.
+       The narrower case — the inline payload is already the *complete*
+       gathered hierarchy and closed-world rendering with no further live
+       lookups is actually wanted — is an explicit opt-in on top of this: add
+       `Context Mode: deterministic-offline` alongside the payload (forwarded
+       as `Pre-fetched Context:`) to select
+       [Deterministic Context Mode](../../agents/pr-context-gatherer.md#deterministic-context-mode)
+       instead of enrichment. Do not add that marker by default just because
+       the payload happens to be complete.
 
 2. **Classify changed files**: categorize each changed file by domain — use the
    classification table in
    [reference/agent-dispatch.md](reference/agent-dispatch.md).
 
-3. **Understand the changes**: `<Launch agent>`
+3. **Understand the changes** — dispatch the **PR Intent & Scope Analyst**:
+
+   ```
+   Agent:
+     subagent_type: general-purpose
+     description: "PR Intent & Scope Analyst"
+   ```
+
+   Set `subagent_type: general-purpose` for this dispatch — an unset
+   `subagent_type` is exactly what let a prior run silently reuse the Step 1
+   context gatherer's template here instead of doing this step's own job.
+   **Never** dispatch this step with `subagent_type: pr-context-gatherer` (or
+   any prompt/description implying that role). `pr-context-gatherer` is
+   reserved for the daemon-required deterministic context gather that Step 1
+   owns (`code-reviewer:pr-context`, or the daemon-direct hand-off) — it has
+   no other role anywhere in this workflow. Reusing it here hands the analyst
+   the gatherer's network/provider tool surface instead of a general-purpose
+   one, and silently skips the actual intent/scope analysis this step exists
+   to do.
+
    - Analyze what was modified, the intent, and how it fits the project.
-   - Cross-check the linked work item, if any.
+   - Cross-check against the hierarchy gathered in Step 1 (the linked work
+     item's acceptance criteria, parent feature/epic, and open siblings), if
+     any — this is the `code-reviewer:pr-context` hierarchy in the
+     interactive/Pre-fetched-Context branch, or the tree under
+     `## Context Gatherer Result (Daemon-Supplied):` in daemon-direct mode;
+     the two are equivalent inputs to this step and Step 1's
+     mutual-exclusivity contract guarantees exactly one of them exists. Never
+     re-dispatch `skill: "code-reviewer:pr-context"` or launch
+     `pr-context-gatherer` here to refresh or double-check either tree —
+     Step 1 already resolved the one gather this run gets; this step only
+     consumes its output.
    - Verify branch/target conventions from the repo's actual policy (repo
      conventions) — never from a skill-level default. Emit a `[QUESTION]` only
      if the branch name looks generated but the policy is unclear.

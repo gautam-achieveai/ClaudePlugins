@@ -52,17 +52,26 @@ otherwise the `gh` CLI (run via `Bash`, authenticated with `gh auth`).
 - `temp-code-review` - **(always dispatched)** Temporary code, debug artifacts, hardcoded hacks, mistaken files
 - `duplicate-code-detector` - Exact/near duplicates, repeated patterns, structural duplication; suggests extractions
 - `euii-leak-detector` - EUII/PII leaks in logs, telemetry, error messages, HTTP logging
+- `security-review` - Access control, injection, SSRF, cryptography, deserialization, authentication, and security defaults
+- `invariant-deletion-review` - Unsafe deletion and removed or bypassed correctness safeguards
 - `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
+- `code-simplifier` - Expression, control-flow, and method-level simplification
+- `over-engineering-review` - Scope creep and complexity relative to the requested work
 - `exception-handling-review` - Exception patterns: swallowed exceptions, broad catches, incorrect re-throws, missing logging, async pitfalls, flow control abuse
 - `test-coverage-review` - Test coverage adequacy, behavioral coverage, over-mocking, test-production pollution, missing regression tests, integration point coverage
+- `architecture-review` - Layer boundaries, dependency direction, DI, and system-level design
+- `performance-review` - Backend and frontend runtime, resource, query, and rendering performance
+- `schema-compatibility-review` - Wire, persisted-schema, public-surface, and rolling-deploy compatibility
+- `feature-flag-reviewer` - Blast radius, reversibility, and rollout-containment strategy
+- `review-grader` - Severity grading and quality gate for candidate findings
 
-## Context Agents (dispatched in step 1/3)
+## Context Agents (dispatched once in step 1)
 
-- `pr-context-gatherer` - Walks the PR-linked item hierarchy — ADO work items (up to Epic level) or GitHub linked issues / sub-issues — collecting siblings and related items to build a full business context tree. Use `code-reviewer:pr-context` skill to invoke.
+- `pr-context-gatherer` - Walks the PR-linked item hierarchy — ADO work items (up to Epic level) or GitHub linked issues / sub-issues — collecting siblings and related items to build a full business context tree. Use `code-reviewer:pr-context` skill to invoke. **Mutually exclusive launch ownership**: `pr-review` dispatches `code-reviewer:pr-context` (which launches this agent) *unless* the invocation carries `Context Gatherer Owner: daemon-direct`, in which case the daemon has already launched this agent directly and `pr-review` must not dispatch `code-reviewer:pr-context` or launch this agent a second time — exactly one launch, never both, never neither. **Reserved for this role only**: no other step — including Step 3's `general-purpose` "PR Intent & Scope Analyst" — may dispatch `subagent_type: pr-context-gatherer`; it owns Step 1's context gather exclusively and carries a network/provider tool surface no other step needs.
 
 ## External Review Agents (dispatched conditionally in step 8)
 
-- `architecture-reviewer` - SOLID principles, coupling analysis, design pattern review
+- `architecture-reviewer` - External generic architecture review; skip when the internal `architecture-review` already covers the change
 - `pr-review-toolkit:silent-failure-hunter` - Silent failures, swallowed exceptions
 - `pr-review-toolkit:type-design-analyzer` - Type invariants, encapsulation, type system design
 - `pr-review-toolkit:pr-test-analyzer` - Behavioral test coverage, edge case analysis
