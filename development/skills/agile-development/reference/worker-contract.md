@@ -89,6 +89,6 @@ A retry with an unchanged brief is banned. First classify the failure, then chan
 | Wrong role | Route to a different agent. |
 | Capability gap | Use a stronger model, or do the step as lead. |
 
-Fix-round budget per defect (in subagent-driven development, per task review): rounds 1–2 resume the same worker; round 3 uses a fresh worker on a stronger model. In Agile team mode, a third failed round fires the **Three strikes** alarm in `agile-development/SKILL.md`: stop fixing and re-plan. Outside it, the calling workflow's own breaker applies (subagent-driven development parks or re-plans with a Ruling). Any other course-correction alarm stops fix rounds early.
+Fix-round budget per defect (in subagent-driven development, per task review): rounds 1–2 resume the same worker; round 3 uses a fresh worker on a stronger model. In Agile team mode, a third failed round fires the **Three strikes** alarm in `agile-development/SKILL.md`: stop fixing and load `development:course-correction`. Outside it, the calling workflow's own breaker applies (subagent-driven development parks or re-plans with a Ruling). Any other course-correction alarm stops fix rounds early and loads `development:course-correction` the same way.
 
 A worker that was dispatched but left no report file and is no longer running is re-dispatched, which is not a retry: send a new worker the same brief plus a pointer to the partial changes.

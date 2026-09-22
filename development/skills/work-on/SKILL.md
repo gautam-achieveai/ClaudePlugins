@@ -493,8 +493,9 @@ part `development:implement` does not do:
 **Handle the outcome:**
 - **success** → proceed to Phase 2.4 (Finish & Publish).
 - **blocked** → `development:implement` stopped after its retry cap or on a
-  drift/cheating signal. Post a blocker comment to the work item with the
-  diagnostics it returned —
+  drift/cheating signal, and `development:course-correction` (which it loads on
+  a second stacked fix or three strikes) found no viable re-plan. Post a
+  blocker comment to the work item with the diagnostics it returned —
   `[<dev name>'s bot] Implementation blocked: <summary>` (error output, what was
   tried, root-cause hypothesis) — revert the work item to an active state when
   possible (GitHub: active/in-progress status field; Azure DevOps: `Active`),
@@ -557,7 +558,8 @@ STOP.
 
 ### Part 2 Errors
 - **`development:implement` returns blocked** (build/test failures after its
-  3-attempt cap, or a drift/cheating signal) → post a blocker comment to the work
+  3-attempt cap and a `development:course-correction` pass, or a drift/cheating
+  signal) → post a blocker comment to the work
   item with the diagnostics it returned, revert state to an active value when
   possible (GitHub: active/in-progress status field; Azure DevOps: `Active`), STOP.
 - **Worktree creation fails** → inform user locally (environment issue).

@@ -109,10 +109,14 @@ If a test fails or implementation hits a wall:
 2. Apply the fix and re-run the test.
 
 <max_retries>
-If still failing after **3** debugging attempts on the same task, do not thrash:
-return the **blocked** outcome (see SKILL.md → Guardrails & Outcomes) with the
-failing task, error output, what was tried, and a root-cause hypothesis. STOP —
-do not continue to later tasks or self-review.
+After a second stacked fix (a fix that repairs the previous fix) or **3**
+debugging attempts on the same task, do not thrash: load
+`development:course-correction`. It freezes the task, snapshots what was
+learned, saves a patch, reverts to the last good state, and gates the re-plan.
+If it cannot produce a viable new plan, return the **blocked** outcome (see
+SKILL.md → Guardrails & Outcomes) with the failing task, error output, what
+was tried, and a root-cause hypothesis. STOP — do not continue to later tasks
+or self-review.
 </max_retries>
 
 ### Drift & "cheating" detection

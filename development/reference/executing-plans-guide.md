@@ -192,7 +192,7 @@ Then follow [`branch-completion-guide.md`](branch-completion-guide.md): verify t
 You: I'm executing this plan Inline.
 
 [Worktree verified; plan + spec read once]
-[sdd-workspace docs/plans/feature-plan.md → no ledger, fresh start]
+[sdd-workspace docs/superpowers/plans/feature-plan.md → no ledger, fresh start]
 [Pre-flight: 2 shared-interface rows, clean; written to ledger]
 
 Task 1: Hook installation script

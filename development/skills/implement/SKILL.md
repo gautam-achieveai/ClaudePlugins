@@ -142,8 +142,9 @@ Read and follow [reference/execution-loop.md](reference/execution-loop.md) →
 - **Commit discipline** — commit each green, in-scope increment with a
   descriptive message; check the task off in `tasks.md`.
 - **Failure handling** — on a failing test or wall, use
-  `debugging:systematic-debugging`; **max 3 attempts** per task, then return the
-  **blocked** outcome (see Guardrails) instead of thrashing.
+  `debugging:systematic-debugging`; after a second stacked fix or **3 attempts**
+  per task, load `development:course-correction`, and return the **blocked**
+  outcome (see Guardrails) if it yields no viable re-plan.
 - **Drift detection** — stop on the drift / "cheating" signals catalogued in
   [reference/execution-loop.md](reference/execution-loop.md) (looping, unrequested
   functionality, going green by disabling/stubbing tests).
@@ -177,7 +178,9 @@ Use `development:verification-before-completion` and produce **fresh evidence**
 
 If verification fails, fix and re-verify; if it still fails after 3 attempts,
 return the **blocked** outcome. When green, record the evidence in the decision
-log and return the **success** outcome.
+log, record at most one durable lesson from this task through
+`development:compound-learning` (none is a valid answer), and return the
+**success** outcome.
 </definition_of_done>
 
 ---

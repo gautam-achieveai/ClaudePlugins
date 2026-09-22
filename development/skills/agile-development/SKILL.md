@@ -16,7 +16,7 @@ Keep this workflow model-neutral. Modern long-horizon models, including Claude F
 Before dispatching work:
 
 1. Define the outcome, consumers, non-goals, hard constraints, and **done-when** evidence.
-2. Inspect only the code, tests, history, and external facts needed for the current slice.
+2. Inspect only the code, tests, history, and external facts needed for the current slice. Before planning workstreams, run the read-back of `development:compound-learning` and carry its shortlist into the plan as constraints and approaches to avoid.
 3. Keep one ledger in the caller's existing scratchpad: milestones, dependencies, owners, base SHAs, Rulings, current status, and verification evidence. Do not create a competing source of truth. After compaction, reload the ledger first and never re-dispatch work it records as integrated.
 4. Treat routine reversible choices as implementation decisions. Ask only when interpretations materially change the result, new authority is required, or progress is genuinely blocked.
 5. Continue through every milestone until all done-when checks pass or the blocked stop condition is met. A first implementation is not completion. Urgency shortens waits; it never removes a gate or a role from a team's loop.
@@ -84,15 +84,7 @@ Without recurring-loop support, run a conductor tick at each milestone, worker h
 
 A tracker nudge requests diagnosis and an evidence checkpoint; it never instructs a blind retry. Classify the failure with the retry rules in `reference/worker-contract.md` and change the configuration before any retry.
 
-Stop and re-plan the slice with the Architect when any alarm fires:
-
-- **Patch stacking** — each fix repairs the previous fix.
-- **Spreading diff** — the change keeps touching files outside the plan.
-- **Three strikes** — the same failure survives three fix attempts.
-- **Growing special cases** — or fighting the framework instead of using it.
-- **"Too far in to restart"** — sunk cost is the main argument for continuing.
-
-Record what was learned in the ledger, return the slice's owned files to their last good state, and re-plan with the reason the old approach failed. Preserve unrelated changes. Before rolling back uncommitted work, save it as a patch file in the scratchpad and log the path in the ledger. A rollback with a saved patch is reversible and needs no stop.
+Stop when any `development:course-correction` tripwire fires (patch stacking, spreading diff, three strikes, growing special cases, fighting the framework, unexplainable state, "too far in"). Load that skill: it owns the freeze, snapshot, patch-then-revert, and re-plan gate. Bring the re-plan to the Architect; the gate's "why the old approach failed" sentence is the Architect's input.
 
 ### 4. Review and finish
 
@@ -101,7 +93,7 @@ After all workstreams integrate:
 1. Dispatch `code-reviewer:code-reviewer`, which follows `code-reviewer:pr-review` for the complete diff and stable acceptance criteria.
 2. Send valid findings to the owning Developer. Re-review corrections, with at most two correction rounds before a controller tie-break.
 3. Use `development:verification-before-completion` for fresh whole-feature evidence.
-4. Require the Manual Tester to run the final user flow and write the critical retrospective. Record at most one durable lesson from it in the ledger — a lesson a future team would repeat without — and update an existing lesson instead of duplicating it.
+4. Require the Manual Tester to run the final user flow and write the critical retrospective. Record at most one durable lesson from it through `development:compound-learning` — a lesson a future team would repeat without — and update an existing lesson instead of duplicating it.
 5. Close only when every done-when criterion has evidence and no BLOCKER or MATERIAL finding remains.
 
 Use `code-reviewer:over-engineering-review` when scope or architecture drift is suspected. Prefer removal and reuse over new abstraction.

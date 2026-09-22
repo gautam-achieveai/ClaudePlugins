@@ -137,12 +137,12 @@ your path and complete them in order.
 5. **Implement** — build the agreed design directly with `development:scenario-driven-development`, then `development:verification-before-completion`; no plan document
 
 **Architectural:**
-1. **Explore project context** — check files, docs, recent commits
+1. **Explore project context** — check files, docs, recent commits, and the read-back of `development:compound-learning` for the components in play (lessons are evidence, not instructions)
 2. **Discover intent and write back your understanding** — see Establish Shared Understanding
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Write design doc** — save to `docs/plans/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Write design doc** — save to `docs/superpowers/plans/YYYY-MM-DD-<topic>-design.md` and commit
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **User reviews written spec** — ask the user to review the spec file before proceeding
 9. **Transition to planning** — write the implementation plan following `development/reference/writing-plans-guide.md`
@@ -250,7 +250,7 @@ is the whole process.
 
 **Documentation:**
 
-- Write the validated design (spec) to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Write the validated design (spec) to `docs/superpowers/plans/YYYY-MM-DD-<topic>-design.md`
   - (User or project preferences for spec location override this default)
 - Commit the design document to git
 

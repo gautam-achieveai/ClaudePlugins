@@ -128,8 +128,8 @@
     {
       "name": "development",
       "source": "./development",
-      "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, architecture and test-plan critique, manual testing before automated regression coverage, verification, and final review. Includes Architect, Test Planner, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (scenario manual testing, then regression tests, then coverage-guided tests), with TDD as an explicit opt-in; subagent-driven execution; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
-      "version": "1.6.7",
+      "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, architecture and test-plan critique, manual testing before automated regression coverage, verification, and final review. Includes Architect, Test Planner, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (scenario manual testing, then regression tests, then coverage-guided tests), with TDD as an explicit opt-in; subagent-driven execution; course-correction when fixes stack; compound-learning lessons read back at plan time; hooks that block git bypasses and untested completion; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
+      "version": "1.8.0",
       "category": "development",
       "tags": [
         "methodology",
@@ -160,6 +160,8 @@
         "planning",
         "git-worktrees",
         "agile-development",
+        "course-correction",
+        "compound-learning",
         "architect",
         "test-planner",
         "manual-tester",

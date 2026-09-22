@@ -130,7 +130,7 @@ Conversation memory does not survive compaction. Controllers that lost their pla
 - **Trust order after compaction:** ledger and `git log` over your own recollection. The commits it names exist even when your context no longer remembers them.
 - `git clean -fdx` destroys the workspace (it is git-ignored scratch). If that happens, recover from `git log`.
 
-Read the plan once, note its context and Global Constraints, and create a todo per task. If the plan names a `Spec:`, read that too: the spec is the authority the plan argues from. A plan with no reachable spec gets a ledger note saying so — rulings made without one are provisional. If the user explicitly asked for TDD (opt-in), ledger it as a Ruling and pass it in every implementer's and reviewer's `[RULINGS]`.
+Read the plan once, note its context and Global Constraints, and create a todo per task. Run the read-back of `development:compound-learning` for the plan's components; ledger any lesson that binds a task and carry it in that task's dispatch. If the plan names a `Spec:`, read that too: the spec is the authority the plan argues from. A plan with no reachable spec gets a ledger note saying so — rulings made without one are provisional. If the user explicitly asked for TDD (opt-in), ledger it as a Ruling and pass it in every implementer's and reviewer's `[RULINGS]`.
 
 **Pre-flight conflict scan.** Before dispatching Task 1, scan the plan once and write down what you checked as you check it:
 
@@ -207,7 +207,7 @@ The loop triggers on spec ❌, any Critical or Important finding, or a ⚠️ it
 - **Minor findings** go to the ledger as `Task <N>: minor (deferred): <one-liner>` and never enter the loop. The final review triages that list.
 - **Plan-mandated or plan-conflicting findings** are yours to rule on against the spec. Ledger the ruling before acting. Never dismiss a finding because the plan mandates it, and never dispatch a fix that contradicts the plan without a recorded ruling.
 
-A fix round is one fix dispatch plus one scoped re-review. The budget follows the contract's Retry rules, **three rounds per task**:
+A fix round is one fix dispatch plus one scoped re-review. The budget follows the contract's Retry rules, **three rounds per task**. The cap is the last alarm, not the first: a round-2 fix that repairs the round-1 fix is patch stacking, and any `development:course-correction` tripwire in a fix report ends the loop early with the same re-plan route as the breaker below.
 
 - **Rounds 1-2 — resume the original implementer** with the open findings verbatim. Its context is intact. If your harness cannot message a live subagent, dispatch a fresh one on the same model carrying the brief path, the report-file path, and the findings — the report file is the persistent memory either way.
 - **Round 3 — fresh implementer on a stronger model** (see Model Selection), with the brief, the report file, the open findings, and this framing: "A prior implementer attempted this task twice; you own it now. Read the report file for what was tried."
@@ -220,7 +220,7 @@ A fix round is one fix dispatch plus one scoped re-review. The budget follows th
 
 - **Reviewer wrong or point contestable** → `Task <N>: parked — <finding> — Ruling: <why the code stands> — <cost if wrong>`. The final review sees both sides.
 - **Real, but nothing downstream builds on it** → park it the same way, with a ruling that says it is real and deferred.
-- **Real and load-bearing** (a later task builds on it, or it reveals a plan defect) → re-plan, as the Agile **Three strikes** alarm requires: record what was learned, rule on the smallest change that unblocks the dependent work (split the task, change the approach, or correct the plan), ledger it as `Task <N>: Ruling: <finding> — <decision> — <cost if wrong>`, and carry it into the next dispatch. Stop only when every path forward is a guess.
+- **Real and load-bearing** (a later task builds on it, or it reveals a plan defect) → re-plan, as the Agile **Three strikes** alarm requires: load `development:course-correction` (it owns the freeze, knowledge snapshot, patch-then-revert, and re-plan gate), rule on the smallest change that unblocks the dependent work (split the task, change the approach, or correct the plan), ledger it as `Task <N>: Ruling: <finding> — <decision> — <cost if wrong>`, and carry it into the next dispatch. Stop only when every path forward is a guess.
 
 Adjudicate only at the cap; adjudicating earlier to end a loop is pre-judging under another name. Every adjudication is a ledger entry — silent discards are forbidden.
 
@@ -240,7 +240,7 @@ If it returns findings, dispatch ONE fix subagent with the complete findings lis
 
 Before deleting anything, collect every ledger line containing `Ruling:` — pre-flight rulings, parked findings, breaker adjudications, final-review residuals — into your final message under **"Rulings I made"**, in order, each with its cost if wrong, and every `minor (deferred)` line under **"Deferred minors"**. Both lists are exhaustive. They are the only place the decisions you took on the user's behalf reach them; a ruling that dies with the workspace was a decision made in secret.
 
-When the final review is clean and its fixes are committed, delete this plan's workspace (`rm -rf <workspace>`) — git history is the record now. Sibling directories belong to other plans; leave them alone.
+Record at most one durable lesson from this plan through `development:compound-learning` (none is a valid answer). Then, when the final review is clean and its fixes are committed, delete this plan's workspace (`rm -rf <workspace>`) — git history is the record now. Sibling directories belong to other plans; leave them alone.
 
 Then follow [`development/reference/branch-completion-guide.md`](../../reference/branch-completion-guide.md).
 
@@ -265,7 +265,7 @@ Then follow [`development/reference/branch-completion-guide.md`](../../reference
 You: I'm using Subagent-Driven Development to execute this plan.
 
 [Worktree verified; plan + spec read once]
-[sdd-workspace docs/plans/feature-plan.md → no ledger, fresh start]
+[sdd-workspace docs/superpowers/plans/feature-plan.md → no ledger, fresh start]
 [Pre-flight: 2 shared-interface rows, 4 self-consistency rows, 1 ruling; written to ledger]
 
 Task 1: Hook installation script

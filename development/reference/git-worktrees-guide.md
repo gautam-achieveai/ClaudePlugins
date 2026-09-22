@@ -84,18 +84,30 @@ cd "$path"
 
 ## Step 2: Project Setup
 
-Auto-detect and run appropriate setup:
+Auto-detect and run appropriate setup. Detect the package manager from the lockfile instead of assuming one:
 
 ```bash
-# Node.js
-if [ -f package.json ]; then npm install; fi
+# Node.js — lockfile picks the package manager
+if [ -f package.json ]; then
+  if   [ -f pnpm-lock.yaml ]; then pnpm install
+  elif [ -f yarn.lock ];      then yarn install
+  elif [ -f bun.lock ] || [ -f bun.lockb ]; then bun install
+  else                             npm install
+  fi
+fi
 
 # Rust
 if [ -f Cargo.toml ]; then cargo build; fi
 
-# Python
+# Python — lockfile picks the package manager
 if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-if [ -f pyproject.toml ]; then poetry install; fi
+if [ -f pyproject.toml ]; then
+  if   [ -f uv.lock ];     then uv sync
+  elif [ -f pdm.lock ];    then pdm install
+  elif [ -f poetry.lock ]; then poetry install
+  else                          pip install -e .
+  fi
+fi
 
 # Go
 if [ -f go.mod ]; then go mod download; fi
