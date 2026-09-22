@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.16.1"
+    "version": "1.16.2"
   },
   "plugins": [
     {
@@ -128,19 +128,22 @@
     {
       "name": "development",
       "source": "./development",
-      "description": "Development methodology toolkit: design-first brainstorming, autonomous design with review-planning and implementation-handoff steps, test-driven development, parallel subagent-driven execution with review gates, evidence-based completion verification, severity-and-cost triage for acting on received code review (Critical/Blocker always, High even when costly, Medium/Low only when cheap, with a practicality-and-alignment gate), a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep draft-feature and draft-bug sub-skills with agent-driven blind-spot detection — and a provider-agnostic autonomous work-on workflow (plan → HITL approval → implement → verify → publish) shared by the GitHub and Azure DevOps plugins, with a dedicated provider-agnostic implement engine (purpose-and-consumption context, atomic TDD task execution, self-review, and evidence-based verification). Includes planning, execution, and git workflow reference guides.",
-      "version": "1.6.5",
+      "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, architecture and test-plan critique, manual testing before automated regression coverage, verification, and final review. Includes Architect, Test Planner, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (scenario manual testing, then regression tests, then coverage-guided tests), with TDD as an explicit opt-in; subagent-driven execution; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
+      "version": "1.6.7",
       "category": "development",
       "tags": [
         "methodology",
         "tdd",
         "brainstorming",
         "subagents",
-        "verification"
+        "verification",
+        "agile",
+        "long-horizon"
       ],
       "keywords": [
         "brainstorming",
         "autonomous-design",
+        "scenario-driven-development",
         "test-driven-development",
         "tdd",
         "subagent-driven-development",
@@ -155,7 +158,14 @@
         "work-on",
         "implement",
         "planning",
-        "git-worktrees"
+        "git-worktrees",
+        "agile-development",
+        "architect",
+        "test-planner",
+        "manual-tester",
+        "developer",
+        "critic",
+        "autonomous-development"
       ]
     },
     {
@@ -180,8 +190,8 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility assessment), severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects the repository provider (GitHub or Azure DevOps) and tech stack and publishes findings to the PR, a post-pr-review skill for structured comment posting with summary thread management, plus a review-pending-prs batch orchestrator with persistent tracking.",
-      "version": "1.22.1",
+      "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, plus specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, feature-flag rollout, severity grading, logs, and PR context. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
+      "version": "1.22.3",
       "category": "development",
       "tags": [
         "review",
@@ -223,7 +233,8 @@
         "rollout-sequencing",
         "feature-flag-reviewer",
         "rollout-strategy",
-        "blast-radius"
+        "blast-radius",
+        "code-reviewer-agent"
       ]
     },
     {

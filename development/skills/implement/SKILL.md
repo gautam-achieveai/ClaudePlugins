@@ -17,7 +17,7 @@ plan / design decision  →  [ implement ]  →  verified change on a branch  �
 
 It orchestrates existing skills rather than re-inventing them — use each (via
 the **Skill** tool) at the right phase:
-`development:test-driven-development`, `development:subagent-driven-development`,
+`development:scenario-driven-development`, `development:subagent-driven-development`,
 `debugging:systematic-debugging`, `code-reviewer:pr-review`,
 `development:verification-before-completion`.
 
@@ -37,8 +37,10 @@ The non-negotiables that govern every phase below.
   in front of you the whole time. Every task and review is checked against it.
 - **One atomic step at a time.** Never big-bang. Small, testable increments;
   "one item per loop." Don't get ahead of yourself.
-- **Test-first.** Red → green per task (`development:test-driven-development`).
-  Don't advance on red.
+- **Scenario-proven, then locked in.** Per task, run the scenario by hand, then
+  add regression and coverage-guided tests
+  (`development:scenario-driven-development`). Don't advance on a failing
+  scenario or a red suite. Use `development:test-driven-development` only when the user explicitly asks for TDD.
 - **Evidence, not assertions.** A change is "done" only when a runnable check
   (tests / build / lint / type-check) returns pass — and you've *read* that
   output. "If you can't verify it, don't ship it."
@@ -125,16 +127,18 @@ this skill's.)
 
 ## Phase 2 — Execute the Tasks
 
-Work the list one task at a time, test-first, committing each green increment.
+Work the list one task at a time — scenario first, then tests — committing each
+green increment.
 
 Read and follow [reference/execution-loop.md](reference/execution-loop.md) →
 **"Execution"**. It covers:
 
 - **Mode auto-detection** — 3+ independent tasks → `development:subagent-driven-development`
-  (fresh subagent per task + spec-then-quality review); otherwise sequential per
+  (fresh implementer per task + one task review covering spec and quality); otherwise inline per
   [`../../reference/executing-plans-guide.md`](../../reference/executing-plans-guide.md).
-- **TDD alongside** — `development:test-driven-development` for every task
-  (red → green → refactor), with the test framework auto-detected.
+- **Scenario-driven testing** — `development:scenario-driven-development` for
+  every task (scenario by hand → regression tests → coverage-guided tests), with
+  the test framework and coverage tool auto-detected.
 - **Commit discipline** — commit each green, in-scope increment with a
   descriptive message; check the task off in `tasks.md`.
 - **Failure handling** — on a failing test or wall, use
@@ -221,7 +225,7 @@ This skill returns one of two outcomes to its caller:
 
 - **Called by:** `development:work-on` Phase 2 (which adds worktree setup and
   provider-specific finish/publish + blocked handling around it).
-- **Orchestrates:** `development:test-driven-development`,
+- **Orchestrates:** `development:scenario-driven-development`,
   `development:subagent-driven-development`, `debugging:systematic-debugging`,
   `code-reviewer:pr-review`, `development:verification-before-completion`.
 - **Reference guides:** [`../../reference/executing-plans-guide.md`](../../reference/executing-plans-guide.md),

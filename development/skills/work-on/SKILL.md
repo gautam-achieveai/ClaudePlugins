@@ -290,7 +290,8 @@ never code — and returns the plan natively (no plan-mode toggling required).
 **The Plan agent should produce:**
 - Files to create/modify
 - Implementation steps (ordered)
-- Test strategy
+- Test strategy per `development:scenario-driven-development` (scenarios to run
+  by hand → regression tests → coverage check)
 - Verification steps
 - How the plan realizes the chosen approach, and any assumptions carried over
 
@@ -471,7 +472,9 @@ the provider-agnostic engine. Use it (via the **Skill** tool), passing:
   Purpose & Consumption brief).
 
 `development:implement` runs Phase 0 (purpose & consumption brief), Phase 1
-(decompose into `tasks.md`), Phase 2 (TDD execution loop — auto-detecting
+(decompose into `tasks.md`), Phase 2 (execution loop using
+`development:scenario-driven-development` — scenario by hand, then regression
+and coverage-guided tests; bug fixes reproduce by hand, then in code — auto-detecting
 subagent-driven vs sequential, with `debugging:systematic-debugging` and a max of
 3 attempts per task), Phase 3 (self-review via `code-reviewer:pr-review`), and
 Phase 4 (verification). It commits each green increment and returns a **success**

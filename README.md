@@ -24,19 +24,21 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.6.1)
+### development (v1.6.7)
 
-Development methodology toolkit — design-first brainstorming, autonomous design (with a mandatory design-review gate and implementation-handoff), TDD, parallel subagent-driven execution with review gates, evidence-based completion verification, a provider-agnostic `implement` engine (purpose-and-consumption context → atomic TDD task execution → self-review → verification) that `work-on` delegates to, and a provider-agnostic work-item drafting router that classifies intent and posts to GitHub or Azure DevOps — delegating to deep `draft-feature` and `draft-bug` sub-skills with an agent-driven blind-spot detector.
+Development methodology toolkit — Agile team delivery for large features, thin end-to-end slices, durable long-horizon progress, design-first brainstorming, autonomous design, scenario-driven development as the default testing flow (scenario manual testing → regression tests → coverage-guided tests; TDD as an explicit opt-in), manual and automated verification, parallel subagent execution, review gates, and provider-agnostic work-item implementation.
 
-**Skills**: `brainstorming`, `autonomous-design`, `work-on`, `implement`, `test-driven-development`, `subagent-driven-development`, `verification-before-completion`, `receiving-code-review`, `draft-work-item`, `draft-feature`, `draft-bug`
+**Skills**: `agile-development`, `brainstorming`, `autonomous-design`, `work-on`, `implement`, `scenario-driven-development`, `test-driven-development`, `subagent-driven-development`, `verification-before-completion`, `receiving-code-review`, `draft-work-item`, `draft-feature`, `draft-bug`
 
-**Agents**: `blind-spot-detector`
+**Agents**: `architect`, `test-planner`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
 
-### code-reviewer (v1.18.1)
+### code-reviewer (v1.22.3)
 
 Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility), severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 
 **Skills**: `pr-review`, `post-pr-review`, `pr-context`, `review-pending-prs`, `update-pr-tracking`, `codebase-search-discipline`, `over-engineering-review`, `schema-compatibility-review`
+
+**Agents**: `code-reviewer` plus specialized architecture, quality, compatibility, performance, and risk reviewers
 
 ### developer-performance-review (v1.2.0)
 
@@ -70,7 +72,7 @@ claude-plugins/
 │   └── marketplace.json          # Marketplace catalog (8 plugins)
 ├── ado/                          # Azure DevOps integration
 ├── gh/                           # GitHub integration
-├── development/                  # Dev methodology (brainstorming, TDD, etc.)
+├── development/                  # Dev methodology (brainstorming, scenario-driven testing, etc.)
 ├── code-reviewer/                # PR code review toolkit
 ├── developer-performance-review/ # Developer performance reviews
 ├── orleans-dev/                  # Orleans patterns & review

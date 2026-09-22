@@ -1,7 +1,7 @@
 # Execution Loop
 
 Detailed mechanics for Phases 1-2 of `development:implement`: building the task
-list, executing tasks one at a time with TDD, committing each green increment,
+list, executing tasks one at a time with scenario-driven testing, committing each green increment,
 handling failures, and detecting drift. Provider-agnostic — all GitHub/ADO
 specifics live in the calling skill.
 
@@ -55,21 +55,41 @@ Work through the task list one task at a time, checking off each as completed.
 Inspect the task structure:
 - **3+ independent tasks** (touch different files/modules, no ordering
   dependency) → use `development:subagent-driven-development` — a fresh
-  subagent per task, with spec-compliance review then code-quality review after
-  each. Keeps context clean and reviews automatic.
+  implementer per task, with one task review covering spec compliance and code
+  quality after each. Keeps context clean and reviews automatic.
 - **Otherwise** (tightly coupled or sequential) → read and follow
   [`../../../reference/executing-plans-guide.md`](../../../reference/executing-plans-guide.md)
-  and execute sequentially.
+  and execute inline, task by task.
 
-### Test-Driven Development (both modes)
+### Scenario-Driven Development (both modes)
 
-Use `development:test-driven-development` for every task: write the failing
-test, watch it fail for the right reason, write the minimal code to pass, refactor
-green. Auto-detect the test runner:
+Use `development:scenario-driven-development` for every task:
+1. **Scenario by hand** — implement, then run each scenario for the task through
+   a real entry point (entry → action → result → destination → aftermath, plus
+   empty, boundary, error, and re-entry states). Record pass / fail / blocked
+   with evidence. A scenario that could not run is not a pass.
+2. **Regression tests** — only after the scenarios pass, lock each one in at the
+   cheapest layer that still proves it. Every defect found by hand gets a test
+   that fails when its fix is reverted; show that failure once.
+3. **Coverage check** — run the language's coverage tool on the changed code,
+   rank uncovered changed lines by risk, and add the fewest tests that cover the
+   most. No % target; give each line left uncovered a one-line reason.
+
+**Bug-fix tasks:** reproduce by hand → reproduce in code (a failing test) → fix
+until green → re-run the manual scenario.
+
+**Speed:** each new test under 1 second; the focused suite under 30 seconds; no
+sleeps, real network, or shared mutable state.
+
+Use `development:test-driven-development` only when the user explicitly asks for TDD.
+
+Find the test command, first match wins:
+- The project's documented command (README, `CONTRIBUTING`, `Makefile`, `package.json` `test` script)
 - `.csproj` with test references → `dotnet test`
-- `package.json` with jest/vitest/mocha → the configured runner
+- `package.json` with jest/vitest/mocha, or `*.test.mjs`/`*.test.js` files → the configured runner, else `node --test`
 - `pytest.ini` / `pyproject.toml` / `conftest.py` → `pytest`
-- No framework detected → note it and rely on Phase 4 verification.
+- `go.mod` → `go test ./...`; `Cargo.toml` → `cargo test`; `build.gradle` / `pom.xml` → `gradle test` / `mvn test`
+- Nothing found → note it and rely on Phase 4 verification.
 
 ### Commit discipline
 

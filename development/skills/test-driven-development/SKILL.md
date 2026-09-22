@@ -1,12 +1,17 @@
 ---
 name: test-driven-development
 description: >
-  Internal helper. Load only when explicitly named by another skill or agent.
+  Opt-in. Use only when the user explicitly asks for TDD or test-first development.
+  The default testing mode is development:scenario-driven-development.
 user-invocable: true
 disable-model-invocation: false
 ---
 
 # Test-Driven Development (TDD)
+
+Adapted from obra/superpowers `test-driven-development` (MIT).
+
+**Opt-in.** The default mode is `development:scenario-driven-development` (scenario manual testing → regression tests → coverage-guided tests). Use TDD only when the user asks for it. When they do, the rules below apply in full.
 
 ## Overview
 
@@ -185,6 +190,16 @@ Confirm:
 
 **Other tests fail?** Fix now.
 
+**"Other tests" means the project's whole suite, not just your file.** A
+green run of the test you wrote is not a green suite. Before you call
+the change done, run the project's test command (bare `pytest`,
+`npm test`, `cargo test` — whatever the repo uses) even when your task
+named only one test file. A scope statement in your task bounds the
+deliverable, not your verification. Any failure that run shows —
+including one you didn't cause — goes in your report by name; a red
+test you watched scroll past and didn't mention is a report falsified
+by omission.
+
 ### REFACTOR - Clean Up
 
 After green only:
@@ -198,114 +213,9 @@ Keep tests green. Don't add behavior.
 
 Next failing test for next feature.
 
-## Instrumented TDD — Logs as Breakpoints
+## Instrumented Logging
 
-Every test you write and every line of production code you implement should be instrumented with structured JSONL logging. Trace logs are your breakpoints — they dump variable values so AI can see exactly what happened when a test fails.
-
-**Prerequisite:** If the codebase doesn't have structured logging yet, run `debugging:logging-enablement` first to set up the logger, JSONL file sink, and test harness integration.
-
-### Log Levels in TDD Code
-
-| Level | Where | What | EUII | Production |
-|-------|-------|------|------|------------|
-| **Trace** | Production code | Variable values, intermediate state, input/output of functions — the stuff you'd put a breakpoint on | YES (stripped from release builds) | Compiled out, zero overhead |
-| **Debug** | Production code | Positive handshakes: "OrderService.Place entered", "validation passed". Narrows WHERE, not WHAT | NO | Kept, toggled on demand |
-| **Information** | Production code | Business event sequence: "Order accepted", "Payment processed". Execution flow for timeline reconstruction | NO | Always on |
-| **Warning** | Production code | Unexpected but recoverable: retry, fallback, degraded mode | NO | Always on |
-| **Error** | Production code | Operation failure, recoverable at higher level | NO | Always on |
-
-**Tests themselves** log at Debug/Info to mark test phases (arrange/act/assert) and capture outcomes.
-
-### Why Trace ≠ Production Risk
-
-Trace is compiled out of release builds. This is the **only** reason EUII is safe at Trace:
-- Local dev / tests: Trace minimum → full variable visibility
-- Production: Information minimum → no EUII, no noise
-- Release builds: Trace statements produce zero overhead
-
-### RED Phase — Instrumented Tests
-
-When writing the failing test, set up a structured logger with test context:
-
-```typescript
-test('retries failed operations 3 times', async () => {
-  // Bind logger with test-case-name inside each test
-  const log = withTestCase(moduleLogger, 'retries failed operations 3 times');
-
-  let attempts = 0;
-  const operation = () => {
-    attempts++;
-    log.trace({ attempt: attempts }, 'Operation attempt');
-    if (attempts < 3) throw new Error('fail');
-    return 'success';
-  };
-
-  const result = await retryOperation(operation, log);
-
-  log.debug({ result, attempts }, 'Assert: verifying retry behavior');
-  expect(result).toBe('success');
-  expect(attempts).toBe(3);
-});
-```
-
-### GREEN Phase — Instrumented Production Code
-
-When writing minimal code to pass the test, add logging at decision points:
-
-```typescript
-async function retryOperation<T>(fn: () => Promise<T>, log: Logger): Promise<T> {
-  for (let i = 0; i < 3; i++) {
-    try {
-      log.trace({ attempt: i + 1 }, 'Attempting operation');
-      const result = await fn();
-      log.debug({ attempt: i + 1 }, 'Operation succeeded');
-      return result;
-    } catch (e) {
-      log.trace({ attempt: i + 1, error: e.message }, 'Operation failed, will retry');
-      if (i === 2) {
-        log.error({ attempt: i + 1, error: e.message }, 'All retries exhausted');
-        throw e;
-      }
-    }
-  }
-  throw new Error('unreachable');
-}
-```
-
-**Key rules:**
-- **Trace** for variable dumps (attempt number, intermediate values, caught errors) — breakpoint equivalents
-- **Debug** for positive handshakes ("operation succeeded") — narrows WHERE
-- **Info** for business events ("order accepted") — timeline reconstruction
-- **Error** for failures the caller will handle
-- EUII (emails, user names, IPs) is **Trace-only** — forbidden at Debug and above
-
-### When a Test Fails Unexpectedly
-
-**Don't guess. Read the logs.**
-
-1. Run the failing test
-2. Open the JSONL log file (e.g., `my-app.log.jsonl`)
-3. Query with DuckDB to see exactly what happened:
-
-```sql
--- What happened during the failing test?
-SELECT "@t", "@l", "@m"
-FROM read_json_auto('my-app.log.jsonl')
-WHERE "test-case-name" = 'retries failed operations 3 times'
-ORDER BY "@t";
-
--- What were the variable values at Trace level?
-SELECT "@t", "@m", attempt, error
-FROM read_json_auto('my-app.log.jsonl')
-WHERE "test-case-name" = 'retries failed operations 3 times'
-  AND "@l" = 'Trace'
-ORDER BY "@t";
-```
-
-4. If logs don't reveal the issue → add more Trace logging at the gap → re-run → re-query
-5. For deeper investigation, use `debugging:debug-with-logs` skill
-
-**The logs replace the debugger.** Trace-level logs dump every variable you'd inspect at a breakpoint. The AI reads the JSONL and sees the full execution trace.
+Instrument tests and production code with structured JSONL logs so a failure shows its variable values. See [instrumented-logging.md](../scenario-driven-development/reference/instrumented-logging.md).
 
 ## Good Tests
 
@@ -315,69 +225,28 @@ ORDER BY "@t";
 | **Clear** | Name describes behavior | `test('test1')` |
 | **Shows intent** | Demonstrates desired API | Obscures what code should do |
 
-## Why Order Matters
-
-**"I'll write tests after to verify it works"**
-
-Tests written after code pass immediately. Passing immediately proves nothing:
-- Might test wrong thing
-- Might test implementation, not behavior
-- Might miss edge cases you forgot
-- You never saw it catch the bug
-
-Test-first forces you to see the test fail, proving it actually tests something.
-
-**"I already manually tested all the edge cases"**
-
-Manual testing is ad-hoc. You think you tested everything but:
-- No record of what you tested
-- Can't re-run when code changes
-- Easy to forget cases under pressure
-- "It worked when I tried it" ≠ comprehensive
-
-Automated tests are systematic. They run the same way every time.
-
-**"Deleting X hours of work is wasteful"**
-
-Sunk cost fallacy. The time is already gone. Your choice now:
-- Delete and rewrite with TDD (X more hours, high confidence)
-- Keep it and add tests after (30 min, low confidence, likely bugs)
-
-The "waste" is keeping code you can't trust. Working code without real tests is technical debt.
-
-**"TDD is dogmatic, being pragmatic means adapting"**
-
-TDD IS pragmatic:
-- Finds bugs before commit (faster than debugging after)
-- Prevents regressions (tests catch breaks immediately)
-- Documents behavior (tests show how to use code)
-- Enables refactoring (change freely, tests catch breaks)
-
-"Pragmatic" shortcuts = debugging in production = slower.
-
-**"Tests after achieve the same goals - it's spirit not ritual"**
-
-No. Tests-after answer "What does this do?" Tests-first answer "What should this do?"
-
-Tests-after are biased by your implementation. You test what you built, not what's required. You verify remembered edge cases, not discovered ones.
-
-Tests-first force edge case discovery before implementing. Tests-after verify you remembered everything (you didn't).
-
-30 minutes of tests after ≠ TDD. You get coverage, lose proof tests work.
+When writing or changing any test, read [writing-good-tests.md](../scenario-driven-development/reference/writing-good-tests.md) for the rules that keep tests honest:
+- Name the production change that would make the test fail — before writing it
+- Derive expected values by hand; never mirror the code under test
+- No change detectors, and no tests that assert a file's contents contain some text
+- Assert on real behavior, never on mock behavior
+- Keep test-only code in test utilities, out of production classes
+- Understand a dependency's side effects before mocking it
 
 ## Common Rationalizations
 
 | Excuse | Reality |
 |--------|---------|
 | "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
-| "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
-| "Already manually tested" | Ad-hoc ≠ systematic. No record, can't re-run. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
+| "I'll test after" | Tests written after pass immediately — which proves nothing. They may test the wrong thing, test the implementation instead of the behavior, or miss the edge case you forgot. You never watched it fail, so you never proved it can catch the bug. Test-first forces that failure. |
+| "Tests after achieve same goals (spirit not ritual)" | Tests-after answer "what does this do?"; tests-first answer "what should this do?" Tests written after are biased by the code you already wrote — you verify the cases you remembered, not the ones you'd have discovered. Coverage without proof the tests work. |
+| "Already manually tested" | Manual testing is ad-hoc: no record of what you covered, no way to re-run it when the code changes, easy to forget cases under pressure. "Worked when I tried it" ≠ comprehensive. Automated tests run the same way every time. |
+| "Deleting X hours is wasteful" | Sunk cost fallacy — that time is already spent either way. The real choice: rewrite with TDD (high confidence) vs. keep it and bolt tests on after (low confidence, likely bugs). Keeping code you can't trust is the waste. |
 | "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
 | "Need to explore first" | Fine. Throw away exploration, start with TDD. |
 | "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
-| "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
+| "TDD will slow me down" | TDD IS the pragmatic path: catches bugs before commit, prevents regressions, lets you refactor without fear. "Pragmatic" shortcuts mean debugging in production — slower, not faster. |
+| "My test file passes, so it's green" | Green means the project's whole suite. Run the repo's test command and report every failure by name, even ones you didn't cause. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
 
@@ -444,7 +313,7 @@ Before marking work complete:
 - [ ] Watched each test fail before implementing
 - [ ] Each test failed for expected reason (feature missing, not typo)
 - [ ] Wrote minimal code to pass each test
-- [ ] All tests pass
+- [ ] All tests pass — the project's whole suite, with every failure reported by name
 - [ ] Output pristine (no errors, warnings)
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
@@ -478,13 +347,6 @@ Bug found? **Logs first, then test.**
 **Never fix bugs without a test. Never diagnose bugs without reading the logs.**
 
 For complex or multi-attempt failures, use `debugging:systematic-debugging` — it enforces root cause investigation before any fix attempts.
-
-## Testing Anti-Patterns
-
-When adding mocks or test utilities, read `testing-anti-patterns.md` to avoid common pitfalls:
-- Testing mock behavior instead of real behavior
-- Adding test-only methods to production classes
-- Mocking without understanding dependencies
 
 ## Final Rule
 
