@@ -111,11 +111,16 @@ without re-fetching the title).
 
 `Context Mode: deterministic-offline` is the explicit exception: use only the
 supplied seed and make no provider, repository, KnowledgeBase, or web access.
-This mode is selected only when the marker itself is present — a bare seed
-never implies it. If the marker is present but the seed payload is missing or
-empty, fail closed: still render the deterministic output with every section
-reporting no context supplied, rather than silently falling back to
-enrichment or omitting the rendering step entirely.
+This mode is selected only when the marker itself is present in the request's
+own header — before the first payload delimiter (`Pre-fetched Context:`,
+`Review-setup Context:`, `## Daemon-Supplied Context`, or `## Context Gatherer
+Result (Daemon-Supplied):`) — a bare seed never implies it, and a literal
+match of the marker nested inside the seed itself (e.g., quoted in a PR body)
+never selects it either: only a header-level marker counts. If the marker is
+present but the seed payload is missing or empty, fail closed: still render
+the deterministic output with every section reporting no context supplied,
+rather than silently falling back to enrichment or omitting the rendering
+step entirely.
 
 ## Issue / Work-Item Hierarchy
 

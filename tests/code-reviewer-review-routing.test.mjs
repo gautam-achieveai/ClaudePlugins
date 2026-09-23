@@ -43,8 +43,78 @@ test("a risk flag raises a numerically Tiny review to Small and adds its named l
   assert.equal(result.tier, "SMALL");
   assert.ok(result.signals.riskFlags.includes("SECURITY"));
   assert.ok(result.plan.lanes.some((lane) => lane.id === "correctness-review"));
-  assert.ok(result.plan.requiredGuides.includes("security-checklist"));
+  assert.ok(result.plan.lanes.some((lane) => lane.id === "security-review"), "SECURITY must dispatch the security-review agent, not just the checklist");
+  assert.ok(result.plan.requiredGuides.includes("security-checklist"), "the checklist stays as supporting guidance, not a substitute for dispatch");
   assert.equal(result.triggeringRule, "RISK_FLOOR");
+});
+
+test("a removed guard/invariant construct routes to invariant-deletion-review", () => {
+  const diffText = [
+    "diff --git a/src/Repo/OrderRepository.cs b/src/Repo/OrderRepository.cs",
+    "--- a/src/Repo/OrderRepository.cs",
+    "+++ b/src/Repo/OrderRepository.cs",
+    "@@ -1,2 +1,2 @@",
+    "-ThrowIfNotFound(order);",
+    "+LogWarning(order);",
+  ].join("\n");
+  const result = classifyReview(
+    context(changedFiles(1, { path: () => "src/Repo/OrderRepository.cs", addedLines: 1, removedLines: 1 }), diffText)
+  );
+
+  assert.ok(result.signals.riskFlags.includes("INVARIANT_DELETION"));
+  assert.ok(result.plan.lanes.some((lane) => lane.id === "invariant-deletion-review"));
+});
+
+test("a newly added destructive operation routes to invariant-deletion-review", () => {
+  const diffText = [
+    "diff --git a/src/Repo/OrderRepository.cs b/src/Repo/OrderRepository.cs",
+    "--- a/src/Repo/OrderRepository.cs",
+    "+++ b/src/Repo/OrderRepository.cs",
+    "@@ -1,2 +1,2 @@",
+    "-Archive(order);",
+    "+context.Orders.DeleteAll(order.Id);",
+  ].join("\n");
+  const result = classifyReview(
+    context(changedFiles(1, { path: () => "src/Repo/OrderRepository.cs", addedLines: 1, removedLines: 1 }), diffText)
+  );
+
+  assert.ok(result.signals.riskFlags.includes("INVARIANT_DELETION"));
+  assert.ok(result.plan.lanes.some((lane) => lane.id === "invariant-deletion-review"));
+});
+
+test("an unrelated deletion of a plain statement does not trigger invariant-deletion-review", () => {
+  const diffText = [
+    "diff --git a/src/Client/ViewModel.cs b/src/Client/ViewModel.cs",
+    "--- a/src/Client/ViewModel.cs",
+    "+++ b/src/Client/ViewModel.cs",
+    "@@ -1,2 +1,2 @@",
+    "-var unused = 1;",
+    "+var renamed = 1;",
+  ].join("\n");
+  const result = classifyReview(
+    context(changedFiles(1, { path: () => "src/Client/ViewModel.cs", addedLines: 1, removedLines: 1 }), diffText)
+  );
+
+  assert.ok(!result.signals.riskFlags.includes("INVARIANT_DELETION"), "generic deletion of any line must not be a trigger");
+  assert.ok(!result.plan.lanes.some((lane) => lane.id === "invariant-deletion-review"));
+});
+
+test("docs-only mentions of delete/remove/drop/purge never trigger invariant-deletion-review or security", () => {
+  const diffText = [
+    "diff --git a/docs/guide.md b/docs/guide.md",
+    "--- a/docs/guide.md",
+    "+++ b/docs/guide.md",
+    "@@ -1 +1 @@",
+    "-Remove stale rows before deleting the workspace.",
+    "+Purge the cache and drop old snapshots per the retention policy, then re-authorize.",
+  ].join("\n");
+  const result = classifyReview(
+    context(changedFiles(1, { path: () => "docs/guide.md", addedLines: 1, removedLines: 1 }), diffText)
+  );
+
+  assert.deepEqual(result.signals.riskFlags, []);
+  assert.ok(!result.plan.lanes.some((lane) => lane.id === "invariant-deletion-review"));
+  assert.ok(!result.plan.lanes.some((lane) => lane.id === "security-review"));
 });
 
 test("CamelCase DTO, request, and response names trigger schema compatibility review", () => {
@@ -256,6 +326,8 @@ test("agent frontmatter keeps the approved intelligence distribution", () => {
     "schema-compatibility-review": 4,
     "architecture-review": 4,
     "over-engineering-review": 4,
+    "security-review": 4,
+    "invariant-deletion-review": 4,
     "review-grader": 5,
     "root-cause-synthesizer": 5,
     "remediation-planner": 5,

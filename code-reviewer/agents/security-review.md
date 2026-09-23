@@ -3,7 +3,8 @@ name: security-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
-model: inherit
+modelintelligence: 4
+effort: high
 color: red
 tools:
   - Read
@@ -89,10 +90,25 @@ input, a reachable operation, and the missing or incorrect control.
 
 ## Output Format
 
-For each finding, report:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-| Severity | Location | Vulnerability Class | Attack Scenario | Fix |
-|----------|----------|---------------------|-----------------|-----|
+```json
+{
+  "agent": "security-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
+```
+
+- Use `category: "Security"`. Name the specific vulnerability class (injection,
+  SSRF, IDOR, cryptographic misuse, ...) in `issue` and `underlyingProblem`.
+- Map this file's levels onto the schema `severity` scale directly: Critical →
+  `CRITICAL`, High → `HIGH`, Medium → `MEDIUM`, Low → `LOW`.
 
 **Severity levels**:
 - **Critical**: Reachable authentication/authorization bypass, injection, or

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -35,6 +35,106 @@ const DIFF = [
 ].join("\n");
 
 const envelope = (agent, findings) => ({ agent, findings, questions: [], omittedSimilarCount: 0 });
+
+// Diff carrying one representative signal for each of the two safety
+// reviewers: an added SQL-injection-shaped concatenation (security-review),
+// and a removed existence guard replaced by a bulk hard-delete
+// (invariant-deletion-review).
+const AGENT_DIFF = [
+  "diff --git a/src/Auth/Login.cs b/src/Auth/Login.cs",
+  "--- a/src/Auth/Login.cs",
+  "+++ b/src/Auth/Login.cs",
+  "@@ -5,4 +5,6 @@ public class Login",
+  "     public void Authenticate(string username)",
+  "     {",
+  "+        var sql = \"SELECT * FROM Users WHERE Name = '\" + username + \"'\";",
+  "+        db.Execute(sql);",
+  "     }",
+  "diff --git a/src/Repo/OrderRepository.cs b/src/Repo/OrderRepository.cs",
+  "--- a/src/Repo/OrderRepository.cs",
+  "+++ b/src/Repo/OrderRepository.cs",
+  "@@ -10,3 +10,3 @@ public class OrderRepository",
+  "     public void Purge(int orderId)",
+  "     {",
+  "-        ThrowIfNotFound(orderId);",
+  "+        context.Orders.DeleteAll(orderId);",
+  "     }",
+].join("\n");
+
+test("representative findings from security-review and invariant-deletion-review survive the real filter", () => {
+  const res = runFilter({
+    diffText: AGENT_DIFF,
+    findings: [
+      envelope("security-review", [{
+        file: "src/Auth/Login.cs",
+        line: 8,
+        severity: "HIGH",
+        remediation: "SMALL",
+        category: "Security",
+        issue: "SQL injection: username is concatenated directly into the query text",
+        underlyingProblem: "no parameterization before the value reaches db.Execute",
+        confidence: "CONFIRMED",
+      }]),
+      envelope("invariant-deletion-review", [{
+        file: "src/Repo/OrderRepository.cs",
+        line: 12,
+        severity: "HIGH",
+        remediation: "SMALL",
+        category: "Correctness",
+        issue: "[Unsafe Deletion] Purge replaces the existence guard with a hard DeleteAll and no confirmation",
+        underlyingProblem: "ThrowIfNotFound was the only guard before the destructive bulk delete",
+        confidence: "CONFIRMED",
+      }]),
+    ],
+  });
+
+  assert.equal(res.stats.received, 2);
+  assert.equal(res.toVerify.length, 2);
+  const byAgent = Object.fromEntries(res.toVerify.map((f) => [f.agent, f]));
+  assert.equal(byAgent["security-review"].category, "Security");
+  assert.equal(byAgent["security-review"].diffAnchor, "IN_DIFF");
+  assert.equal(byAgent["invariant-deletion-review"].category, "Correctness");
+  assert.equal(byAgent["invariant-deletion-review"].diffAnchor, "IN_DIFF");
+});
+
+test("a security/invariant finding on unchanged code is a false-positive control: PRE_EXISTING, never blocking", () => {
+  const res = runFilter({
+    diffText: AGENT_DIFF,
+    findings: [
+      envelope("security-review", [{
+        file: "src/Auth/Login.cs",
+        line: 2,
+        severity: "HIGH",
+        category: "Security",
+        issue: "pre-existing weak hashing, unrelated to this diff",
+        underlyingProblem: "legacy code untouched by this PR",
+      }]),
+      envelope("invariant-deletion-review", [{
+        file: "src/Repo/OrderRepository.cs",
+        line: 40,
+        severity: "HIGH",
+        category: "Correctness",
+        issue: "[Invariant Erosion] unrelated pre-existing gap far from this change",
+        underlyingProblem: "not touched by this diff",
+      }]),
+    ],
+  });
+
+  assert.equal(res.toVerify.length, 0);
+  assert.equal(res.preExisting.length, 2);
+  assert.ok(res.preExisting.every((f) => f.diffAnchor === "PRE_EXISTING"));
+});
+
+test("both security-review and invariant-deletion-review definitions point at finding-schema.md, not a markdown table", () => {
+  const security = readFileSync(new URL("../code-reviewer/agents/security-review.md", import.meta.url), "utf8");
+  const invariant = readFileSync(new URL("../code-reviewer/agents/invariant-deletion-review.md", import.meta.url), "utf8");
+  for (const content of [security, invariant]) {
+    assert.match(content, /finding-schema\.md/);
+    assert.doesNotMatch(content, /^\|\s*Severity\s*\|/m, "no leftover markdown finding table");
+  }
+  assert.match(security, /category:\s*"Security"/);
+  assert.match(invariant, /category:\s*"Correctness"/);
+});
 
 test("parseDiff records post-image line numbers of added lines", () => {
   const files = parseDiff(DIFF);

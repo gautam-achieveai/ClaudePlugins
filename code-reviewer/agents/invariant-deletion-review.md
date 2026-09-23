@@ -3,7 +3,8 @@ name: invariant-deletion-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
-model: inherit
+modelintelligence: 4
+effort: high
 color: red
 tools:
   - Read
@@ -79,12 +80,26 @@ both can leave the system in a state that later code assumes is impossible.
 
 ## Output Format
 
-For each finding, report:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-| Severity | Location | Category | Safeguard or Invariant at Risk | Failure Scenario | Fix |
-|----------|----------|----------|--------------------------------|------------------|-----|
+```json
+{
+  "agent": "invariant-deletion-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
+```
 
-Use category **Unsafe Deletion** or **Invariant Erosion**.
+- Use `category: "Correctness"`. Prefix `issue` with `[Unsafe Deletion]` or
+  `[Invariant Erosion]` so the subtype survives even though the schema has no
+  dedicated category for it.
+- Map this file's levels onto the schema `severity` scale directly: Critical →
+  `CRITICAL`, High → `HIGH`, Medium → `MEDIUM`, Low → `LOW`.
 
 **Severity levels**:
 - **Critical**: Reachable irreversible high-impact data loss, or deletion with

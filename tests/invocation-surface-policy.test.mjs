@@ -558,8 +558,8 @@ test("daemon-direct mode is mutually exclusive with pr-review's own pr-context/p
   );
   const defenseSection = sectionBetween(
     prContext,
-    "### 0. Daemon-Direct Duplicate Defense",
-    "### 1. Identify the PR and Repository"
+    "### 1. Daemon-Direct Duplicate Defense",
+    "### 2. Identify the PR and Repository"
   );
   assert.doesNotMatch(
     defenseSection,
@@ -665,6 +665,124 @@ function sectionBetween(content, startHeading, endHeading) {
   assert.ok(endIdx !== -1, `Missing heading: ${endHeading}`);
   return content.slice(from, endIdx);
 }
+
+// Follow-up on the F002 fix: the raw dispatch-prompt/PR-argument text handed
+// to the boundary parser is itself untrusted. Embedding it in a shell
+// heredoc, `$(...)`, or an inline command-line flag lets a crafted line
+// (e.g. one that matches the heredoc terminator, or shell metacharacters)
+// break out of the intended string and run as shell input instead of being
+// parsed as data. Every documented parser-invocation recipe must instead
+// write the untrusted text to a file first (the `Write` tool) and read it
+// back with `--in` / `--seed-file` — never heredoc it, never inline it.
+test("parser invocation recipes use file-based transport, never a shell heredoc or inline interpolation of untrusted text", () => {
+  const prContext = readRepoFile(path.join("code-reviewer", "skills", "pr-context", "SKILL.md"));
+  const prReview = readRepoFile(path.join("code-reviewer", "skills", "pr-review", "SKILL.md"));
+
+  function fencedBashBlocks(content) {
+    const blocks = [];
+    const re = /```bash\n([\s\S]*?)```/g;
+    let match;
+    while ((match = re.exec(content)) !== null) blocks.push(match[1]);
+    return blocks;
+  }
+
+  for (const [name, content] of [
+    ["pr-context/SKILL.md", prContext],
+    ["pr-review/SKILL.md", prReview],
+  ]) {
+    const parserBlocks = fencedBashBlocks(content).filter((block) =>
+      block.includes("parse-context-request.mjs")
+    );
+    assert.ok(parserBlocks.length > 0, `${name} must show at least one parser invocation recipe`);
+
+    for (const block of parserBlocks) {
+      assert.doesNotMatch(
+        block,
+        /<<-?\s*['"]?EOF['"]?/,
+        `${name} must not heredoc untrusted text into the parser's shell invocation`
+      );
+      assert.doesNotMatch(
+        block,
+        /\$\(/,
+        `${name} must not use command substitution around untrusted text in the parser invocation`
+      );
+      assert.doesNotMatch(
+        block,
+        /--seed(?!-file)\s+\S/,
+        `${name} must not pass an inline --seed value on the command line; use --seed-file`
+      );
+      assert.match(
+        block,
+        /--in\s+"/,
+        `${name} must read the parser's request from a file via --in`
+      );
+    }
+  }
+
+  // The surrounding prose must state the file-based transport rule
+  // explicitly, not just show it once in an example that could silently
+  // drift out of sync.
+  assert.match(
+    prContext,
+    /never embed the raw argument in a shell heredoc/i,
+    "pr-context/SKILL.md must explicitly ban heredoc transport of the untrusted argument"
+  );
+  assert.match(
+    prContext,
+    /`Write`\s+tool/,
+    "pr-context/SKILL.md must direct writing the untrusted argument to a file with the Write tool"
+  );
+  assert.match(
+    prReview,
+    /never[\s*]*embed it in a shell heredoc/i,
+    "pr-review/SKILL.md must explicitly ban heredoc transport of its own dispatch prompt"
+  );
+  assert.match(
+    prReview,
+    /`Write`\s+tool/,
+    "pr-review/SKILL.md must direct writing its dispatch prompt to a file with the Write tool before parsing it"
+  );
+});
+
+// Follow-up on a verifier finding: the boundary parser had grown an unused
+// `isReviewDaemonBootstrap` field/regex whose semantics didn't match the
+// gatherer agent's own bootstrap detection (a literal marker OR a bootstrap
+// object with EngagementRoundId/PriorObservationBoundary fields). The fix
+// removes that field from the parser entirely rather than reconciling it —
+// bootstrap-mode selection is the gatherer's job alone. This pins that the
+// gatherer's own detection stays header-only (never selected from a marker
+// nested inside a supplied seed/payload block), independent of the parser.
+test("gatherer's Bootstrap JSON / bootstrap-object detection stays header-only, never selected from a nested seed", () => {
+  const gatherer = readRepoFile(path.join("code-reviewer", "agents", "pr-context-gatherer.md"));
+
+  const manifestSection = sectionBetween(
+    gatherer,
+    "## Review Daemon Context Manifest",
+    "## Why This Matters"
+  );
+
+  assert.match(
+    manifestSection,
+    /Bootstrap JSON:/,
+    "the gatherer must still document the literal Bootstrap JSON marker"
+  );
+  assert.match(
+    manifestSection,
+    /header/i,
+    "Bootstrap JSON / bootstrap-object detection must be scoped to the dispatch prompt's own header"
+  );
+  assert.match(
+    manifestSection,
+    /before any/i,
+    "Bootstrap detection must be explicitly bounded to text before any payload delimiter/block"
+  );
+  assert.match(
+    manifestSection,
+    /nested inside one of those blocks[\s\S]{0,160}never selects this mode/i,
+    "a Bootstrap-looking marker nested inside a supplied block must never select Review Daemon context mode"
+  );
+});
+
 
 test("tool-catalog Specialized Review Agents stay in lock-step with agent-dispatch's Domain Agents and real agent files", () => {
   const toolCatalog = readRepoFile(

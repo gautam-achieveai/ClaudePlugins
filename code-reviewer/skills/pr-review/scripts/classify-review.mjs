@@ -18,6 +18,7 @@ export const REVIEW_TIERS = ["TINY", "SMALL", "MEDIUM", "LARGE"];
 
 const RISK_ORDER = [
   "SECURITY",
+  "INVARIANT_DELETION",
   "SCHEMA_COMPATIBILITY",
   "ORLEANS",
   "NSCRIPT",
@@ -46,6 +47,8 @@ const LANE_DEFAULTS = {
   "schema-compatibility-review": [4, "high"],
   "architecture-review": [4, "high"],
   "over-engineering-review": [4, "high"],
+  "security-review": [4, "high"],
+  "invariant-deletion-review": [4, "high"],
   "review-grader": [5, "high"],
   "root-cause-synthesizer": [5, "high"],
   "remediation-planner": [5, "high"],
@@ -199,6 +202,7 @@ export function detectDiffFeatures(input) {
   const codeChanges = parsed.changes.filter((change) => change.path === null || !isProse(change.path));
   const joinedPaths = paths.filter((filePath) => !isProse(filePath)).join("\n");
   const addedText = codeChanges.filter((change) => change.sign === "+").map((change) => change.text).join("\n");
+  const removedText = codeChanges.filter((change) => change.sign === "-").map((change) => change.text).join("\n");
   const changedText = codeChanges.map((change) => change.text).join("\n");
   const searchText = `${joinedPaths}\n${changedText}`;
 
@@ -217,6 +221,25 @@ export function detectDiffFeatures(input) {
 
   const riskFlags = [];
   if (hasAny(searchText, [/(?:^|[/_.-])(auth|authorization|authentication|permission|crypto|payment)(?:[/_.-]|$)/i, /\b(?:authorize|authorization|authenticate|permission|forbid|cryptograph|encrypt|decrypt|payment)\w*\b/i])) riskFlags.push("SECURITY");
+  // Invariant/deletion risk is judged only from the diff's own added/removed
+  // lines, never from "this file touched a deletion-shaped word somewhere" —
+  // that would fire on every delete. A removed guard/validation/invariant
+  // construct, or a newly added destructive operation, are the two concrete
+  // signals; neither fires on unrelated deleted or added lines.
+  const removedGuardOrInvariant = hasAny(removedText, [
+    /\b(?:ThrowIf\w*|Ensure\w*|Validate\w*|Guard\.\w+)\s*\(/,
+    /\bif\s*\([^)]*\)\s*(?:throw\b|return\s+(?:Forbid|Unauthorized|BadRequest)\b)/i,
+    /\[(?:Required|Range|StringLength|RegularExpression|MaxLength|MinLength)\]/,
+    /\b(?:RowVersion|ConcurrencyToken|CancellationToken|UniqueConstraint|ExpiresAt|ExpiryDate)\b/,
+  ]);
+  const addedDestructiveOperation = hasAny(addedText, [
+    /\.(?:Delete|Remove|Drop|Purge|Truncate)(?:All|Range|Many|Async)?\s*\(/,
+    /\bDROP\s+(?:TABLE|COLUMN|INDEX)\b/i,
+    /\bTRUNCATE\s+TABLE\b/i,
+    /\bON\s+DELETE\s+CASCADE\b/i,
+    /\bDeleteBehavior\.Cascade\b/i,
+  ]);
+  if (removedGuardOrInvariant || addedDestructiveOperation) riskFlags.push("INVARIANT_DELETION");
   if (hasAny(searchText, [/\.(?:proto|thrift|avsc|fbs|bond)\b/i, /(?:^|\/)migrations?(?:\/|$)/i, /\b(?:DataContract|DataMember|JsonPropertyName|ProtoMember|BondMember|GenerateSerializer)\b/i, /\b(?:dto|schema|serialize|deserialize|wire format)\b/i, /[A-Z]\w*(?:Dto|Request|Response)\b/])) riskFlags.push("SCHEMA_COMPATIBILITY");
   if (hasAny(searchText, [/\borleans\b/i, /\b(?:Grain|IGrainWith\w+Key|Reentrant|AlwaysInterleave|StorageProvider)\b/])) riskFlags.push("ORLEANS");
   if (hasAny(searchText, [/\b(?:NScript|Mcqdb\.NScript|AutoFire)\b/i])) riskFlags.push("NSCRIPT");
@@ -276,6 +299,8 @@ function initialTier(features) {
 function riskLanes(features) {
   const ids = [];
   const add = (id) => { if (!ids.includes(id)) ids.push(id); };
+  if (features.riskFlags.includes("SECURITY")) add("security-review");
+  if (features.riskFlags.includes("INVARIANT_DELETION")) add("invariant-deletion-review");
   if (features.riskFlags.includes("SCHEMA_COMPATIBILITY")) add("schema-compatibility-review");
   if (features.riskFlags.includes("ORLEANS")) add("orleans-review");
   if (features.riskFlags.includes("NSCRIPT")) add("nscript-review");
