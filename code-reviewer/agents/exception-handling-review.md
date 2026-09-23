@@ -3,6 +3,8 @@ name: exception-handling-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 4
+effort: high
 tools:
   - Read
   - Grep
@@ -32,8 +34,10 @@ at a glance.
 
 ## Analysis Process
 
-1. **Get the diff** — Read the PR diff (changed files and lines). Only analyze
-   NEW or MODIFIED lines, not pre-existing code.
+1. **Use the supplied context pack** — the orchestrator supplies the diff, the
+   changed-file list, and the Review Intent. Do not fetch the diff yourself; only read
+   full files when the diff alone cannot settle a question. Only analyze NEW or MODIFIED
+   lines, not pre-existing code.
 2. **Find all exception sites** — Use Grep to locate `try`, `catch`, `throw`,
    `finally`, custom exception classes, and error-handling middleware in changed
    files.
@@ -322,25 +326,24 @@ public void ProcessOrder(Order order)
 
 ## Output Format
 
-```markdown
-## Exception Handling Review Summary
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-### Findings
-
-#### [HIGH/MEDIUM] - [Category]: [Brief Description]
-- **File**: `path/to/file.cs:42`
-- **Code**: `the offending catch/throw/try block`
-- **Problem**: Why this is wrong
-- **Fix**: Specific correction with code example
-
-### Statistics
-- Try-catch blocks reviewed: X
-- Throw statements reviewed: X
-- Issues found: X HIGH, X MEDIUM
-
-### Clean Summary
-If no issues found: "Exception handling patterns in this PR follow best practices. No issues detected."
+```json
+{
+  "agent": "exception-handling-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
 ```
+
+- Use `category: "Correctness"` unless another schema category fits better.
+- Put the try-catch/throw counts you reviewed and any area you could not reach in
+  `coverageNote`.
 
 ## Guidelines
 

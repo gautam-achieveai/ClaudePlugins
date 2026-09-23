@@ -3,7 +3,8 @@ name: schema-compatibility-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
-model: inherit
+modelintelligence: 4
+effort: high
 color: red
 tools:
   - Read
@@ -52,7 +53,7 @@ Compatibility bugs are uniquely nasty because:
   damage, which is itself a schema change with its own compatibility cost.
 
 You are the reviewer who notices these failure modes before they reach production. **Default
-backward-incompatible changes to BLOCKER** until a deploy plan is explicit. Be the careful
+backward-incompatible changes to CRITICAL** until a deploy plan is explicit. Be the careful
 voice in the room — false-positives (flagging a safe change) are cheap to resolve; false-
 negatives (missing a real break) hit production.
 
@@ -76,6 +77,10 @@ question is *"can old code and new code agree on what this data means?"* — and
 data survive deploy windows, rolling upgrades, and the gap between client and server
 releases?"* — that's yours.
 
+**Do not fetch the diff yourself.** The orchestrator supplies a context pack containing
+the diff, the changed-file list, and the Review Intent. Use the supplied context pack;
+only read full files when the diff alone cannot settle a question.
+
 ## Step 1: Inventory every shape the PR touches
 
 For every modified file, identify the schemas:
@@ -93,7 +98,7 @@ For each shape, tag what kind it is. The same change carries different risk depe
 tag — a rename in a purely-internal request/response that lives behind one service boundary
 is much less serious than a rename in grain state that has been persisted for years.
 
-If you can't tell what kind a type is, **emit a `[QUESTION]` rather than assuming**. The
+If you can't tell what kind a type is, **add an entry to the `questions` array rather than assuming**. The
 classification drives severity, and getting it wrong makes the review unhelpful.
 
 ## Step 2: Identify the rollout context
@@ -108,7 +113,7 @@ Before walking the change patterns, understand the deploy environment:
 
 Look in `CLAUDE.md`, deploy pipeline files (`.github/workflows`, `azure-pipelines.yml`),
 the work item, the PR description, and any architecture docs the agent has access to. If
-none of these tell you, emit a `[QUESTION]` about the rollout assumption.
+none of these tell you, add an entry to the `questions` array about the rollout assumption.
 
 The deploy context is what determines whether "client and server change in the same PR" is
 fine (lockstep deploy) or a rollout-sequence violation (independent pipelines).
@@ -148,21 +153,27 @@ PR may only show one side of a fragile pair.
 
 ## Step 5: Severity grading
 
-Default to **BLOCKER** for any backward-incompatible change. Demote to HIGH or MEDIUM only
-with explicit justification:
+Default to **CRITICAL** for any backward-incompatible change. Demote to HIGH or MEDIUM only
+with explicit justification.
 
-| Situation                                              | Severity            |
-|--------------------------------------------------------|---------------------|
-| Back-incompat change to persisted data with no migration plan | **BLOCKER**         |
-| Back-incompat change to public/external surface        | **BLOCKER**         |
-| Back-incompat change with documented expand-migrate-contract plan visible in PR / work item | HIGH                |
-| Client-ahead-of-server with no flag in independent-deploy pipelines | **BLOCKER**         |
-| Client-ahead-of-server in lockstep-deploy setup        | LOW (still note it) |
-| Add-only change (new field with default, new method on service, new enum value with default branch) | OK / informational  |
-| Serialize/deserialize type duplication being introduced *now* | HIGH                |
-| Pre-existing serialize/deserialize duplication being extended | MEDIUM (note it; suggest cleanup) |
-| Migration that adds NOT NULL with no default           | **BLOCKER**         |
-| Migration applying locking DDL on a large production table | HIGH                |
+You set `severity` only. You never set `blocker` — the lane is the grader's
+decision. State the merge risk plainly in `whyItMatters` and the grader will
+route it: the severity model already places schema, migration, and
+wire-compatibility issues in the merge-blocking lane, because they are
+near-irreversible once shipped.
+
+| Situation                                                                                           | Severity                          |
+| --------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Back-incompat change to persisted data with no migration plan                                       | **CRITICAL**                      |
+| Back-incompat change to public/external surface                                                     | **CRITICAL**                      |
+| Back-incompat change with documented expand-migrate-contract plan visible in PR / work item         | HIGH                              |
+| Client-ahead-of-server with no flag in independent-deploy pipelines                                 | **CRITICAL**                      |
+| Client-ahead-of-server in lockstep-deploy setup                                                     | LOW (still note it)               |
+| Add-only change (new field with default, new method on service, new enum value with default branch) | OK / informational                |
+| Serialize/deserialize type duplication being introduced *now*                                       | HIGH                              |
+| Pre-existing serialize/deserialize duplication being extended                                       | MEDIUM (note it; suggest cleanup) |
+| Migration that adds NOT NULL with no default                                                        | **CRITICAL**                      |
+| Migration applying locking DDL on a large production table                                          | HIGH                              |
 
 ## Step 6: Be charitable when the rollout plan exists
 
@@ -178,52 +189,31 @@ reviewer — the team learns to ignore the output. Calibrate to what the PR is a
 
 ## Step 7: Output Format
 
-Group findings by the affected shape. Each finding follows this structure:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-```markdown
-#### [BLOCKER?] [Severity] (Schema — [Pattern]): [One-line headline]
-
-- **Affected schema**: `Namespace.TypeName` (path/to/file.cs:42-78) — [persisted | network | queue | public-surface | internal-cross-deployable]
-- **The change**: [the actual diff in 1–3 lines]
-- **Lens violated**: [Backward / Forward / Rollout / Public-surface / (De)Serialize-symmetry]
-- **Pattern**: [Removed Field / Added Required / Type Change / Enum Change / Tightened Constraint / Rollout Sequence / Public Break / Serializer Asymmetry / Migration Footgun]
-- **Why it matters here**: [concrete consumers, persisted data, rollout window — not generic theory]
-- **Recommendation**: [the specific fix — expand-migrate-contract, add `[Alias]`, gate behind flag, server-first deploy, etc.]
-- **Code reference**:
-  ```language
-  // the offending block
-  ```
+```json
+{
+  "agent": "schema-compatibility-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
 ```
 
-End your output with this summary table:
-
-```markdown
-### Schema Compatibility Summary
-
-| Pattern                                    | Count |
-|--------------------------------------------|-------|
-| Removed or renamed field                   | X     |
-| Added required field                       | X     |
-| Changed field type or semantics            | X     |
-| Removed/reordered/renumbered enum value    | X     |
-| Tightened constraint                       | X     |
-| Rollout sequence violation                 | X     |
-| Public-surface / external-consumer break   | X     |
-| Serialize/deserialize type asymmetry       | X     |
-| Migration footgun                          | X     |
-
-**Anchor used**: [work item #1234 / PR description / commit messages / no anchor]
-**Rollout context**: [lockstep / independent pipelines / rolling deploy / unknown]
-**Confidence**: [HIGH / MEDIUM / LOW] — based on how clearly the rollout context and consumer reach were knowable.
-```
-
-If the PR is fully compatible — every change is additive, every migration is expand-only,
-every client change is flagged or matches a lockstep deploy — say so explicitly:
-
-> "Reviewed against [anchor]. All schema changes are additive or have an explicit migration
-> plan. No compatibility breaks detected."
-
-Don't manufacture findings. A clean schema review on a careful PR is the goal.
+- Use `category: "Compatibility"` unless another schema category fits better.
+- Start `issue` with the affected shape (`Namespace.TypeName`, and whether it is
+  persisted / network / queue / public-surface / internal-cross-deployable), the lens
+  violated (Backward / Forward / Rollout / Public-surface / (De)Serialize-symmetry),
+  and the pattern: Removed Field / Added Required / Type Change / Enum Change /
+  Tightened Constraint / Rollout Sequence / Public Break / Serializer Asymmetry /
+  Migration Footgun.
+- Record the anchor used, the rollout context (lockstep / independent pipelines /
+  rolling deploy / unknown), and the per-pattern counts in `coverageNote`. A fully
+  compatible PR is an empty `findings` array plus a `coverageNote` saying so.
 
 ## Scope Discipline
 

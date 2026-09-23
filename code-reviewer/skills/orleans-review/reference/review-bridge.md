@@ -5,33 +5,32 @@ loaded from `orleans-dev:orleans-patterns`. It does NOT duplicate domain rules.
 
 ---
 
-## PR Review Output Format
+## Where Findings Go
 
-Provide findings in this structure:
+This file does not define an output layout. Findings are emitted in the JSON
+contract at `../../pr-review/reference/finding-schema.md`: one JSON object per
+agent, **at most 5 findings**, `id: null` (only the orchestrator assigns IDs),
+**no `blocker` field** (the lane is the grader's call), and every record carrying
+`diffAnchor` (`IN_DIFF` / `ENABLED_BY_DIFF` / `PRE_EXISTING`) and `confidence`.
+The same Orleans mechanism repeated across grains is one record with the extra
+locations listed in `instances` — that is clustering, not omission.
 
-```
-## Orleans Review Summary
+The content the old report structure carried still has a home:
 
-### Call Graph Analysis
-- Diagram or description of grain-to-grain calls found in the PR
-- Any cycles detected (or confirmation that none exist)
-
-### Issues Found
-
-#### [CRITICAL/HIGH/MEDIUM/LOW] - [Issue Title]
-- **File**: `path/to/file.cs:line`
-- **Problem**: Description of the issue
-- **Risk**: What can go wrong (deadlock, data loss, performance, thundering herd)
-- **Current Code**: The problematic code snippet
-- **Recommendation**: What should be done instead
-- **Example Fix**: Code showing the correct approach
-
-### Positive Findings
-- List well-implemented Orleans patterns found in the PR
-
-### Missing Items
-- List any expected patterns that are absent (e.g., missing error handling on WriteStateAsync)
-```
+- **Call graph analysis** — the grain-to-grain call trace, and whether a cycle
+  was found or ruled out, goes in `evidence` for a cycle finding, and in
+  `coverageNote` when no cycle exists.
+- **Risk** (deadlock, data loss, performance, thundering herd) goes in
+  `whyItMatters`.
+- **Recommendation / example fix** goes in `suggestedPath` as the smallest
+  correction, with the implementation-neutral condition in `requiredOutcome` and
+  the closing evidence in `doneWhen`.
+- **Positive findings** — well-implemented Orleans patterns, and expected
+  patterns checked and found present — go in `coverageNote`. An expected pattern
+  that is *absent* (e.g. no error handling on `WriteStateAsync`) is a finding,
+  not a note.
+- **Orleans version detected** and which rule set was applied go in
+  `coverageNote`.
 
 ---
 

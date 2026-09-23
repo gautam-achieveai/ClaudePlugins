@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Extract one task's full text from an implementation plan into a file the
+# implementer reads in one call, so the task text never has to be pasted
+# through the controller's context.
+#
+# Adapted from obra/superpowers `subagent-driven-development` (MIT).
+#
+# Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
+# Default OUTFILE: <repo-root>/.sdd/<plan-basename>/task-<N>-brief.md
+# (per plan and per worktree; concurrent runs of the SAME plan in the same
+# working tree share it).
+set -euo pipefail
+
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+  echo "usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]" >&2
+  exit 2
+fi
+
+plan=$1
+n=$2
+[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
+case "$n" in
+  ''|*[!0-9]*) echo "TASK_NUMBER must be a positive integer: $n" >&2; exit 2 ;;
+esac
+
+if [ $# -eq 3 ]; then
+  out=$3
+else
+  # Invoke via bash rather than direct exec: packagers and Windows checkouts
+  # can strip Unix exec bits.
+  dir=$("${BASH:-bash}" "$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
+  out="$dir/task-${n}-brief.md"
+fi
+
+# The plan's "Global Constraints" section (if any) travels with every brief,
+# ahead of the task block, so implementers see the exact shared values.
+awk -v n="$n" '
+  /^```/ { infence = !infence }
+  !infence && /^#+[ \t]+/ {
+    inglobal = ($0 ~ /^#+[ \t]+Global Constraints[ \t]*$/)
+    if ($0 ~ /^#+[ \t]+Task[ \t]+[0-9]+/) {
+      intask = ($0 ~ ("^#+[ \t]+Task[ \t]+" n "([^0-9]|$)"))
+    } else if (inglobal) {
+      intask = 0
+    }
+  }
+  inglobal { global = global $0 "\n" }
+  intask { task = task $0 "\n"; found = 1 }
+  END { if (found) printf "%s%s", global, task }
+' "$plan" > "$out"
+
+if [ ! -s "$out" ]; then
+  rm -f "$out"
+  echo "task ${n} not found in ${plan} (no heading matching 'Task ${n}')" >&2
+  exit 3
+fi
+
+echo "wrote ${out}: $(wc -l < "$out" | tr -d ' ') lines"

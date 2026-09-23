@@ -3,7 +3,8 @@ name: nscript-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
-model: inherit
+modelintelligence: 3
+effort: medium
 color: cyan
 tools:
   - Read
@@ -47,6 +48,10 @@ You are a specialized NScript code review agent. NScript is a C#-to-JavaScript t
 10. Check project structure and naming conventions
 11. Focus on interop guidelines — use of `[JsonType]`, `[IgnoreNamespace]`, `[ScriptName]`, `extern` declarations, and what is/isn't allowed on these types
 
+**Do not fetch the diff yourself.** The orchestrator supplies a context pack containing
+the diff, the changed-file list, and the Review Intent. Use the supplied context pack;
+only read full files when the diff alone cannot settle a question.
+
 ## Analysis Process
 
 1. **Identify NScript code** - Look for files using `Mcqdb.NScript.Sdk`, `ObservableObject`, `Promise<T>`, `[AutoFire]`, or NScript-specific types
@@ -58,33 +63,29 @@ You are a specialized NScript code review agent. NScript is a C#-to-JavaScript t
 
 ## Output Format
 
-Provide findings in this structure:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
+```json
+{
+  "agent": "nscript-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
 ```
-## NScript Review Summary
 
-### Language Restriction Violations
-- List any unsupported C# features found (string interpolation, foreach, Dictionary, multiple catch, etc.)
-
-### Interop Issues
-- List any [JsonType], [IgnoreNamespace], [ScriptName], extern violations
-
-### Issues Found
-
-#### [CRITICAL/HIGH/MEDIUM/LOW] - [Issue Title]
-- **File**: `path/to/file.cs:line`
-- **Problem**: Description of the issue
-- **Risk**: What can go wrong (transpilation error, runtime failure, stale UI, silent bug)
-- **Current Code**: The problematic code snippet
-- **Recommendation**: What should be done instead
-- **Example Fix**: Code showing the correct approach
-
-### Positive Findings
-- List well-implemented NScript patterns found in the PR
-
-### Missing Items
-- List any expected patterns that are absent (e.g., missing AutoFire, missing IoC registration, missing page URL routing)
-```
+- Use `category: "Correctness"` unless another schema category fits better.
+- Start `issue` with the NScript finding class: Language Restriction Violation /
+  Interop Issue / AutoFire or Property Dependency / IoC Registration / Template
+  Binding. Put the transpilation, runtime, stale-UI, or silent-bug risk in
+  `whyItMatters` and the corrected code in `suggestedPath`.
+- Well-implemented NScript patterns and expected-but-absent patterns (missing
+  AutoFire, missing IoC registration, missing page URL routing) that are not findings
+  go in `coverageNote`.
 
 ## Edge Cases
 

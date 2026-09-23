@@ -1,8 +1,29 @@
 # Agent Guidance — Discipline Blocks & Question Handling
 
 Load this file **before dispatching any review agent (Steps 4-8)** and again at
-**Step 10** (question consolidation). The four discipline blocks below MUST be
+**Step 10** (question consolidation). The five discipline blocks below MUST be
 included (verbatim or faithfully summarized) in every dispatched agent's prompt.
+
+<output_contract>
+**Output Contract — applies to ALL agents dispatched in steps 4-8:**
+
+1. **Return exactly one JSON object** matching
+   [finding-schema.md](finding-schema.md). No prose before it, none after it.
+2. **At most 5 findings.** Keep the highest-impact ones. Set
+   `omittedSimilarCount` and explain in `coverageNote` when you drop others.
+3. **Cluster, do not repeat.** One mechanism appearing in several places is ONE
+   record with the other locations in `instances`.
+4. **Anchor every finding.** `IN_DIFF`, or `ENABLED_BY_DIFF` with a concrete
+   `enablingChange` naming the changed line, or `PRE_EXISTING`. A finding you
+   cannot anchor will be filtered out mechanically, so anchor it honestly
+   rather than guessing.
+5. **Never set `blocker`, never set `id`.** The lane and the identity are the
+   orchestrator's and the grader's decisions.
+6. **Use the supplied context pack.** Read the diff from `diffPath`; do not
+   fetch your own. Open full files only when the diff cannot settle a question.
+7. **Do not report what a compiler, linter, type checker, or formatter would
+   catch.** Assume CI runs them. Do not build or typecheck yourself.
+</output_contract>
 
 <agent_question_guidance>
 **Context Question Emission — applies to ALL agents dispatched in steps 4-8:**
@@ -24,19 +45,14 @@ your findings. Do NOT guess or silently skip — surface the uncertainty.
 - The issue is clearly a defect — emit a finding instead
 - The PR description or work item already explains the intent
 
-**Question format:**
+**Question format:** questions go in the `questions` array of your JSON
+envelope, using the shape in [finding-schema.md](finding-schema.md):
+`file`, `line`, `codeContext`, `uncertainty`, `whatAnsweringUnlocks`, and an
+optional `suggestedAnswers`.
 
-```
-## Question [N]
-- File: [path:line]
-- Code Context: [the specific code snippet]
-- Uncertainty: [what you cannot determine and why]
-- What Answering Unlocks: [what you could assess with an answer]
-- Suggested Answers: [optional — 2-3 possible answers]
-```
-
-Include questions in your output alongside findings. They will be collected
-in Step 10 and posted as `[QUESTION]` inline comments.
+Never file uncertainty as a finding. Questions are collected in Step 10 and
+posted as `[QUESTION]` inline comments; they never reach the grader and never
+affect the verdict.
 </agent_question_guidance>
 
 <claim_strength_discipline>

@@ -44,17 +44,37 @@ otherwise the `gh` CLI (run via `Bash`, authenticated with `gh auth`).
 - `gh pr merge <n> --squash|--merge|--rebase` - Merge the PR
 - `gh issue view <n> --json …` / `gh api repos/<owner>/<repo>/issues/<n>` - Linked-issue details and parent/sub-issue relations
 
+## Core Lanes (always dispatched, step 4)
+
+- `correctness-review` - logic defects in the changed code: inverted conditions, boundary errors, null handling, state/ordering, resource lifetime, contract mismatch, concurrency
+- `history-context-review` - git blame and log for the changed lines, review comments on earlier PRs touching these files, guidance in nearby code comments
+- `temp-code-review` - temporary code, debug artifacts, hardcoded hacks, mistaken files
+
 ## Specialized Review Agents (dispatched in step 7)
 
 - `nscript-review` - NScript C#-to-JS transpiler compliance, MVVM, template/skin patterns
 - `orleans-review` - Orleans grain architecture, reentrancy, state management, streams
 - `debugging:logging-review` - Structured logging compliance, log levels, queryability, EUII policy enforcement, client-side log forwarding checks
-- `temp-code-review` - **(always dispatched)** Temporary code, debug artifacts, hardcoded hacks, mistaken files
 - `duplicate-code-detector` - Exact/near duplicates, repeated patterns, structural duplication; suggests extractions
 - `euii-leak-detector` - EUII/PII leaks in logs, telemetry, error messages, HTTP logging
 - `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
 - `exception-handling-review` - Exception patterns: swallowed exceptions, broad catches, incorrect re-throws, missing logging, async pitfalls, flow control abuse
 - `test-coverage-review` - Test coverage adequacy, behavioral coverage, over-mocking, test-production pollution, missing regression tests, integration point coverage
+- `code-simplifier` - Expression and block-level complexity: deep nesting, long chains, verbose conditionals
+- `architecture-review` - Layer boundaries, dependency direction, god classes, circular dependencies, DI anti-patterns
+- `performance-review` - Backend and frontend performance: async misuse, N+1, allocation, re-render cascades
+- `over-engineering-review` - Delivered scope against the stated task: speculative abstraction, unrequested features
+- `schema-compatibility-review` - Wire-level and persisted compatibility across the deploy window
+- `feature-flag-reviewer` - Blast radius, reversibility, and whether a change should ship flag-gated
+
+## Reasoning Agents (consume findings, never scan)
+
+Tiers 5 and 6. Each receives other agents' output and reasons over it.
+
+- `root-cause-synthesizer` (tier 5) - groups verified findings by shared cause, where one named edit must dissolve every member; step 10c, when 4+ findings survive
+- `review-grader` (tier 5) - severity calibration, merge-blocking lane assignment, verdict; step 11, always
+- `review-adjudicator` (tier 6) - rules when the review disagrees with itself: split verifier lenses, contradictory guidance, a REDESIGN ask on a narrow PR, an author's technical dispute; step 11a, on trigger only
+- `remediation-planner` (tier 5) - minimum merge-unblocking set, fix ordering, conflicts between suggested paths; step 11b, on REQUEST_CHANGES with 3+ blockers or 2+ clusters
 
 ## Context Agents (dispatched in step 1/3)
 
@@ -62,15 +82,23 @@ otherwise the `gh` CLI (run via `Bash`, authenticated with `gh auth`).
 
 ## External Review Agents (dispatched conditionally in step 8)
 
-- `architecture-reviewer` - SOLID principles, coupling analysis, design pattern review
-- `pr-review-toolkit:silent-failure-hunter` - Silent failures, swallowed exceptions
 - `pr-review-toolkit:type-design-analyzer` - Type invariants, encapsulation, type system design
-- `pr-review-toolkit:pr-test-analyzer` - Behavioral test coverage, edge case analysis
 - `pr-review-toolkit:comment-analyzer` - Comment accuracy, documentation rot
-- `pr-review-toolkit:code-simplifier` - Code clarity (large PRs only)
+- `feature-dev:code-reviewer` - second opinion, only for 30+ file or security-sensitive PRs
 - Additional agents discovered dynamically from the environment
 
-## Reference Guides (used in steps 4-5)
+**Excluded by default** — `architecture-reviewer`, `pr-review-toolkit:silent-failure-hunter`,
+`pr-review-toolkit:pr-test-analyzer`, `pr-review-toolkit:code-simplifier`,
+`code-simplifier:code-simplifier`, and `pr-review-toolkit:code-reviewer` each
+duplicate a lane we already run. See the exclusion table in
+[agent-dispatch.md](agent-dispatch.md).
+
+## Verification and Filtering
+
+- `finding-verifier` (haiku) - one per finding, tries to disprove it; step 10b
+- `scripts/filter-findings.mjs` - deterministic diff anchoring, cross-agent dedupe, per-agent cap; step 10a
+
+## Reference Guides (loaded by the owning agent, per SKILL.md step 5)
 
 - [Code Alignment Guide](code-project-alignment-guide.md) — project patterns, duplication, framework usage
 - [Code Quality Guide](code-quality-guide.md) — SOLID, code smells

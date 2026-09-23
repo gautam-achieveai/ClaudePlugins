@@ -290,7 +290,8 @@ never code — and returns the plan natively (no plan-mode toggling required).
 **The Plan agent should produce:**
 - Files to create/modify
 - Implementation steps (ordered)
-- Test strategy
+- Test strategy per `development:scenario-driven-development` (scenarios to run
+  by hand → regression tests → coverage check)
 - Verification steps
 - How the plan realizes the chosen approach, and any assumptions carried over
 
@@ -447,7 +448,7 @@ a work item comment with an approval signal, or revision cap reached (v3).
 
 ### Phase 2.2 — Set Up Worktree
 
-Read `../../reference/git-worktrees-guide.md` and follow its process to
+Read `${CLAUDE_PLUGIN_ROOT}/reference/git-worktrees-guide.md` and follow its process to
 create an isolated worktree for this work.
 
 **Branch naming convention**: `work-item/<id>-<slugified-title>`
@@ -471,7 +472,9 @@ the provider-agnostic engine. Use it (via the **Skill** tool), passing:
   Purpose & Consumption brief).
 
 `development:implement` runs Phase 0 (purpose & consumption brief), Phase 1
-(decompose into `tasks.md`), Phase 2 (TDD execution loop — auto-detecting
+(decompose into `tasks.md`), Phase 2 (execution loop using
+`development:scenario-driven-development` — scenario by hand, then regression
+and coverage-guided tests; bug fixes reproduce by hand, then in code — auto-detecting
 subagent-driven vs sequential, with `debugging:systematic-debugging` and a max of
 3 attempts per task), Phase 3 (self-review via `code-reviewer:pr-review`), and
 Phase 4 (verification). It commits each green increment and returns a **success**
@@ -490,8 +493,9 @@ part `development:implement` does not do:
 **Handle the outcome:**
 - **success** → proceed to Phase 2.4 (Finish & Publish).
 - **blocked** → `development:implement` stopped after its retry cap or on a
-  drift/cheating signal. Post a blocker comment to the work item with the
-  diagnostics it returned —
+  drift/cheating signal, and `development:course-correction` (which it loads on
+  a second stacked fix or three strikes) found no viable re-plan. Post a
+  blocker comment to the work item with the diagnostics it returned —
   `[<dev name>'s bot] Implementation blocked: <summary>` (error output, what was
   tried, root-cause hypothesis) — revert the work item to an active state when
   possible (GitHub: active/in-progress status field; Azure DevOps: `Active`),
@@ -502,7 +506,7 @@ part `development:implement` does not do:
 
 #### Step 2.4.1: Finish the Branch
 
-Read `../../reference/branch-completion-guide.md` and follow it. Auto-select
+Read `${CLAUDE_PLUGIN_ROOT}/reference/branch-completion-guide.md` and follow it. Auto-select
 "push and create PR" — do not present options interactively.
 
 #### Step 2.4.2: Publish the PR
@@ -554,7 +558,8 @@ STOP.
 
 ### Part 2 Errors
 - **`development:implement` returns blocked** (build/test failures after its
-  3-attempt cap, or a drift/cheating signal) → post a blocker comment to the work
+  3-attempt cap and a `development:course-correction` pass, or a drift/cheating
+  signal) → post a blocker comment to the work
   item with the diagnostics it returned, revert state to an active value when
   possible (GitHub: active/in-progress status field; Azure DevOps: `Active`), STOP.
 - **Worktree creation fails** → inform user locally (environment issue).

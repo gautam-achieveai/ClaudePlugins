@@ -2,6 +2,70 @@
 
 Automation scripts for conducting comprehensive pull request code reviews.
 
+## classify-review.mjs
+
+Deterministic cost/quality router. Run it immediately after creating the
+context pack and before dispatching review agents.
+
+```bash
+node classify-review.mjs \
+  --context <scratch>/pr-<number>/context.json \
+  --out <scratch>/pr-<number>/review-plan.json
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--context` | required | Context-pack JSON with `changedFiles` and normally `diffPath` |
+| `--diff` | `context.diffPath` | Override the unified diff path |
+| `--out` | stdout | Where to write the plan |
+
+The script computes file count, changed lines, hunks, top-level areas, new
+project/module and public-type signals, risk flags, and a conservative
+mechanical-change signal. It emits one `TINY | SMALL | MEDIUM | LARGE` tier,
+the triggering rule, exact scanning lanes, model-intelligence/effort requests,
+verification rules, reasoning-agent conditions, and workspace mode.
+
+The plan is authoritative. Models do not estimate the tier or choose concrete
+model names. When both are available, the classifier verifies that the diff
+covers the context pack's exact changed-file list. A mismatch fails closed; the
+skill workflow reports it and uses the documented LARGE fallback.
+
+## filter-findings.mjs
+
+Deterministic pre-verification filter. Run it at step 10a, after collecting
+every agent's JSON envelope and before any verification or grading.
+
+```bash
+node filter-findings.mjs \
+  --diff <scratch>/pr-<number>/diff.patch \
+  --findings <scratch>/pr-<number>/findings.json \
+  --out <scratch>/pr-<number>/filtered.json
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--diff` | required | Unified diff; `-` reads stdin |
+| `--findings` | required | JSON: an array of agent envelopes, one envelope, or a bare array of findings |
+| `--tolerance` | `2` | Line slack when matching a cited line to a changed line |
+| `--max-per-agent` | `5` | Cap applied after merging |
+| `--out` | stdout | Where to write the result |
+
+It does three things no model should be asked to do:
+
+1. **Anchors** each finding to the diff. A finding on unchanged code is kept
+   only when it names a concrete `enablingChange` on a changed line; otherwise
+   it moves to `preExisting`, which never blocks and never gets an inline
+   comment. An exactly-cited line is marked `anchorMatch: "EXACT"`; one inside
+   the slack window is marked `NEAR` so the verifier re-checks it.
+2. **Merges** duplicates across agents — same file, nearby line, overlapping
+   description — keeping the richer record, the higher severity, and the union
+   of `instances`.
+3. **Caps** each agent at `--max-per-agent`, highest severity first.
+
+Output: `{ stats, toVerify, preExisting, dropped, merges }`. Exit code `2` means
+bad usage or unparsable input; on failure, check anchors by hand rather than
+proceeding with unanchored findings.
+
 ## Quick Start
 
 **LLM Workflow** (Claude uses this approach):

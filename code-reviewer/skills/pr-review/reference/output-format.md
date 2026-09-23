@@ -28,6 +28,8 @@ changes. Use empty arrays rather than omitting fields.
 - Total files reviewed: X
 - Findings: X Critical, X High, X Medium, X Low
 - Blockers: X
+- Candidates filtered: X pre-existing, X duplicates merged, X over cap
+- Verification: X confirmed, X refuted, X unproven
 - Context questions: X (non-blocking clarifications asked)
 - Test coverage: adequate / needs improvement / missing
 - Domain areas touched: [NScript Client, Server, Orleans, Tests, etc.]
@@ -61,6 +63,16 @@ a work item / issue so it stays tracked without holding the merge.
 
 | # | File | Line | Observation | Suggested Path |
 |---|---|---|---|---|
+
+## Pre-existing Observations (not introduced by this PR)
+
+Findings the mechanical filter anchored outside the diff. They never block, are
+never counted as findings above, and are never posted as inline comments on
+lines this PR did not touch. Include this section only when the list is
+non-empty, and keep it to one line each.
+
+| # | File | Line | Observation |
+|---|---|---|---|
 
 ## Context Questions (non-blocking)
 

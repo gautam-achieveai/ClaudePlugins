@@ -1,7 +1,9 @@
 # Review Modes & Setup
 
-Load this file at **Step 0** — before starting any review. It covers mode
-selection, worktree setup, and repo-convention loading.
+Load this file at **Step 0** — before starting any review. It covers the
+eligibility gate, deterministic review-tier selection, the context pack,
+workspace setup, and
+repo-convention loading.
 
 ## Prerequisite: Load Repo Conventions
 
@@ -16,41 +18,108 @@ Before enforcing repo-specific policy, load [Repo Conventions](repo-conventions.
 4. If conventions are still unknown, do **not** invent branch naming rules,
    test project mappings, or CI markers from another repo.
 
+## Gate 0: Eligibility (cheap, before anything else)
+
+Dispatch a **haiku** agent to answer one question: is this PR worth a review
+right now? Stop and report if any of these is true:
+
+- The PR is closed, merged, or a draft.
+- It is machine-generated in a way that carries no review value — a dependency
+  bump with no code change, a lockfile-only update, a generated-file refresh.
+- The diff is empty, or the change is formatting-only.
+- This reviewer already reviewed this exact head commit and nothing has changed
+  since. (A new commit means re-review, not a repeat review — see
+  [re-review-workflow.md](re-review-workflow.md).)
+
+Re-run this same check once more immediately before posting. A PR that was
+merged or updated while the review ran should not receive stale feedback.
+
+This gate costs one cheap call and saves the entire fan-out on PRs that need
+nothing.
+
+## Review Tier and Workspace Mode
+
+The review tier is not a workspace mode. The tier controls review cost and
+thoroughness. The workspace mode controls where the review reads code.
+
+After building `context.json`, run the deterministic classifier:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/scripts/classify-review.mjs" \
+  --context <scratch>/pr-<number>/context.json \
+  --out <scratch>/pr-<number>/review-plan.json
+```
+
+`review-plan.json` is authoritative. It contains exactly one tier (`TINY`,
+`SMALL`, `MEDIUM`, or `LARGE`), the numeric rule that matched, risk flags,
+the exact lanes to run, model-intelligence and effort requests, verification
+rules, reasoning-agent conditions, and the workspace mode.
+
+- Do not estimate a tier yourself.
+- Do not apply another file-count, line-count, or "complexity" heuristic.
+- A user may request a higher tier. Never lower the classifier's tier.
+- Escalation is upward only. A surviving HIGH or CRITICAL finding moves the
+  review up one tier. Apply the next tier's complete plan: run newly added lanes
+  plus newly required verification and reasoning work, without repeating
+  equivalent completed work.
+- Risk flags add their named lane at any size. They raise a TINY review to
+  SMALL but do not raise it further by themselves.
+- A uniform mechanical edit is capped at SMALL after the script verifies its
+  hunk shape. Never infer "mechanical" from a title or description.
+
+## The Context Pack (Step 1)
+
+**Fetch the diff exactly once and write it to disk.** Every dispatched agent
+receives the same pack by path. No agent fetches its own diff: N agents
+re-fetching the same diff is N times the tokens for identical bytes, and
+agents that fetch separately can end up reviewing different commits.
+
+Write to the review scratch directory:
+
+```text
+<scratch>/pr-<number>/diff.patch          full unified diff vs the merge-base
+<scratch>/pr-<number>/changed-files.txt   one path per line, with status
+<scratch>/pr-<number>/context.json        the pack manifest
+<scratch>/pr-<number>/review-plan.json    deterministic tier and lane plan
+```
+
+`context.json` carries:
+
+```json
+{
+  "provider": "github | azdo",
+  "repository": "<owner/repo or ADO repo>",
+  "prNumber": 123,
+  "headCommit": "<sha>",
+  "mergeBase": "<sha>",
+  "diffPath": "<abs path to diff.patch>",
+  "changedFiles": [{"path": "src/Foo.cs", "status": "modified", "addedLines": 12, "removedLines": 3}],
+  "conventionFiles": ["CLAUDE.md", "src/Server/CLAUDE.md", ".code-reviewer.yml"],
+  "reviewIntent": {},
+  "reviewPlanPath": "<abs path to review-plan.json>",
+  "workspacePath": "<repo root or worktree root>"
+}
+```
+
+`conventionFiles` lists **paths only** — the root `CLAUDE.md` plus any
+`CLAUDE.md` in a directory this PR touches. Agents read the ones relevant to
+their files; the orchestrator does not inline them.
+
+Every agent prompt in steps 4-8 includes: the pack paths, `reviewPlanPath`, the
+Review Intent, its assigned lane entry, and the instruction *"read the diff
+from `diffPath`; open full files only when the diff cannot settle a question."*
+
 ## The Three Modes
 
 ### Lightweight Review (diff-only)
 
-Use this mode when changes are **low-complexity and self-contained** — the diffs alone provide enough context to understand and evaluate the PR. This is the **default and most common mode**.
-
-**Low-complexity signals — a lightweight review is appropriate when:**
-- **Localized scope**: Changes are confined to a single feature, module, or layer (e.g., a bug fix in one service, a config update, documentation)
-- **Low cognitive load**: A reviewer can understand each changed file in isolation — no need to mentally model how changes interact across the codebase
-- **Shallow dependency fan-out**: The changed code doesn't call into or get called by many other parts of the system; side effects are contained
-- **Mechanical or repetitive changes**: Renames, find-and-replace, namespace updates, formatting fixes, bulk attribute additions — even across many files — are inherently low-complexity because each diff is structurally identical
-- **Self-explanatory diffs**: The surrounding context in the diff is sufficient to judge correctness; you don't need to open other files, trace call chains, or check consumer usage
-- **No new abstractions**: The PR works within existing patterns and doesn't introduce new classes, interfaces, services, or architectural layers
-
-**How it works:**
-1. Fetch PR metadata (title, author, description, source/target branches) — GitHub `gh pr view <n> --json …`, ADO `mcp__azure-devops__getPullRequest`.
-2. Get the list and count of changed files — GitHub `gh pr diff <n> --name-only`, ADO `mcp__azure-devops__getPullRequestFileChanges` + `getPullRequestChangesCount`.
-3. **Assess complexity** (see [Complexity Assessment](#complexity-assessment) below). If high-complexity signals are present, switch to Deep Review.
-4. View the actual changes — GitHub `gh pr diff <n>` or git diff, ADO `mcp__azure-devops__getFileContent` / git diff.
-5. Perform the review directly from the diffs — no worktree needed.
+Use when `review-plan.json` says `workspaceMode: "LIGHTWEIGHT"`. Review from
+the shared diff and open full files only to settle a specific question.
 
 ### Deep Review (worktree checkout)
 
-Use this mode when the PR has **high complexity** — you need the full source tree to understand how changes interact with the broader codebase.
-
-**High-complexity signals — escalate to deep review when any are present:**
-- **Cross-cutting changes**: Modifications span multiple layers or modules (e.g., API controller + service + data layer + tests all in one PR)
-- **New abstractions or architectural changes**: PR introduces new classes, interfaces, design patterns, or restructures existing architecture
-- **High dependency fan-out**: Changed code is called by or calls into many other components — side effects can't be judged from the diff alone
-- **Core business logic changes**: Modifications to critical algorithms, rules, or workflows where correctness has significant downstream impact
-- **Complex control flow**: New logic with deep nesting, state machines, concurrency patterns, or intricate conditional branches
-- **Shared infrastructure changes**: Modifications to base classes, shared utilities, DI registrations, or interfaces with many consumers — you need to check all usage sites
-- **External dependency changes**: Updating NuGet packages, SDK versions, or third-party library usage where compatibility and breaking changes need full-context evaluation
-- **Unclear or missing PR context**: The PR description doesn't explain the "why" — you need to explore the codebase to understand the motivation and impact
-- **The user explicitly requests a deep review**
+Use when `review-plan.json` says `workspaceMode: "DEEP"`, or when the user
+explicitly asks for a worktree. The classifier uses DEEP for LARGE reviews.
 
 **Worktree setup (Deep Review):**
 
@@ -134,24 +203,15 @@ Use this mode when reviewing changes on the **current branch** before a PR has b
 
 ## Making the Decision
 
-After understanding what the user wants reviewed, state which mode you're using and why. If the user disagrees, switch modes. For example:
+Echo the classifier result. Do not restate a qualitative judgment:
 
-"This PR changes 4 files with a focused bug fix — I'll do a **lightweight review** from the diffs."
+`Review route: MEDIUM / MEDIUM_CHANGED_LINES / LIGHTWEIGHT; 6 lanes; risk flags: PERFORMANCE.`
 
-"This PR touches 25 files across 3 layers and introduces a new bulk upload feature — I'll do a **deep review** with a worktree checkout so I can trace the full call chain."
+For a local branch, append `source: LOCAL_BRANCH`; the tier and lane plan still
+come from the same classifier.
 
-"No PR yet — I'll find the merge-base against the repo's default base branch and review your branch changes locally."
+## No Second Complexity Assessment
 
-## Complexity Assessment
-
-Use this framework after fetching PR metadata and the changes summary to decide between Lightweight and Deep Review. Evaluate each dimension qualitatively — **no single metric alone determines complexity**; it's the combination that matters.
-
-| Dimension | Low Complexity (→ Lightweight) | High Complexity (→ Deep Review) |
-|---|---|---|
-| **Scope** | Changes confined to one feature, service, or layer | Changes span multiple layers, modules, or projects |
-| **Nature of logic** | Mechanical/repetitive (renames, formatting, bulk updates) or straightforward fixes | Novel business logic, new algorithms, complex control flow, concurrency |
-| **Dependency impact** | Changed code has few callers/consumers; side effects are obvious | Changed code is widely referenced — base classes, shared utilities, interfaces, DI registrations |
-| **Cognitive load** | Each file's diff can be understood in isolation | You need to hold a mental model of how multiple changed files interact |
-| **Context adequacy** | PR description + diff context tells the full story | You need to explore the repo to understand motivation, calling code, or downstream effects |
-
-**Key principle**: A PR that touches many files but makes the same mechanical change everywhere is lower complexity than a PR that touches one file but rewrites a core algorithm. Always assess the **nature and impact** of changes, not just their volume.
+Do not add a parallel complexity score after classification. If review evidence
+shows the selected tier is too low, apply the plan's upward-only escalation rule
+and record the evidence. Do not silently reinterpret the numeric rubric.

@@ -1,0 +1,5 @@
+{
+  "name": "progress-tracking",
+  "version": "1.1.0",
+  "description": "Continuous evidence-based tracking for large work items and agent teams. Durable event history, validated state, progress and no-progress reports, worker nudges, restart recovery, and accessible Markdown, Mermaid, and HTML views. Includes Scout, Tracker, and Architect agents and integrates with Agile development."
+}

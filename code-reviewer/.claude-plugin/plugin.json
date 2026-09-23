@@ -1,5 +1,5 @@
 {
   "name": "code-reviewer",
-  "description": "Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review, severity grading quality gate, log review, and PR work item context gathering. Includes a review-pr command that auto-detects the repository provider (GitHub or Azure DevOps) and tech stack, and publishes findings to the PR.",
-  "version": "1.22.1"
+  "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, built as a funnel: a cheap eligibility gate, deterministic review tiering, a shared context pack, a correctness lane and repo-history lane alongside specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, and feature-flag rollout. Findings are mechanically anchored to the diff, adversarially verified before posting, then graded for severity and merge-blocking lane. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
+  "version": "1.25.0"
 }

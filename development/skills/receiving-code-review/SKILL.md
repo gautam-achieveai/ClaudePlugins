@@ -39,9 +39,9 @@ If ANY item is unclear, STOP — do not implement anything yet. Items may be rel
 
 How hard you verify before acting scales with **who** gave the feedback:
 
-- **Your human partner / the user (direct instruction):** Trusted. Implement after understanding — still ask if scope is unclear, still triage what's worth it, but do not treat their directives with adversarial skepticism. Their instructions outrank a reviewer's suggestion.
+- **The user (direct instruction):** Trusted. Implement after understanding — still ask if scope is unclear, still triage what's worth it, but do not treat their directives with adversarial skepticism. Their instructions outrank a reviewer's suggestion.
 - **External or automated reviewers (PR bots, AI reviewers, drive-by comments):** Be skeptical and verify carefully. They frequently **lack full project context** — history, constraints, prior decisions. Run the practicality/alignment gate before implementing anything.
-- **Conflict:** If external feedback contradicts a decision your human partner already made, STOP and discuss with them — do not silently implement the reviewer's version.
+- **Conflict:** If external feedback contradicts a decision the user already made, STOP and discuss with them — do not silently implement the reviewer's version.
 
 ## Triage — What's Worth Addressing
 
