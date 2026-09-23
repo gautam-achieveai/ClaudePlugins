@@ -56,6 +56,7 @@ the `post-pr-review` skill (`skill: "code-reviewer:post-pr-review"`). Pass:
 | `reviewThreads[]` | Full durable state for non-terminal and new finding threads (contract above) |
 | `closedThreadArchive[]` | Compact terminal records recovered from the canonical summary plus newly closed records |
 | `closedThreadArchiveOmittedCount` | Cumulative omitted archive count; `0` on initial review |
+| `preExisting[]` | `preExisting` findings from the Step 10a mechanical filter, unchanged — `diffAnchor = PRE_EXISTING`, no `id`, no grader fields. Empty when step 10a did not run |
 | `questions[]` | Consolidated context questions from Step 10 |
 | `isSmallDelta` | `true` when a re-review delta qualifies for small-delta mode per [re-review-workflow.md](re-review-workflow.md); otherwise `false` |
 | `smallDeltaSummary` | A 1-3 sentence delta-only reply used when `isSmallDelta` is `true` |
@@ -66,6 +67,9 @@ the `post-pr-review` skill (`skill: "code-reviewer:post-pr-review"`). Pass:
 The `post-pr-review` skill handles:
 - Posting inline/file/general comments for findings (3-tier priority with fallback)
 - Posting inline comments for context questions (with `[QUESTION]` tag)
+- Rendering `preExisting[]` as a summary-only `Pre-existing Observations`
+  section — never inline, never a finding thread, never an F-ID, never counted
+  as a blocker
 - Action reconciliation against provider state (retry-safe, deterministic action IDs)
 - Updating the existing summary: reply in the ADO thread, or PATCH the canonical
   GitHub issue comment in place (instead of creating a new one)
@@ -115,6 +119,74 @@ Pass:
 | `commentsSummary` | Top 5 findings (one-line each) |
 | `blockerCount` | Number of `[BLOCKER]`-tagged findings |
 | `questionsAsked` | Number of `[QUESTION]` comments posted |
+| `reviewMetrics` | Effort and outcome numbers for this review round (contract below) |
+| `findingOutcomes[]` | On a re-review only: what the author did with each previously posted finding (contract below) |
+
+### `reviewMetrics`
+
+```text
+- candidatesGenerated: stats.received from step 10a — every finding all agents emitted
+- preExistingFiltered: stats.preExisting from step 10a — findings anchored as PRE_EXISTING
+- duplicatesMerged: stats.mergedDuplicates from step 10a — records folded into another finding
+- cappedOff: stats.cappedOff from step 10a — findings dropped by the per-agent cap
+- verifiedTruePositive: count of TRUE_POSITIVE verdicts from step 10b
+- verifiedFalsePositive: count of FALSE_POSITIVE verdicts from step 10b
+- verifiedUnproven: count of UNPROVEN verdicts from step 10b
+- postedFindings: findings actually published by post-pr-review this round
+- blockerCount: findings posted in the merge-blocking lane (same number as the
+  top-level blockerCount field)
+- agentsDispatched: { count: integer, names: string[] } — review agents dispatched
+  in Steps 4-8, by agent name
+- wallClockSeconds: seconds from review start to the end of Step 12
+- reviewTier: eligibility-stop | TINY | SMALL | MEDIUM | LARGE — the final tier
+  after any escalation, or eligibility-stop when Gate 0 ended the run
+- triggeringRule: review-plan.json `triggeringRule` (null on eligibility-stop)
+- riskFlags: review-plan.json `signals.riskFlags` ([] when none)
+- escalations: [{ from, to, evidence }] — each upward tier move ([] when none)
+- laneRouting: [{ id, requested: { modelIntelligence, effort }, effective: { modelIntelligence, effort } }]
+  — effective is null when the host does not report it
+- reviewType: initial | re-review — same value as the top-level reviewType field
+```
+
+These are **recorded numbers, not estimates**. `candidatesGenerated`,
+`preExistingFiltered`, `duplicatesMerged`, and `cappedOff` come from the step
+10a `stats` object in `filtered.json`. The three `verified*` counts come from
+tallying the step 10b `verification.verdict` values. Never reconstruct any of
+them from memory or from the summary prose.
+
+A number that was not produced is recorded as `null`, never guessed. An
+`eligibility-stop` run has `null` for everything downstream of the gate; a
+TINY run that verified only MEDIUM+ findings still records its tallies.
+`null` means "not measured"; `0` means "measured and zero".
+
+### `findingOutcomes[]` (re-review only)
+
+On a re-review of the same PR, record what happened to each finding this
+reviewer posted in an earlier round. One record per previously posted finding:
+
+```text
+- findingId: F-NNN
+- postedAt: ISO-8601 timestamp of the review round that first posted it
+- outcome: FIXED | DISPUTED | IGNORED | UNKNOWN
+- evidence: the thread state or delta that supports the outcome
+```
+
+Derive the outcome from provider thread state plus the delta since the last
+review — never from the author's tone:
+
+- `FIXED` — the finding's `doneWhen` is now met in the delta, or the thread was
+  resolved by a commit that changes the cited location.
+- `DISPUTED` — the author replied contesting the finding and did not change the
+  code.
+- `IGNORED` — the thread is still open, unanswered, and the cited location is
+  unchanged in the delta.
+- `UNKNOWN` — thread state or the delta is unavailable, or the evidence is
+  ambiguous. Use it freely; a wrong outcome is worse than an absent one.
+
+This is the **fix-rate signal**: the share of posted findings authors acted on
+(`FIXED` over `FIXED + DISPUTED + IGNORED`). It is best-effort. If outcomes
+cannot be derived, pass an empty array and continue — see the error-handling
+note below.
 
 The `code-reviewer:update-pr-tracking` skill handles all storage path detection,
 `tracking.json` management, and per-PR review history. See its
@@ -122,4 +194,6 @@ The `code-reviewer:update-pr-tracking` skill handles all storage path detection,
 
 **Error handling**: If tracking fails, the skill warns but does NOT fail the
 review. Tracking is best-effort — the review posted to the PR is the primary
-output.
+output. The same applies to `reviewMetrics` and `findingOutcomes[]`: a missing
+metric is `null`, an underivable outcome set is empty, and neither ever blocks
+posting or changes the verdict.

@@ -441,13 +441,28 @@ version."
 ## How to Use This Catalog
 
 When reviewing, walk the diff once for each of the ten categories — most reviews touch only
-two or three categories per PR. For each finding, populate the agent's output template with:
+two or three categories per PR.
 
-- **Stated task** (from the anchor source)
-- **Delivered beyond that** (the specific code introducing the over-engineering)
-- **Category** (from above)
-- **Why it matters** (use the "Why it's a problem" notes for the chosen category)
+This catalog does not define an output layout. Findings are emitted in the JSON contract at
+`../pr-review/reference/finding-schema.md`: one JSON object per agent, **at most 5
+findings**, `id: null` (only the orchestrator assigns IDs), **no `blocker` field** (the lane
+is the grader's call), and every record carrying `diffAnchor` (`IN_DIFF` / `ENABLED_BY_DIFF`
+/ `PRE_EXISTING`) and `confidence`. The same over-engineering mechanism repeated across
+several sites is one record with the extra locations in `instances` — that is clustering,
+not omission.
+
+Map this catalog onto that contract:
+
+- **Stated task** (from the anchor source) and **delivered beyond that** (the specific code
+  introducing the over-engineering) together make up `issue`, with the anchor quote and the
+  read or search that found the extra code in `evidence`.
+- **Category** (from above) — name it in `issue` or `underlyingProblem`. The schema's own
+  `category` field is `Scope` for scope overrun and `Architecture` for speculative structure.
+- **Why it matters** (use the "Why it's a problem" notes for the chosen category) goes in
+  `whyItMatters`.
 - **Recommendation** (use the recommendation pattern, then specialize to the actual code)
+  goes in `suggestedPath` as the smallest correction, with the implementation-neutral
+  condition in `requiredOutcome` and the closing evidence in `doneWhen`.
 
 If you find yourself unable to pick a category, you may be looking at a different concern.
 Double-check it isn't owned by `code-simplifier` (block-level complexity), `class-design-simplifier`
@@ -462,13 +477,14 @@ Before publishing your findings, sanity-check the anchor:
 | Anchor source                    | Confidence  | Posture                                     |
 |----------------------------------|-------------|---------------------------------------------|
 | Work item with detailed acceptance criteria | HIGH | Confidently flag deviations from the criteria |
-| Work item title only             | MEDIUM      | Flag obvious overruns; emit `[QUESTION]` for borderline cases |
+| Work item title only             | MEDIUM      | Flag obvious overruns; put borderline cases in `questions` |
 | PR title + description           | MEDIUM      | Same as above |
 | Commit messages only             | LOW         | Flag only egregious overruns; lean on YAGNI lens |
 | No anchor                        | LOW         | YAGNI-only review; explicitly note the missing anchor |
 
-Always state the anchor and your confidence level in the summary block. The reviewer needs
-this metadata to decide how seriously to weight the findings.
+Always state the anchor you used and your confidence in it in `coverageNote`, and set each
+finding's `confidence` accordingly. Downstream verification needs this metadata to decide
+how seriously to weight the findings.
 
 ## Final Reminders
 
@@ -476,8 +492,8 @@ this metadata to decide how seriously to weight the findings.
   one implementation, the work item describes a single fixed strategy, and there is no second
   variant on the roadmap — inline the concrete `DefaultFooStrategy` until a second use case
   appears" is useful.
-- Be charitable when uncertain. Emit `[QUESTION]` for borderline cases; reserve findings for
-  cases you can defend with the anchor.
-- Acknowledge clean PRs. If the diff matches the task scope, say so. Quiet reviewers who only
-  surface negatives lose credibility — reviewers who say "this is well-scoped" when it is
-  build trust.
+- Be charitable when uncertain. Put borderline cases in the `questions` array; reserve
+  findings for cases you can defend with the anchor.
+- Acknowledge clean PRs. If the diff matches the task scope, say so in `coverageNote`. Quiet
+  reviewers who only surface negatives lose credibility — reviewers who say "this is
+  well-scoped" when it is build trust.

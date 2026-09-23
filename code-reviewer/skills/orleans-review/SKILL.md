@@ -33,5 +33,7 @@ Read the review-specific additions that the dev skill does not cover:
 reference/review-bridge.md
 ```
 
-This provides PR output format, edge case handling for review context, Orleans version
-detection guidance, and severity mapping from dev-skill anti-patterns to review findings.
+This provides edge case handling for review context, Orleans version detection guidance,
+severity mapping from dev-skill anti-patterns to review findings, and a pointer to the
+JSON finding contract at `../pr-review/reference/finding-schema.md` that findings are
+emitted in.

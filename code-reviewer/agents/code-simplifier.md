@@ -3,6 +3,8 @@ name: code-simplifier
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 1
+effort: low
 tools:
   - Read
   - Grep
@@ -57,6 +59,10 @@ You are a code clarity expert focused on finding code blocks and method chains t
 - String operations that could use interpolation, `string.Join`, or `Path.Combine`.
 - Predicate logic that can be simplified (De Morgan's law, double negation removal).
 
+**Do not fetch the diff yourself.** The orchestrator supplies a context pack containing
+the diff, the changed-file list, and the Review Intent. Use the supplied context pack;
+only read full files when the diff alone cannot settle a question.
+
 ## Analysis Process
 
 1. **Read the changed methods/blocks** in detail.
@@ -73,12 +79,25 @@ You are a code clarity expert focused on finding code blocks and method chains t
 
 ## Output Format
 
-For each finding, report:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-| Severity | Location | Current Code | Simplified Code | Why |
-|----------|----------|-------------|-----------------|-----|
+```json
+{
+  "agent": "code-simplifier",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
+```
 
-Show actual code snippets — both the current version and the proposed simplification.
+- Use `category: "Conventions"` unless another schema category fits better.
+- Put the current snippet in `issue` and the simplified snippet in `suggestedPath`.
+- Map this file's levels onto the schema `severity` scale: Critical → `CRITICAL` or
+  `HIGH`, Warning → `MEDIUM`, Info → `LOW`.
 
 **Severity levels**:
 - **Warning**: Significantly complex block (high nesting, many branches, convoluted logic) that harms readability. Simplification would meaningfully improve clarity.

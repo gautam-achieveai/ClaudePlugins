@@ -36,7 +36,51 @@ The calling skill passes these values as `$ARGUMENTS` or context:
 | `findings` | No | `{ critical, high, medium, low }` counts |
 | `commentsSummary` | No | Array of top findings (one-line each) |
 | `blockerCount` | No | Number of `[BLOCKER]`-tagged findings |
+| `reviewMetrics` | No | Recorded effort/outcome numbers for this review (see below) |
+| `findingOutcomes` | No | Re-review only: what the author did with each previously posted finding (see below) |
 | `errorReason` | No | Error description if `status` is `error` |
+
+### `reviewMetrics`
+
+| Field | Source |
+|-------|--------|
+| `candidatesGenerated` | `stats.received` from the mechanical filter |
+| `preExistingFiltered` | `stats.preExisting` from the mechanical filter |
+| `duplicatesMerged` | `stats.mergedDuplicates` from the mechanical filter |
+| `cappedOff` | `stats.cappedOff` from the mechanical filter |
+| `verifiedTruePositive` | Count of `TRUE_POSITIVE` verification verdicts |
+| `verifiedFalsePositive` | Count of `FALSE_POSITIVE` verification verdicts |
+| `verifiedUnproven` | Count of `UNPROVEN` verification verdicts |
+| `postedFindings` | Findings actually published to the PR this round |
+| `blockerCount` | Merge-blocking findings posted (mirrors the top-level field) |
+| `agentsDispatched` | `{ "count": <integer>, "names": [<agent names>] }` |
+| `wallClockSeconds` | Seconds from review start to the end of posting |
+| `reviewTier` | `eligibility-stop`, `TINY`, `SMALL`, `MEDIUM`, or `LARGE` (final tier after escalation) |
+| `triggeringRule` | The classifier's `triggeringRule` |
+| `riskFlags` | The classifier's risk flags (array) |
+| `escalations` | Array of `{ from, to, evidence }` upward tier moves |
+| `laneRouting` | Array of `{ id, requested, effective }` model-intelligence/effort per lane |
+| `reviewType` | `initial` or `re-review` (mirrors the top-level field) |
+
+Store every value exactly as the caller supplied it. These are measured
+numbers, not estimates — do not compute, infer, or backfill a missing one from
+the other fields. A value the caller did not supply is stored as `null`; `0`
+means measured and zero.
+
+### `findingOutcomes`
+
+Array; present only on a re-review. One record per finding a previous round
+posted:
+
+| Field | Source |
+|-------|--------|
+| `findingId` | `F-NNN` |
+| `postedAt` | ISO-8601 timestamp of the review round that first posted it |
+| `outcome` | `FIXED`, `DISPUTED`, `IGNORED`, or `UNKNOWN` |
+| `evidence` | The thread state or delta the caller derived the outcome from |
+
+The caller derives outcomes; this skill only persists them. Store an empty
+array when none were supplied.
 
 ## Step 1: Detect Storage Path
 
@@ -141,13 +185,40 @@ Append a new entry to the `reviews` array:
   "sourceCommitId": "<from input, or null>",
   "findings": { "critical": 0, "high": 0, "medium": 0, "low": 0 },
   "commentsSummary": [],
-  "blockerCount": 0
+  "blockerCount": 0,
+  "reviewMetrics": {
+    "candidatesGenerated": null,
+    "preExistingFiltered": null,
+    "duplicatesMerged": null,
+    "cappedOff": null,
+    "verifiedTruePositive": null,
+    "verifiedFalsePositive": null,
+    "verifiedUnproven": null,
+    "postedFindings": null,
+    "blockerCount": null,
+    "agentsDispatched": { "count": null, "names": [] },
+    "wallClockSeconds": null,
+    "reviewTier": null,
+    "triggeringRule": null,
+    "riskFlags": [],
+    "escalations": [],
+    "laneRouting": [],
+    "reviewType": "<from input>"
+  },
+  "findingOutcomes": []
 }
 ```
 
 Populate `findings`, `commentsSummary`, and `blockerCount` from input if
 provided. If status is `error`, set `commentsSummary` to
 `["Review failed: <errorReason>"]`.
+
+Populate `reviewMetrics` from the input object, key by key. Keep `null` for any
+key the caller did not supply — never substitute an estimate, a count derived
+from `findings`, or a value carried over from the previous review entry. Write
+`findingOutcomes` from input, or `[]` when absent. Both live inside the review
+entry, so each review round keeps its own numbers and earlier rounds are never
+rewritten.
 
 Write the file.
 
@@ -171,4 +242,6 @@ tracking is supplementary.
 | `tracking.json` corrupt | Rename to `.bak`, reinitialize, warn |
 | `tracking.json` repo mismatch | Rename to `.bak`, reinitialize, warn |
 | `reviews/` directory missing | Create it |
+| `reviewMetrics` absent, partial, or malformed | Store the keys you have, `null` for the rest, warn; never fail the review |
+| `findingOutcomes` absent or underivable | Store `[]`, warn; never fail the review |
 | Write fails | Warn, return error status to caller |

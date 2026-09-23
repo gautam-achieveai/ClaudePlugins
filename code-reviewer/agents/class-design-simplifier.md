@@ -3,6 +3,8 @@ name: class-design-simplifier
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 2
+effort: medium
 tools:
   - Read
   - Grep
@@ -58,6 +60,10 @@ The best code is the simplest code that solves the problem correctly. Every abst
 - A class that depends on 5+ other services (too many responsibilities).
 - Modules with a single public entry point but many internal classes that could be collapsed.
 
+**Do not fetch the diff yourself.** The orchestrator supplies a context pack containing
+the diff, the changed-file list, and the Review Intent. Use the supplied context pack;
+only read full files when the diff alone cannot settle a question.
+
 ## Analysis Process
 
 1. **Understand the PR intent**: Read the PR description or changed files to determine what the change is trying to accomplish.
@@ -74,10 +80,24 @@ The best code is the simplest code that solves the problem correctly. Every abst
 
 ## Output Format
 
-For each finding, report:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-| Severity | Location | Current Design | Simpler Alternative | Rationale |
-|----------|----------|----------------|---------------------|-----------|
+```json
+{
+  "agent": "class-design-simplifier",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
+```
+
+- Use `category: "Architecture"` unless another schema category fits better.
+- Map this file's levels onto the schema `severity` scale: Critical → `CRITICAL` or
+  `HIGH`, Warning → `MEDIUM`, Info → `LOW`.
 
 **Severity levels**:
 - **Warning**: Significant unnecessary complexity — extra layers, unused abstractions, over-engineered patterns. Removes cognitive load and maintenance burden when simplified.

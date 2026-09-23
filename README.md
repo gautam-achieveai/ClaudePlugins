@@ -12,19 +12,35 @@ Add the marketplace to Claude Code:
 
 ## Available Plugins
 
-### ado (v3.0.0)
+### hitl (v1.1.0)
+
+Set up HITL MCP and connect Inbox or the tray client. Skills guide agents through private configuration reuse, cross-device questions, plan reviews, notifications, and durable progress. Session and turn hooks inject usage guidance. Includes Claude Code and Codex manifests.
+
+**Skills**: `setup-hitl`, `using-hitl`
+
+See [HITL setup and usage](hitl/README.md).
+
+### progress-tracking (v1.1.0)
+
+Durable tracking for large work items and agent teams. Each refresh highlights verified progress, unchanged workstreams, blockers, and stale sources. Tracks worker nudges and generates Markdown, Mermaid, and accessible HTML reports. Integrates with `development:agile-development`.
+
+**Skills**: `tracking-progress`, `accessible-progress-report` (compatibility route), `progress-evidence`, `progress-status-board`, `progress-system-picture`, `progress-accessible-style`, `progress-archive`
+
+**Agents**: `progress-scout`, `progress-tracker`, `progress-architect`
+
+### ado (v3.2.1)
 
 Azure DevOps integration — work item management, PR publishing, iterative PR tending, autonomous work item implementation, and backlog processing.
 
 **Skills**: `ado-work-on`, `ado-publish-pr`, `ado-babysit-pr`, `ado-work-my-backlog`, `ado-draft-work-item`, `ado-pr-tender`
 
-### gh (v2.0.0)
+### gh (v2.1.4)
 
 GitHub integration — issue/project management, PR publishing, iterative PR tending, issue-driven implementation, and backlog processing.
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.8.0)
+### development (v1.9.0)
 
 Development methodology toolkit — Agile team delivery for large features, thin end-to-end slices, durable long-horizon progress, design-first brainstorming, autonomous design, scenario-driven development as the default testing flow (scenario manual testing → regression tests → coverage-guided tests; TDD as an explicit opt-in), manual and automated verification, parallel subagent execution, review gates, course-correction when fixes stack, compound-learning lessons read back at plan time, and provider-agnostic work-item implementation. Ships two hooks: a PreToolUse guard that blocks git hook and signing bypasses, and a Stop gate that blocks ending a turn when code changed after the last test run (`DEVELOPMENT_HOOKS=off` disables it).
 
@@ -32,7 +48,7 @@ Development methodology toolkit — Agile team delivery for large features, thin
 
 **Agents**: `architect`, `test-planner`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
 
-### code-reviewer (v1.22.3)
+### code-reviewer (v1.25.0)
 
 Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility), severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 
@@ -40,7 +56,7 @@ Code review toolkit with specialized agents for duplicate detection, EUII leak s
 
 **Agents**: `code-reviewer` plus specialized architecture, quality, compatibility, performance, and risk reviewers
 
-### developer-performance-review (v1.2.0)
+### developer-performance-review (v1.2.1)
 
 Evidence-based developer performance reviews over weeks/months. Analyzes git history, PRs, ADO work item context, bug patterns, and code quality. Auto-detects primary branch, two-dataset model (all work vs landed work), 6-dimension assessment framework.
 
@@ -52,13 +68,13 @@ Microsoft Orleans patterns, best practices, and code review for virtual actor mo
 
 **Skills**: `orleans-patterns`, `orleans-code-review`
 
-### clean-builds (v1.0.0)
+### clean-builds (v1.0.1)
 
 Zero-warning builds through systematic warning elimination, code formatting (ReSharper, Roslynator, dotnet format), and NuGet package version validation.
 
 **Skills**: `clean-builds`
 
-### debugging (v1.4.0)
+### debugging (v1.5.0)
 
 Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.
 
@@ -69,10 +85,12 @@ Log-first debugging methodology using structured JSONL logs queried with DuckDB.
 ```
 claude-plugins/
 ├── .claude-plugin/
-│   └── marketplace.json          # Marketplace catalog (8 plugins)
+│   └── marketplace.json          # Marketplace catalog
+├── hitl/                         # Human-in-the-loop questions and notifications
 ├── ado/                          # Azure DevOps integration
 ├── gh/                           # GitHub integration
 ├── development/                  # Dev methodology (brainstorming, scenario-driven testing, etc.)
+├── progress-tracking/             # Durable team progress, reports, and worker nudges
 ├── code-reviewer/                # PR code review toolkit
 ├── developer-performance-review/ # Developer performance reviews
 ├── orleans-dev/                  # Orleans patterns & review

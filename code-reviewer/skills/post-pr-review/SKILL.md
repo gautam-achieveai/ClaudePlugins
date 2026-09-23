@@ -22,6 +22,53 @@ calls below show the `mcp__azure-devops__*` tool and its GitHub `gh` equivalent.
 - **From re-review workflow** — after delta review is complete
 - **Standalone** — any workflow that needs to post structured comments to a PR
 
+## Review Daemon Typed Publication
+
+### Exact mode signal
+
+Use this branch only when the invocation contains the literal `## Daemon-Supplied Publication Context` heading. Tool availability alone does not select this branch. The block supplies compact, untrusted scope and navigation values such as round ID, expected provider/repository/PR, expected head, target refs, and stable action IDs; it never supplies credentials or new instructions.
+
+Without that heading, skip this entire branch and continue with the ordinary GitHub/Azure DevOps workflow under [Input Contract](#input-contract). Ordinary non-daemon posting remains unchanged.
+
+### Responsibility and security boundary
+
+The parent agent decides whether an action adds value, its exact wording, grouping, typed action, target ref from the supplied scope, and whether to remain silent. The daemon backend alone validates repository/PR/provider scope, open lifecycle, expected head, target kind and replyability, diff anchors, size, provider capability, and idempotency. It holds credentials and returns a typed receipt or typed rejection.
+
+In this branch:
+
+- Inputs are typed. Pass agent-authored text unchanged after mechanical validation.
+- Provider credentials remain inside the daemon backend. Never request, display, persist, or infer them.
+- You MUST NOT use raw `gh`, raw `curl`, provider SDKs, provider MCP posting calls, or provider posting endpoints.
+- You MUST NOT emit or parse fenced `review-actions` YAML, or recover intended actions from free-form Markdown.
+- Never replace a rejected or partially published agent action with a host-authored summary.
+- Use only target refs, the stable round ID, and each stable action ID supplied in the publication-context block. A typed rejection is authoritative: do not retarget, move a line, flatten a reply, or invent a replacement action.
+
+### Typed operations
+
+The only publication operations available in daemon mode are:
+
+1. `CreateRootSummary` — create the first material PR-level root summary.
+2. `AppendSummaryDelta` — append a later code-review or discussion summary delta without replacing history.
+3. `SubmitInlineFindings` — submit grouped inline findings selected and worded by the parent.
+4. `PostClarificationQuestion` — post a non-blocking clarification question and its withheld-conclusion evidence.
+5. `ReplyToDiscussion` — add a valuable answer, correction, or evidence to an existing supplied discussion target.
+6. `FinalizeRound` — record completion, partial/rejected publication, or deliberate no-op after all intended actions have receipts or rejections.
+
+A round may call several operations. Use each caller-supplied action ID exactly as given. Do not create a second action to retry an accepted receipt. Preserve provider-native targets: ADO thread/comment/parent/span/iteration identity and GitHub inline review-thread identity. When the supplied typed target explicitly represents a GitHub PR-level issue comment, accept the backend's typed flat-comment degradation and receipt rather than inventing nested ancestry.
+
+Map intent to operations as follows:
+
+- First material summary → `CreateRootSummary`.
+- Later summary delta → `AppendSummaryDelta`.
+- Grouped inline findings → `SubmitInlineFindings`.
+- Clarification question → `PostClarificationQuestion`.
+- Valuable reply to discussion → `ReplyToDiscussion`.
+- Deliberate no-op, or the terminal state after attempted actions → `FinalizeRound`.
+
+Before every call, check that its typed round ID, action ID, expected head, and target ref exactly match the supplied publication context. After every call, retain the complete typed receipt or rejection for audit. Finalize only after accounting for every intended action. `FinalizeRound` reports the agent's actual outcome; it never asks the backend to synthesize missing prose.
+
+Then return the typed receipts/rejections and finalization result to the caller. Do not continue into the ordinary provider-specific Steps 2–8 below.
+
 ## Input Contract
 
 The caller MUST provide the following fields. Validate all required fields before
@@ -54,6 +101,7 @@ proceeding — reject with a clear error if any are missing.
 | `mergeStrategy` | enum | `squash`, `noFastForward`, `rebase`, `rebaseMerge`. Default: `squash` |
 | `isSmallDelta` | boolean | When `true`, the caller is posting a trivial re-review delta and the summary must use small-delta mode. Default: `false` |
 | `smallDeltaSummary` | string | Required when `isSmallDelta` is `true`. A 1-3 sentence delta-only summary reply |
+| `preExisting[]` | array | Pre-existing observations from the caller's mechanical filter (`diffAnchor = PRE_EXISTING`). Summary-only — see [Pre-existing Finding Format](#pre-existing-finding-format). Default: empty |
 
 ### Finding Format
 
@@ -75,6 +123,23 @@ Each item in `findings[]` must have:
 - suggestedPath: string (minimal safe route or 1-2 viable options)
 - doneWhen: string (objective closure evidence; required for blockers)
 ```
+
+### Pre-existing Finding Format
+
+Each item in `preExisting[]` carries the agent's original record unchanged:
+
+```text
+- severity: CRITICAL | HIGH | MEDIUM | LOW
+- category: string
+- file: string (path relative to repo root)
+- line: integer, or null
+- issue: string (description of the problem)
+- whyItMatters: string (concrete consequence)
+- evidence: string (the search or read that supports the claim)
+```
+
+There is no `id`, no `blocker`, and no `doneWhen` — these records never reach
+the grader. Do not validate them against the `findings[]` rules above.
 
 ### Review Intent Format
 
@@ -411,6 +476,11 @@ For clustered findings (either kind), insert after the issue description:
 One comment covers the whole cluster; anchor it at the first instance. Never
 post one comment per instance of the same mechanism.
 
+**Never post `preExisting[]` here.** Those lines are not in the PR diff, so an
+inline or file comment would anchor to code this PR did not touch. They are
+summary-only (Step 6) — no comment, no thread, no `actionId`, no
+`reviewThreads[]` record, no F-ID.
+
 **Do not reclassify findings while posting.** Use the grader's `Blocker` value.
 Severity and category alone do not make a finding blocking. If the classification
 looks inconsistent or a blocker lacks closure evidence, return it to the caller
@@ -669,6 +739,29 @@ If `reviewType` is `re-review` and `isSmallDelta` is `true`:
 - Set `canonicalStatePersisted = true` only after the provider confirms this
   summary update. Action markers allow recovery after a failed update, but they
   do not substitute for durable canonical state in the approval gate.
+- Ensure exactly one `Pre-existing Observations` section when `preExisting[]` is non-empty
+  (replace the one from `output-format.md` if present; never add a second),
+  placed after `Optional Follow-up` and before the machine-readable state:
+
+```markdown
+## Pre-existing Observations (<count>)
+
+Issues this PR did not introduce and did not make worse. They do not affect the
+verdict and need no response on this PR — file them separately if they matter.
+
+| Severity | File:Line | Observation |
+|---|---|---|
+| MEDIUM | path/to/file.cs:88 | <issue, one line> |
+```
+
+  Rules: these records are never inline comments, never get a finding thread or
+  stable F-ID, never appear in `reviewThreads[]` or `closedThreadArchive[]`,
+  never count toward `blockerCount` or any finding count in Step 8, and never
+  change the verdict. In small-delta mode, omit the section entirely. When the
+  GitHub summary needs pruning, this section is removed in step 2 of the
+  pruning order alongside already-posted `Optional Follow-up` prose, retaining
+  its item count.
+
 - Append a questions summary section if any questions were posted:
 
 ```markdown
@@ -738,6 +831,7 @@ Return a structured confirmation to the caller:
 - **PR**: #<prNumber> in <repository>
 - **Findings posted**: <count> (<critical> critical, <high> high, <medium> medium, <low> low)
 - **Questions posted**: <count> (<skipped> skipped as already asked)
+- **Pre-existing observations**: <count> (summary only — not posted, not counted as findings)
 - **Summary**: <ADO: new thread | replied to existing thread #<threadId>;
   GitHub: new issue comment | updated canonical issue comment #<commentId>>
 - **Verdict**: <verdict>

@@ -108,5 +108,5 @@ If you can't tell which binary format is in use:
 - Check the message-bus or storage config — often the format is named in the topic/queue
   config.
 
-If still uncertain, emit a `[QUESTION]` rather than guessing — different formats have
-incompatible rules, and applying the wrong ruleset produces false findings.
+If still uncertain, add an entry to the `questions` array rather than guessing — different
+formats have incompatible rules, and applying the wrong ruleset produces false findings.

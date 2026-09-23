@@ -33,7 +33,7 @@ Once data is written in the new shape, the old shape is gone. You cannot roll ba
 without losing the writes that happened after the migration. That makes schema changes one of
 the few categories where "we'll fix it forward" is genuinely a one-way door.
 
-Hold a high bar here. **Default backward-incompatible schema changes to BLOCKER** until an
+Hold a high bar here. **Default backward-incompatible schema changes to CRITICAL** until an
 explicit migration plan is in place.
 
 ## When to Use This Skill
@@ -110,7 +110,7 @@ compatibility (old code may still try to write this field).
 - Renaming the wire identifier (the field number, the JSON key, the `[Id]` number) is the same
   as deleting and re-adding — the old data is unreadable under the new name.
 
-**Severity:** **BLOCKER** by default for any shape that is persisted, sent over a network, or
+**Severity:** **CRITICAL** by default for any shape that is persisted, sent over a network, or
 written to a queue. HIGH if the type is purely in-process but crosses a deployable boundary.
 LOW only when you can prove no instance of the old shape exists anywhere — typically a brand-new
 type added and removed in the same PR.
@@ -156,7 +156,7 @@ payload).
 - Database NOT-NULL constraints without a default cause the migration itself to fail on
   any non-empty table.
 
-**Severity:** **BLOCKER** when persisted data or in-flight messages may lack the field. HIGH
+**Severity:** **CRITICAL** when persisted data or in-flight messages may lack the field. HIGH
 for new wire contracts where old clients exist. MEDIUM when the field is added to a brand-new
 type only created by the new code.
 
@@ -202,7 +202,7 @@ that crosses the boundary.
   both sides individually look correct.
 - Enum encoding flips break every previously-persisted value.
 
-**Severity:** **BLOCKER** when the change crosses a persistence or network boundary. HIGH for
+**Severity:** **CRITICAL** when the change crosses a persistence or network boundary. HIGH for
 purely in-process changes if the type is shared across deployables.
 
 **Recommendation:** Don't change types in place. Add a new field with the new type, populate
@@ -241,7 +241,7 @@ code either rejects them or silently maps them to a different value.
 - For string-encoded enums, renaming a value breaks JSON deserialization and any downstream
   filter/query that referenced the old name.
 
-**Severity:** **BLOCKER** for any enum that is persisted or transmitted. HIGH for purely
+**Severity:** **CRITICAL** for any enum that is persisted or transmitted. HIGH for purely
 in-process enums that cross a deployable boundary.
 
 **Recommendation:** Don't remove enum values. Mark them `[Obsolete]` and stop *producing* them
@@ -278,7 +278,7 @@ a min/max range narrowed, a regex pattern got tighter, a unique index was added.
   failing for no apparent reason.
 - Unique constraints can fail on legitimate historical duplicates that were valid at the time.
 
-**Severity:** **BLOCKER** if the constraint applies to persisted data and existing rows might
+**Severity:** **CRITICAL** if the constraint applies to persisted data and existing rows might
 violate it. HIGH for API request validation tightening (old clients silently break). LOW when
 the constraint is on a brand-new field added in the same PR.
 
@@ -322,7 +322,7 @@ the new behavior until the server is ready.
 - Even in service-to-service contexts with rolling deploys, the same service has old and new
   pods running simultaneously during the rollout.
 
-**Severity:** **BLOCKER** when the rollout would produce a user-visible failure (client errors,
+**Severity:** **CRITICAL** when the rollout would produce a user-visible failure (client errors,
 500s, broken pages). HIGH when there is a graceful degradation but no flag (the new behavior
 quietly doesn't work for a window). MEDIUM if both sides are internal services with coordinated
 deploy and the window is short.
@@ -371,7 +371,7 @@ a customer integration, a third-party webhook, persisted data with a long retent
   `userId: string`, you cannot change it to `userId: int` without breaking them, period.
 - Even strictly-additive changes can break consumers running strict-mode schema validation.
 
-**Severity:** **BLOCKER** for any back-incompat change to a public/external surface, unless the
+**Severity:** **CRITICAL** for any back-incompat change to a public/external surface, unless the
 PR explicitly documents a versioning strategy (`/v2/users`, breaking change in a major SDK
 version with announcement).
 
@@ -421,7 +421,7 @@ other.
   contract test) but the bug can sit dormant for months until a field is touched.
 
 **Severity:** HIGH when the mismatch is on a critical path or a frequently-changed type;
-MEDIUM otherwise. BLOCKER when the PR is *introducing* the duplication (now is the cheapest
+MEDIUM otherwise. CRITICAL when the PR is *introducing* the duplication (now is the cheapest
 moment to fix it).
 
 **Recommendation:** Use one of:
@@ -474,7 +474,7 @@ migrations hit all three because the database outlives every individual deploy.
 - Reverting code is cheap; reverting migrations after data has been written under the new
   shape is expensive or impossible.
 
-**Severity:** **BLOCKER** by default. The blast radius of a bad migration is the whole product;
+**Severity:** **CRITICAL** by default. The blast radius of a bad migration is the whole product;
 even a working migration that hasn't been thought through for rolling deploys can break
 production.
 
@@ -512,15 +512,29 @@ When reviewing a PR, walk the diff with these questions in order:
    extending or introducing. A grep for matching pairs of types in producer/consumer paths is
    cheap and high-value.
 
-For each finding, populate the agent's output template with:
-- **Schema affected** (type name, file, what kind of shape — persisted/network/public/internal)
-- **The change** (the actual diff)
-- **Lens violated** (one of the five)
-- **Pattern** (one of the nine)
+This skill does not define an output layout. Findings are emitted in the JSON contract at
+`../pr-review/reference/finding-schema.md`: one JSON object per agent, **at most 5
+findings**, `id: null` (only the orchestrator assigns IDs), **no `blocker` field** (the lane
+is the grader's call), and every record carrying `diffAnchor` (`IN_DIFF` / `ENABLED_BY_DIFF`
+/ `PRE_EXISTING`) and `confidence`. Several fields of the same type broken by the same
+mechanism are one record with the extra locations in `instances` — that is clustering, not
+omission.
+
+Map the analysis above onto that contract:
+
+- **Schema affected** (type name, what kind of shape — persisted / network / public /
+  internal) and **the change** (the actual diff) go in `issue`, with the type's file and
+  line in `file` / `line`.
+- **Lens violated** (one of the five) and **pattern** (one of the nine) go in
+  `underlyingProblem` — they name the mechanism, not just the symptom.
 - **Why it matters in this codebase** (specific consumers, specific persisted data, specific
-  rollout window)
-- **Severity** with justification
-- **Recommendation** with concrete steps
+  rollout window) goes in `whyItMatters`; the searches that identified those consumers and
+  the rollout evidence go in `evidence`.
+- **Severity with justification** — `severity` carries the level, the justification lives in
+  `whyItMatters`.
+- **Recommendation with concrete steps** goes in `suggestedPath` as the smallest correction,
+  with the implementation-neutral condition in `requiredOutcome` and the closing evidence in
+  `doneWhen`.
 
 ## Tech-Specific Reference Files
 
@@ -545,10 +559,11 @@ the relevant reference only when the PR involves that technology:
 |-------------------------------------------------|-------------|--------------------------------------------------------------------|
 | Work item that explicitly addresses compatibility / migration | HIGH        | Confidently flag deviations from the stated plan                   |
 | PR description names rollout order / a flag / a migration plan | HIGH        | Same                                                               |
-| Schema change with no compatibility discussion  | MEDIUM      | Flag confidently; emit `[QUESTION]` if you can't tell what's persisted vs. ephemeral |
-| Ambiguous (client and server in same PR, no mention of how they roll out) | LOW | Emit `[QUESTION]` on rollout pattern 6, flag confidently on the others |
+| Schema change with no compatibility discussion  | MEDIUM      | Flag confidently; use `questions` if you can't tell what's persisted vs. ephemeral |
+| Ambiguous (client and server in same PR, no mention of how they roll out) | LOW | Put rollout pattern 6 in `questions`, flag confidently on the others |
 
-State the anchor and confidence level in the summary block.
+State the anchor you used and your confidence in it in `coverageNote`, and set each
+finding's `confidence` accordingly.
 
 ## Final Reminders
 
@@ -559,8 +574,9 @@ State the anchor and confidence level in the summary block.
   flight messages written by the old producer will deserialize into a `null` `OrderId` on the
   consumer side and silently fail." is useful.
 - **Compatibility is asymmetric in cost.** A false-negative (you miss a real break) is much
-  worse than a false-positive (you flag something safe). When uncertain, flag with `[QUESTION]`
-  and request clarification rather than waving the change through.
+  worse than a false-positive (you flag something safe). When uncertain, flag the finding with
+  `confidence: "UNVERIFIED"` and add the clarification you need to `questions`, rather than
+  waving the change through.
 - **Acknowledge safe schema changes.** Strictly-additive changes with sensible defaults, proper
   reserved markers, and a documented rollout plan are exactly what you want to see. Say so
-  explicitly. Reviewers who only surface negatives lose credibility.
+  explicitly in `coverageNote`. Reviewers who only surface negatives lose credibility.

@@ -148,6 +148,16 @@ it to `CLOSED` only after provider reconciliation succeeds.
 - Do not regrade an existing thread or change its closure criteria without new evidence.
 - Do not dispatch domain agents for a `HANDOFF_REQUIRED` finding unless a
   maintainer records a decision or new authoritative evidence changes the risk.
+- Build the context pack from the **delta diff** (last reviewed commit to the
+  new head), not the full PR diff. The mechanical filter (step 10a) then anchors
+  new findings to the delta, which is what enforces "new findings must arise
+  from the delta" mechanically rather than by reviewer discipline alone.
+- Verification (step 10b) runs on new findings only. A finding carried over
+  from a previous round keeps its earlier verdict and its stable `id`; do not
+  re-verify it and do not let a fresh verdict reopen a settled thread.
+- Report only merge-blocking findings and substantive new ones on a re-review.
+  No new nits on a later round: a finding not worth raising in round one is not
+  worth raising in round three.
 
 ## Step 4.5: Self-Contribution Count
 
@@ -319,3 +329,18 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
   delta code introduces new uncertainties. Do not re-ask questions that were
   already answered.
 </re_review_rules>
+
+## Retrospective handoff
+
+After completing this round, invoke `code-reviewer:review-retrospective` when
+new or edited human comments/answers exist, or a pending retrospective stage can
+now complete, even if no source code changed.
+Pass the original reviewed commit/round for each item, the current delta,
+Review Intent, original comments, human replies with revision identifiers,
+and existing investigation/effort artifacts. The retrospective processes only
+changed evidence and keeps its outputs local; unchanged evidence skips completed
+stages while allowing pending work to resume when its prerequisite is available.
+Do not attribute defects introduced by the new delta to the earlier review,
+change the canonical thread state, or post a scorecard as part of this handoff.
+For review-depth planning, reuse only applicable knowledge and process entries
+from the known learning location; revalidate stale facts before relying on them.

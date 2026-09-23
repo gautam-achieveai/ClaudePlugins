@@ -5,74 +5,23 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.16.2"
+    "version": "1.17.0"
   },
   "plugins": [
     {
-      "name": "sandbox-auth",
-      "source": "./sandbox-auth",
-      "description": "Authenticate outbound network calls from inside a sandbox running behind a MITM egress-proxy + gateway auth-webhook (e.g. SandboxedOstoolsMcpServer). Authentication is a required first step — the proxy blocks unauthenticated egress — and tokens are injected server-side so the agent never holds them. A common egress-auth skill owns the wire contract (HTTP 511 auth_pending handshake, 403 deny), backoff polling, human-in-the-loop device-code relay, transparent token injection, warm-then-run, and a portable Python probe engine. Thin user-invocable service skills (github, azure-devops, microsoft-graph, connect) reference and use it FIRST with service-specific probe URLs, scopes, and endpoints.",
-      "version": "2.0.1",
+      "name": "progress-tracking",
+      "source": "./progress-tracking",
+      "description": "Continuous tracking for large work items and agent teams, with sourced events, durable state, progress and no-progress reports, worker nudges, recovery, and Markdown, Mermaid, and accessible HTML views.",
+      "version": "1.1.0",
       "category": "development",
-      "tags": [
-        "sandbox",
-        "egress",
-        "proxy",
-        "authentication",
-        "github",
-        "azure-devops",
-        "microsoft-graph",
-        "m365",
-        "networking"
-      ],
-      "keywords": [
-        "sandbox-auth",
-        "egress-auth",
-        "egress-proxy",
-        "auth-webhook",
-        "auth-pending",
-        "mitm-proxy",
-        "oauth-device-code",
-        "token-injection",
-        "warm-then-run",
-        "github-auth",
-        "azure-devops-auth",
-        "microsoft-graph-auth",
-        "connect",
-        "hitl"
-      ]
-    },
-    {
-      "name": "sandbox",
-      "source": "./sandbox",
-      "description": "Workspace-agent skills for sandboxed task execution: bootstrap Memory/ and scripts/, maintain task handoffs, use repeatable script helpers, and understand sandbox auth/context boundaries without bloating the chat-mode system prompt.",
-      "version": "1.0.0",
-      "category": "development",
-      "tags": [
-        "sandbox",
-        "workspace",
-        "memory",
-        "scripts",
-        "skills",
-        "agentic-workflows"
-      ],
-      "keywords": [
-        "sandbox",
-        "workspace-agent",
-        "workspace-memory",
-        "sandbox-memory",
-        "sandbox-scripts",
-        "sandbox-workspace-bootstrap",
-        "sandbox-auth-flow",
-        "task-memory",
-        "agentic-workflows"
-      ]
+      "tags": ["progress", "agile", "agents", "monitoring", "mermaid"],
+      "keywords": ["tracking-progress", "accessible-progress-report", "progress-scout", "progress-tracker", "progress-architect", "no-progress", "workstreams", "checkpoints"]
     },
     {
       "name": "ado",
       "source": "./ado",
       "description": "Azure DevOps integration for work item management, PR publishing, iterative PR tending, autonomous work item implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "3.2.0",
+      "version": "3.2.1",
       "category": "development",
       "tags": [
         "azure-devops",
@@ -100,7 +49,7 @@
       "name": "gh",
       "source": "./gh",
       "description": "GitHub integration for issue and project management, PR publishing, iterative PR tending, issue-driven implementation, and autonomous backlog processing. Orchestrates development methodology skills via the development plugin.",
-      "version": "2.1.3",
+      "version": "2.1.4",
       "category": "development",
       "tags": [
         "github",
@@ -129,7 +78,7 @@
       "name": "development",
       "source": "./development",
       "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, architecture and test-plan critique, manual testing before automated regression coverage, verification, and final review. Includes Architect, Test Planner, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (scenario manual testing, then regression tests, then coverage-guided tests), with TDD as an explicit opt-in; subagent-driven execution; course-correction when fixes stack; compound-learning lessons read back at plan time; hooks that block git bypasses and untested completion; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
-      "version": "1.8.0",
+      "version": "1.9.0",
       "category": "development",
       "tags": [
         "methodology",
@@ -192,8 +141,8 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, plus specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, feature-flag rollout, severity grading, logs, and PR context. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
-      "version": "1.22.3",
+      "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, built as a funnel: a cheap eligibility gate, deterministic review tiering, a shared context pack, a correctness lane and repo-history lane alongside specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, and feature-flag rollout. Findings are mechanically anchored to the diff, adversarially verified before posting, then synthesized into root causes, graded for severity and merge-blocking lane, and sequenced into an ordered fix plan, with each agent declaring the model-intelligence tier its work actually needs. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
+      "version": "1.25.0",
       "category": "development",
       "tags": [
         "review",
@@ -285,7 +234,7 @@
       "name": "debugging",
       "source": "./debugging",
       "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.",
-      "version": "1.4.2",
+      "version": "1.5.0",
       "category": "development",
       "tags": [
         "debugging",
@@ -302,6 +251,15 @@
         "log-analysis",
         "tracing"
       ]
+    },
+    {
+      "name": "hitl",
+      "source": "./hitl",
+      "description": "Install and configure HITL, connect Inbox or the tray client, and guide cross-device questions, plan reviews, notifications, and durable progress through automatic usage hooks.",
+      "version": "1.1.0",
+      "category": "productivity",
+      "tags": ["hitl", "human-in-the-loop", "notifications", "hooks"],
+      "keywords": ["setup-hitl", "using-hitl", "inbox", "plan-review", "progress"]
     }
   ]
 }
