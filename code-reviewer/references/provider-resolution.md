@@ -67,6 +67,56 @@ the `gh` CLI form; substitute the equivalent GitHub MCP tool when one is connect
 | Merge PR | `gh pr merge <n> --squash` / `--merge` / `--rebase` | `mcp__azure-devops__mergePullRequest` (squash, noFastForward, rebase, rebaseMerge) |
 | Linked work items / issues | `gh pr view <n> --json closingIssuesReferences` + parse `#`/`owner/repo#` refs in the body | `mcp__azure-devops__getPullRequest` with `include: ["workItems"]`, then `getWorkItemById` / `getWorkItemsBatch` |
 
+## Seeded PR-context enrichment
+
+A review-setup handoff is authoritative for every supplied value at its
+snapshot time. In normal context gathering it is a seed, not a closed-world
+boundary. Resolve the provider once and enrich it using read-only provider
+operations, the designated review worktree, and `/workspace/KnowledgeBase`.
+
+Never silently replace snapshot evidence. Report a disagreement as drift with
+both values, sources, and observation times.
+
+Provider access is read-only: use only get/list/read operations. Never post or
+resolve comments, edit PRs or work items, vote, approve, merge, queue builds,
+change credentials, invoke provider setup, or perform another mutation. If
+read tooling is unavailable, report incomplete coverage.
+
+Historical conversation lookup is limited to the current PR and at most five
+**unique** relevant provenance PRs — one global budget, not five per caller.
+The cap is shared across every path that can select a provenance PR for this
+review, including PRs named by a caller-supplied seed, PRs discovered by
+delegated/parallel sub-work (e.g., gatherer Step 6 git-blame research), and
+PRs that turn out inaccessible: deduplicate and select the final candidate
+set before delegating so the combined total across all of them never exceeds
+five unique PRs beyond the current PR. Record each selected PR, its selection
+reason, and whether its description and discussion were examined, absent,
+inaccessible, or intentionally offline. Also record any candidate PR that
+would otherwise have been selected but was dropped only because the
+five-PR budget was already spent — mark it budget-truncated (distinct from
+absent or inaccessible) rather than silently omitting it from coverage.
+
+Local discovery must stay inside the designated target worktree. Inspect
+applicable `AGENTS.md`, `CLAUDE.md`, `.claude/skills`, and `.agents/skills`;
+search `/workspace/KnowledgeBase` with targeted PR, work-item, path, and domain
+terms.
+
+A supplied seed (`Review-setup Context:` / `Pre-fetched Context:`), whether
+partial or complete, must be reused verbatim — never re-fetch a piece the
+seed already supplied. A gap in the seed (e.g., PR discussion/comments
+missing) licenses fetching only that missing piece; it does not license
+re-fetching pieces the seed already carries (e.g., title metadata already
+present alongside missing discussion still gets the discussion fetched
+without re-fetching the title).
+
+`Context Mode: deterministic-offline` is the explicit exception: use only the
+supplied seed and make no provider, repository, KnowledgeBase, or web access.
+This mode is selected only when the marker itself is present — a bare seed
+never implies it. If the marker is present but the seed payload is missing or
+empty, fail closed: still render the deterministic output with every section
+reporting no context supplied, rather than silently falling back to
+enrichment or omitting the rendering step entirely.
+
 ## Issue / Work-Item Hierarchy
 
 GitHub does not have ADO's fixed Epic → Feature → User Story → Task ladder. Map

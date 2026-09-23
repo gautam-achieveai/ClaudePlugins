@@ -55,8 +55,11 @@ otherwise the `gh` CLI (run via `Bash`, authenticated with `gh auth`).
 - `nscript-review` - NScript C#-to-JS transpiler compliance, MVVM, template/skin patterns
 - `orleans-review` - Orleans grain architecture, reentrancy, state management, streams
 - `debugging:logging-review` - Structured logging compliance, log levels, queryability, EUII policy enforcement, client-side log forwarding checks
+- `temp-code-review` - **(always dispatched)** Temporary code, debug artifacts, hardcoded hacks, mistaken files
 - `duplicate-code-detector` - Exact/near duplicates, repeated patterns, structural duplication; suggests extractions
 - `euii-leak-detector` - EUII/PII leaks in logs, telemetry, error messages, HTTP logging
+- `security-review` - Access control, injection, SSRF, cryptography, deserialization, authentication, and security defaults
+- `invariant-deletion-review` - Unsafe deletion and removed or bypassed correctness safeguards
 - `class-design-simplifier` - Over-engineering flags: single-impl interfaces, pass-through layers, premature generalization
 - `exception-handling-review` - Exception patterns: swallowed exceptions, broad catches, incorrect re-throws, missing logging, async pitfalls, flow control abuse
 - `test-coverage-review` - Test coverage adequacy, behavioral coverage, over-mocking, test-production pollution, missing regression tests, integration point coverage
@@ -76,9 +79,9 @@ Tiers 5 and 6. Each receives other agents' output and reasons over it.
 - `review-adjudicator` (tier 6) - rules when the review disagrees with itself: split verifier lenses, contradictory guidance, a REDESIGN ask on a narrow PR, an author's technical dispute; step 11a, on trigger only
 - `remediation-planner` (tier 5) - minimum merge-unblocking set, fix ordering, conflicts between suggested paths; step 11b, on REQUEST_CHANGES with 3+ blockers or 2+ clusters
 
-## Context Agents (dispatched in step 1/3)
+## Context Agents (dispatched once in step 1)
 
-- `pr-context-gatherer` - Walks the PR-linked item hierarchy — ADO work items (up to Epic level) or GitHub linked issues / sub-issues — collecting siblings and related items to build a full business context tree. Use `code-reviewer:pr-context` skill to invoke.
+- `pr-context-gatherer` - Walks the PR-linked item hierarchy — ADO work items (up to Epic level) or GitHub linked issues / sub-issues — collecting siblings and related items to build a full business context tree. Use `code-reviewer:pr-context` skill to invoke. **Mutually exclusive launch ownership**: `pr-review` dispatches `code-reviewer:pr-context` (which launches this agent) *unless* the invocation carries `Context Gatherer Owner: daemon-direct`, in which case the daemon has already launched this agent directly and `pr-review` must not dispatch `code-reviewer:pr-context` or launch this agent a second time — exactly one launch, never both, never neither. **Reserved for this role only**: no other step — including Step 3's `general-purpose` "PR Intent & Scope Analyst" — may dispatch `subagent_type: pr-context-gatherer`; it owns Step 1's context gather exclusively and carries a network/provider tool surface no other step needs.
 
 ## External Review Agents (dispatched conditionally in step 8)
 

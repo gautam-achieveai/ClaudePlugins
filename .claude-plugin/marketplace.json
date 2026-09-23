@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.17.0"
+    "version": "1.18.0"
   },
   "plugins": [
     {
@@ -141,7 +141,7 @@
     {
       "name": "code-reviewer",
       "source": "./code-reviewer",
-      "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, built as a funnel: a cheap eligibility gate, deterministic review tiering, a shared context pack, a correctness lane and repo-history lane alongside specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, and feature-flag rollout. Findings are mechanically anchored to the diff, adversarially verified before posting, then synthesized into root causes, graded for severity and merge-blocking lane, and sequenced into an ordered fix plan, with each agent declaring the model-intelligence tier its work actually needs. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
+      "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, built as a funnel: a cheap eligibility gate, deterministic review tiering, a shared context pack, a correctness lane and repo-history lane alongside specialized agents for duplicate detection, EUII leak scanning, security vulnerability review, unsafe-deletion and invariant-safety review, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, and feature-flag rollout. Findings are mechanically anchored to the diff, adversarially verified before posting, then synthesized into root causes, graded for severity and merge-blocking lane, and sequenced into an ordered fix plan, with each agent declaring the model-intelligence tier its work actually needs. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
       "version": "1.25.0",
       "category": "development",
       "tags": [
@@ -159,7 +159,9 @@
         "schema-compatibility",
         "backward-compatibility",
         "feature-flag",
-        "rollout"
+        "rollout",
+        "unsafe-deletion",
+        "invariant-safety"
       ],
       "keywords": [
         "code-review",
@@ -185,7 +187,10 @@
         "feature-flag-reviewer",
         "rollout-strategy",
         "blast-radius",
-        "code-reviewer-agent"
+        "code-reviewer-agent",
+        "security-review",
+        "invariant-deletion-review",
+        "unsafe-deletion"
       ]
     },
     {
