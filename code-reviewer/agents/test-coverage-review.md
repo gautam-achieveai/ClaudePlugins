@@ -3,6 +3,8 @@ name: test-coverage-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 3
+effort: medium
 tools:
   - Read
   - Grep
@@ -36,6 +38,10 @@ the code is supposed to do? Line coverage is a weak proxy. A test that exercises
 a code path but asserts nothing useful provides false confidence. A test that
 verifies one critical behavior is worth more than ten that just increase a
 coverage number.
+
+**Do not fetch the diff yourself.** The orchestrator supplies a context pack containing
+the diff, the changed-file list, and the Review Intent. Use the supplied context pack;
+only read full files when the diff alone cannot settle a question.
 
 ## Analysis Process
 
@@ -304,30 +310,25 @@ the PR is small and the review would otherwise be empty.
 
 ## Output Format
 
-```markdown
-## Test Coverage Review Summary
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-### Coverage Map
-| Production File | Test File | Status |
-|---|---|---|
-| `OrderService.cs` (modified) | `OrderServiceTests.cs` (modified) | Covered |
-| `PaymentProcessor.cs` (new) | _(none)_ | **MISSING** |
-| `Config.cs` (modified) | _(config only)_ | N/A |
-
-### Findings
-
-#### [HIGH/MEDIUM/LOW] (Criticality: X/10) - [Category]: [Brief Description]
-- **Production code**: `path/to/file.cs:42` — what was changed
-- **Test gap**: What's missing or wrong
-- **Suggested test**: Concrete test description or code sketch
-- **Cost/benefit**: Why this test is worth writing (what regression it prevents)
-
-### Statistics
-- Production files changed: X
-- Test files changed: X
-- Coverage gaps: X files missing tests
-- Test quality issues: X
+```json
+{
+  "agent": "test-coverage-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
 ```
+
+- Use `category: "Testing"` unless another schema category fits better.
+- Put the production-file → test-file coverage map, the counts of production and
+  test files changed, and the criticality rating in `coverageNote` and `evidence` —
+  they are context for the findings, not extra findings.
 
 ## Guidelines
 

@@ -48,7 +48,8 @@ Skip any step = lying, not verifying
 | Linter clean | Linter output: 0 errors | Partial check, extrapolation |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
-| Regression test works | Red-green cycle verified | Test passes once |
+| Feature works | Each scenario run by hand: pass, with evidence | Tests passing; a scenario that could not run |
+| Regression test works | Fails when its fix is reverted, verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 
@@ -84,10 +85,16 @@ Skip any step = lying, not verifying
 ❌ "Should pass now" / "Looks correct"
 ```
 
-**Regression tests (TDD Red-Green):**
+**Scenarios (manual, before tests):**
+```
+✅ [Run the scenario by hand] [See: output/screenshot/log] "Scenario X: pass"
+❌ "Tests pass, so the feature works" / blocked scenario reported as pass
+```
+
+**Regression tests (fail when the fix is reverted):**
 ```
 ✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
-❌ "I've written a regression test" (without red-green verification)
+❌ "I've written a regression test" (without seeing it fail on the reverted fix)
 ```
 
 **Build:**
@@ -117,6 +124,16 @@ From failure memories:
 - Time wasted on false completion → redirect → rework
 - Violates core value: honesty is essential
 
+## Finish your turn
+
+A turn ends when the work is done or when you are blocked on something only the user can provide. Before sending the final message, read its last paragraph:
+
+- **A plan, a promise, or a TODO list** ("Next I'll…", "I will now…") → do that work now, then report it.
+- **"Want me to…?" / "Shall I…?"** for a safe, reversible, in-scope step → do the step instead of asking.
+- **A stop at the first error or failing test** → investigate it before ending, unless the fix needs the user's authority.
+
+Stop and ask only when the next step is destructive, irreversible, security-sensitive, has an external side effect (push, merge, publish, message), or needs credentials or a decision that is the user's.
+
 ## When To Apply
 
 **ALWAYS before:**
@@ -136,7 +153,7 @@ From failure memories:
 ## Related Skills
 
 When working on tasks, combine verification with:
-- `development:test-driven-development` - Verify red-green cycle for tests
+- `development:scenario-driven-development` - Scenario verdicts, regression tests that fail when the fix is reverted, coverage check
 - `debugging:systematic-debugging` - Verify fixes before claiming bugs are resolved
 
 ## The Bottom Line

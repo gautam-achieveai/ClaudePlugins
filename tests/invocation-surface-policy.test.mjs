@@ -404,7 +404,7 @@ test("pr-review always forwards available metadata as a verbatim Review-setup Co
   const prReview = readRepoFile(path.join("code-reviewer", "skills", "pr-review", "SKILL.md"));
   const prContext = readRepoFile(path.join("code-reviewer", "skills", "pr-context", "SKILL.md"));
 
-  const setupSection = sectionBetween(prReview, "1. **Setup**", "2. **Classify changed files**");
+  const setupSection = sectionBetween(prReview, "1. **Setup", "2. **Classify changed files**");
   assert.match(
     setupSection,
     /Review-setup\s+Context/,
@@ -698,7 +698,7 @@ test("tool-catalog Specialized Review Agents stay in lock-step with agent-dispat
   const dispatchSection = sectionBetween(
     agentDispatch,
     "## Domain Agents (Step 7)",
-    "<mandatory_dispatch>"
+    "<plan_dispatch>"
   );
   const dispatchAgents = new Set(
     [...dispatchSection.matchAll(/^- \*\*`([a-z][\w:-]*)`\*\*: /gm)].map(

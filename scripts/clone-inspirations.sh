@@ -12,6 +12,16 @@ repos=(
   "https://github.com/anthropics/claude-plugins-official.git"
   "https://github.com/anthropics/knowledge-work-plugins.git"
   "https://github.com/obra/superpowers.git"
+  "https://github.com/anthropics/skills.git"
+  "https://github.com/wshobson/agents.git"
+  "https://github.com/EveryInc/compound-engineering-plugin.git"
+  "https://github.com/VoltAgent/awesome-claude-code-subagents.git"
+  "https://github.com/thedotmack/claude-mem.git"
+  "https://github.com/JuliusBrussee/caveman.git"
+  "https://github.com/almutaz9000/fable-skill.git"
+  "https://github.com/Dallenlol/fable-mode.git"
+  "https://github.com/imMamdouhaboammar/get-fable.git"
+  "https://github.com/UnpaidAttention/fable5-methodology.git"
 )
 
 for url in "${repos[@]}"; do

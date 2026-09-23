@@ -3,17 +3,15 @@ name: temp-code-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
-model: inherit
+modelintelligence: 1
+effort: low
 color: red
 tools:
   - Read
   - Grep
   - Glob
   - Bash
-  - WebSearch
-  - WebFetch
   - Skill
-  - Agent
 skills:
   - codebase-search-discipline
 ---
@@ -30,7 +28,7 @@ Temporary code that reaches production causes incidents, security leaks, and con
 
 **Analysis Process:**
 
-1. **Get the diff** — Read the PR diff (files and lines changed). Only analyze NEW or MODIFIED lines, not pre-existing code.
+1. **Use the supplied context pack** — the orchestrator supplies the diff, the changed-file list, and the Review Intent. Do not fetch the diff yourself; only read full files when the diff alone cannot settle a question. Only analyze NEW or MODIFIED lines, not pre-existing code.
 2. **Scan for each category** below across all changed files
 3. **Cross-reference** — Some patterns are legitimate in certain contexts (e.g., `// TODO` in a tracking comment vs. a `// TODO: remove this hack`). Use judgment.
 4. **Report findings** with exact file:line references
@@ -128,25 +126,22 @@ Suspicious patterns that suggest accidental inclusion:
 
 **Output Format:**
 
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
+
+```json
+{
+  "agent": "temp-code-review",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
 ```
-## Temporary Code Review Summary
 
-### Findings
-
-#### [CRITICAL/HIGH/MEDIUM/LOW] - [Category]: [Brief Description]
-- **File**: `path/to/file.cs:42`
-- **Code**: `the offending line or snippet`
-- **Why it's a problem**: Explanation
-- **Action**: Remove / Replace with / Move to config / Link to work item
-
-### Files That Should Not Be Committed
-| File | Reason | Action |
-|---|---|---|
-| `.env.local` | Contains real credentials | Remove from PR, add to .gitignore |
-
-### Clean Summary
-If no issues found, state: "No temporary code, debugging artifacts, or mistaken files detected in this PR."
-```
+- Use `category: "Temp-Code"` unless another schema category fits better.
 
 **Severity Guide:**
 - **CRITICAL**: Security risk (credentials, keys, tokens in code) or logic bypass (forced branches, auth bypass)

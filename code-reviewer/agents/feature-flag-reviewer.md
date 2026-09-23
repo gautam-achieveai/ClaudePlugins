@@ -3,6 +3,8 @@ name: feature-flag-reviewer
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
 user-invocable: true
 disable-model-invocation: false
+modelintelligence: 2
+effort: medium
 ---
 
 # Feature Flag Reviewer
@@ -43,6 +45,10 @@ You are a release safety expert focused on identifying changes that should be pr
 - Public API changes that external consumers depend on
 - Changes to stored data formats that can't be read by the previous version
 
+**Do not fetch the diff yourself.** The orchestrator supplies a context pack containing
+the diff, the changed-file list, and the Review Intent. Use the supplied context pack;
+only read full files when the diff alone cannot settle a question.
+
 ## Risk Assessment Process
 
 1. **Understand the scope**: Count files changed, lines added/removed, and modules touched.
@@ -69,10 +75,26 @@ Avoid noise by skipping these categories:
 
 ## Output Format
 
-For each finding, report:
+Return **exactly one JSON object** per
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/finding-schema.md` — nothing before it, nothing
+after it, at most 5 findings, `id: null`, no `blocker` field. The dispatch prompt
+carries the full output contract; follow it.
 
-| Severity | Location | Change Type | Risk | Recommendation |
-|----------|----------|-------------|------|----------------|
+```json
+{
+  "agent": "feature-flag-reviewer",
+  "findings": [],
+  "questions": [],
+  "omittedSimilarCount": 0,
+  "coverageNote": "what you examined and what you could not reach"
+}
+```
+
+- Use `category: "Scope"` unless another schema category fits better.
+- Name the change type and the blast radius in `whyItMatters`, and the behavior to
+  gate (with a suggested flag name) in `suggestedPath`.
+- Map this file's levels onto the schema `severity` scale: Critical → `CRITICAL` or
+  `HIGH`, Warning → `MEDIUM`, Info → `LOW`.
 
 **Severity levels**:
 - **Warning**: High-risk changes that strongly benefit from a flag — new features, behavior changes, infrastructure changes, irreversible operations. A flag here provides meaningful rollback capability.

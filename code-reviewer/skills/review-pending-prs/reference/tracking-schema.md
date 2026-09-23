@@ -117,6 +117,11 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 | `findings` | object | Count of findings by severity: `critical`, `high`, `medium`, `low` |
 | `commentsSummary` | string[] | Top findings (not all). Full findings live on the PR |
 | `blockerCount` | number | Number of findings tagged as `[BLOCKER]` |
+| `reviewMetrics` | object | Funnel and effort counts for this round — see the field list in [update-pr-tracking](../../update-pr-tracking/SKILL.md). Values come from the step 10a filter stats and the step 10b verdict tally. A number that was not measured is `null`, never a guess |
+| `findingOutcomes` | object[] | Per-finding author response recorded on a later round: `findingId`, `postedAt`, `outcome` (`FIXED` / `DISPUTED` / `IGNORED` / `UNKNOWN`), `evidence`. This is the fix-rate signal |
+
+Both fields are optional and best-effort. An older entry without them stays
+valid, and a tracking failure never fails the review.
 
 ## Initialization
 
