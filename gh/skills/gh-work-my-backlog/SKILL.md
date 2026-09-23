@@ -25,7 +25,7 @@ All querying, classification, and context-gathering is handled by
 The scanner is zero-dependency (Node.js + `gh`). Run:
 
 ```bash
-node <skill-dir>/scripts/scan.mjs --repo-root <repo-root>
+node "${CLAUDE_SKILL_DIR}/scripts/scan.mjs" --repo-root <repo-root>
 ```
 
 Auth:

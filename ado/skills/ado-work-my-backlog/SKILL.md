@@ -25,7 +25,7 @@ require reasoning (planning, implementing, reviewing).
 The scanner is zero-dependency (uses Node.js built-in `fetch()`). Just run:
 
 ```bash
-node <skill-dir>/scripts/scan.mjs --repo-root <repo-root>
+node "${CLAUDE_SKILL_DIR}/scripts/scan.mjs" --repo-root <repo-root>
 ```
 
 Auth: requires `AZURE_DEVOPS_PAT` environment variable (or

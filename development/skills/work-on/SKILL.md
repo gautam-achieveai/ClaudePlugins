@@ -448,7 +448,7 @@ a work item comment with an approval signal, or revision cap reached (v3).
 
 ### Phase 2.2 — Set Up Worktree
 
-Read `../../reference/git-worktrees-guide.md` and follow its process to
+Read `${CLAUDE_PLUGIN_ROOT}/reference/git-worktrees-guide.md` and follow its process to
 create an isolated worktree for this work.
 
 **Branch naming convention**: `work-item/<id>-<slugified-title>`
@@ -506,7 +506,7 @@ part `development:implement` does not do:
 
 #### Step 2.4.1: Finish the Branch
 
-Read `../../reference/branch-completion-guide.md` and follow it. Auto-select
+Read `${CLAUDE_PLUGIN_ROOT}/reference/branch-completion-guide.md` and follow it. Auto-select
 "push and create PR" — do not present options interactively.
 
 #### Step 2.4.2: Publish the PR
