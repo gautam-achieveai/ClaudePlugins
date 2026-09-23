@@ -224,10 +224,10 @@ test("wave 3 closes the four advisories and bumps the version", () => {
   assert.doesNotMatch(read("development/skills/receiving-code-review/SKILL.md"), /human partner/i);
 
   const plugin = JSON.parse(read("development/.claude-plugin/plugin.json"));
-  assert.equal(plugin.version, "1.8.0");
+  assert.equal(plugin.version, "1.9.0");
   const marketplace = JSON.parse(read(".claude-plugin/marketplace.json"));
   const entry = marketplace.plugins.find((p) => p.name === "development");
-  assert.equal(entry.version, "1.8.0");
+  assert.equal(entry.version, "1.9.0");
   for (const keyword of ["course-correction", "compound-learning"]) assert.ok(entry.keywords.includes(keyword));
   assert.match(read("README.md"), /hook/i);
   assert.ok(existsSync(dev("hooks/hooks.json")));
