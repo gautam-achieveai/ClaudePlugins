@@ -4,9 +4,9 @@ Adapted from obra/superpowers `executing-plans` (MIT).
 
 Execute the plan yourself, task by task, in this session: no implementer subagent per task, no reviewer per task. One fresh-context review of the whole branch at the end.
 
-**Why Inline:** `development:subagent-driven-development` pays for a fresh implementer and a fresh reviewer on every task, each re-reading the codebase from zero. Inline execution pays for one context (yours) plus one reviewer at the end. It keeps what the per-task seats bought by other means: the brief is the spec, the ledger is your memory, scenario-driven development (scenario by hand, then regression test, then coverage) is the per-task gate, and the final reviewer is the second pair of eyes.
+**Why Inline:** `development:subagent-driven-development` pays for a fresh implementer and a fresh reviewer on every task, each re-reading the codebase from zero. Inline execution pays for one context (yours) plus one reviewer at the end. It keeps what the per-task seats bought by other means: the brief is the spec, the ledger is your memory, scenario-driven development (manual testing from the first tiny slice, regression tests for observed defects, behavioral tests for material acceptance contracts, final coverage review) is the gate, and the final reviewer is the second pair of eyes.
 
-**Core principle:** the plan already did the thinking. Execute it exactly, prove each step with a test you watched fail and then pass, and leave a record that survives your own forgetting.
+**Core principle:** the plan already did the thinking. Execute it exactly, observe every scenario directly, protect each material acceptance contract with an automated behavioral test, watch defect regressions fail then pass, and leave a record that survives your own forgetting.
 
 **Narration:** between tool calls, narrate at most one short line. The ledger and tool results carry the record.
 
@@ -45,7 +45,7 @@ digraph process {
     subgraph cluster_per_task {
         label="Per Task";
         "task-start: brief + BASE; read the brief" [shape=box];
-        "Work the steps in order: scenario, regression test, coverage; read every output" [shape=box];
+        "Test tiny slices; protect material contracts; regressions for bugs; final coverage; read every output" [shape=box];
         "Step output matches plan's Expected?" [shape=diamond];
         "Plan wrong? Rule and ledger. Code wrong? systematic-debugging" [shape=box];
         "Commit as the plan's commit steps say" [shape=box];
@@ -61,13 +61,13 @@ digraph process {
     "branch-completion-guide.md" [shape=box style=filled fillcolor=lightgreen];
 
     "Setup: worktree, workspace + ledger, read plan + spec, pre-flight scan" -> "task-start: brief + BASE; read the brief";
-    "task-start: brief + BASE; read the brief" -> "Work the steps in order: scenario, regression test, coverage; read every output";
-    "Work the steps in order: scenario, regression test, coverage; read every output" -> "Step output matches plan's Expected?";
+    "task-start: brief + BASE; read the brief" -> "Test tiny slices; protect material contracts; regressions for bugs; final coverage; read every output";
+    "Test tiny slices; protect material contracts; regressions for bugs; final coverage; read every output" -> "Step output matches plan's Expected?";
     "Step output matches plan's Expected?" -> "Plan wrong? Rule and ledger. Code wrong? systematic-debugging" [label="no"];
-    "Plan wrong? Rule and ledger. Code wrong? systematic-debugging" -> "Work the steps in order: scenario, regression test, coverage; read every output";
+    "Plan wrong? Rule and ledger. Code wrong? systematic-debugging" -> "Test tiny slices; protect material contracts; regressions for bugs; final coverage; read every output";
     "Step output matches plan's Expected?" -> "Commit as the plan's commit steps say" [label="yes, last step"];
     "Commit as the plan's commit steps say" -> "Completion contract met?";
-    "Completion contract met?" -> "Work the steps in order: scenario, regression test, coverage; read every output" [label="no - finish the task"];
+    "Completion contract met?" -> "Test tiny slices; protect material contracts; regressions for bugs; final coverage; read every output" [label="no - finish the task"];
     "Completion contract met?" -> "task-done: run tests, ledger the result; mark todo complete" [label="yes"];
     "task-done: run tests, ledger the result; mark todo complete" -> "More tasks remain?";
     "More tasks remain?" -> "task-start: brief + BASE; read the brief" [label="yes"];
@@ -93,7 +93,7 @@ The workspace and ledger are the same ones subagent-driven development uses — 
 
 Read the plan once, note its context and Global Constraints, and create a todo per task. If the plan names a `Spec:`, read it too: conflicts inside the plan resolve against the spec. A plan with no reachable spec gets a ledger note saying so — rulings made without one are provisional.
 
-**REQUIRED SUB-SKILL:** load `development:scenario-driven-development` now, before Task 1. It governs every step of every task: run the scenario by hand, then add the regression test that fails when the change is reverted, then check coverage on the changed code. A plan whose steps already spell this out does not exempt you from reading it. Use `development:test-driven-development` only when the user explicitly asks for TDD (opt-in), and then switch as that skill's "When the user asks for TDD" section says: the failing test comes first, and the scenario, coverage, and speed rules still apply.
+**REQUIRED SUB-SKILL:** load `development:scenario-driven-development` now, before Task 1. It governs every step: test the smallest runnable scenario by hand, write a failing regression test for each observed defect before fixing it, protect stable material acceptance contracts with automated behavioral tests, and review coverage only after all scenarios and corner cases pass by hand. A plan whose steps already spell this out does not exempt you from reading it. Use `development:test-driven-development` only when the user explicitly asks for TDD (opt-in), and then switch as that skill's "When the user asks for TDD" section says: the failing test comes first, and the scenario, coverage, and speed rules still apply.
 
 **Pre-flight conflict scan.** Before Task 1, scan for conflicts between tasks. The plan's Interfaces blocks tell you where to look: for every task that consumes what an earlier task produces, one ledger row — the two tasks, what one produces against what the other consumes, and what you found. Tasks that share nothing get no row; a plan whose tasks share nothing gets the single line `Pre-flight: no shared interfaces`. Rule on each conflict with the spec as the binding authority, record the ruling beside its row, and start Task 1. Each task's own text is checked when you read its brief.
 
@@ -108,7 +108,7 @@ Everything you print, and every tool result, stays resident in your context for 
 
 ### 2. Work the steps
 
-The plan's steps are already in scenario-driven order; follow them under `development:scenario-driven-development`. The scenario runs by hand before any test is written, and its verdict (pass, fail, or blocked) is recorded with evidence — a scenario that could not run is not a pass. Each regression test is shown failing once with the change reverted — a test that still passes with the change reverted is a finding about the test. Tests stay fast: each under 1 second, the focused suite under 30 seconds.
+Follow `development:scenario-driven-development` even when an older plan prescribes a test for every scenario. Start with the smallest runnable path and record each manual verdict (pass, fail, or blocked) with evidence — a scenario that could not run is not a pass. Protect each stable material acceptance contract with an automated behavioral test; one test may cover several scenarios. For a defect, observe the regression test fail before the fix and pass after; if written later, show it failing once with the fix reverted. Inspect coverage after the full manual pass. Tests stay fast: each under 1 second, the focused suite under 30 seconds.
 
 Every step that runs a command has an `Expected:` line. Run it, read the output, compare. Three outcomes:
 
@@ -123,7 +123,8 @@ Commit as the plan's commit steps say. A task that spans several commits is fine
 Before a task's ledger line, all of these are true, with evidence in this session — not inferred from the diff looking right:
 
 - Every scenario the brief names ran by hand with a recorded verdict, and every test it names exists, ran in this task, and you read the output.
-- Each new regression test was seen failing with its change reverted, and coverage on the changed code was checked (each uncovered risky line has a test or a one-line reason).
+- Every material acceptance contract has an automated behavioral test at the cheapest useful layer.
+- Each observed defect has a regression test seen failing before its fix (or with the fix reverted). The final feature task checks changed-code coverage after all manual scenarios pass; earlier tasks record that it is deferred (each uncovered risky area ultimately has a test or a one-line reason).
 - The final test run for the task passed — `task-done` is that run, and it writes the command and result into the ledger line.
 - Every `Expected:` line in the brief was compared against real output.
 - Every deviation from the brief has a `Ruling:` line in the ledger.

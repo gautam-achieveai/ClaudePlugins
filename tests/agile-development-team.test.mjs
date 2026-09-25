@@ -18,28 +18,44 @@ function frontmatter(relativePath) {
   return match[1];
 }
 
-function assertManualApprovalPrecedesAutomatedTests(content) {
+function assertManualTestingStartsBeforeCoverageReview(content) {
   const section = content.match(/### 1\. Build the thin slice([\s\S]*?)(?=\n### 2\.)/)?.[1];
   assert.ok(section, "skill must contain a bounded thin-slice execution section");
 
   const steps = [...section.matchAll(/^\d+\.\s+(.+)$/gm)].map(([, step]) => step);
-  const manualGate = steps.findIndex((step) => /Manual Tester.*thumbs-up/i.test(step));
-  const automatedTests = steps.findIndex((step) => /Only after.*automated tests/i.test(step));
+  const firstScenario = steps.findIndex((step) => /Manual Tester.*tiniest observable scenario/i.test(step));
+  const regression = steps.findIndex((step) => /observed defect.*failing regression test/i.test(step));
+  const contractTests = steps.findIndex((step) => /material acceptance contract.*automated behavioral test/i.test(step));
+  const manualGate = steps.findIndex((step) => /Manual Tester.*thumbs-up.*every scenario/i.test(step));
+  const coverage = steps.findIndex((step) => /Only after all manual scenarios pass.*coverage/i.test(step));
 
-  assert.ok(manualGate >= 0, "thin-slice steps must require Manual Tester approval");
-  assert.ok(automatedTests >= 0, "thin-slice steps must assign later automated tests to Developer");
-  assert.ok(manualGate < automatedTests, "manual approval must precede automated test authoring");
+  assert.ok(firstScenario >= 0, "tester must choose the first runnable scenario with the developer");
+  assert.ok(regression > firstScenario, "observed defects must drive regression tests");
+  assert.ok(contractTests > regression, "accepted behavior must receive contract tests after defect tests");
+  assert.ok(manualGate > contractTests, "testing must continue through all scenarios");
+  assert.ok(coverage > manualGate, "coverage review must follow full manual verification");
 }
 
 const developmentAgents = [
   ["architect", "Architect"],
-  ["test-planner", "Test Planner"],
   ["manual-tester", "Manual Tester"],
   ["developer", "Developer"],
   ["critic", "Critic"],
 ];
 
 test("Agile delivery agents live in development and Code Reviewer lives in code-reviewer", () => {
+  assert.equal(existsSync(path.join(repoRoot, "development/agents/test-planner.md")), false,
+    "Manual Tester owns the former Test Planner responsibilities");
+  for (const relativePath of [
+    "README.md",
+    ".claude-plugin/marketplace.json",
+    "development/.claude-plugin/plugin.json",
+    "development/skills/agile-development/SKILL.md",
+    "docs/superpowers/specs/2026-09-22-scenario-driven-development-design.md",
+  ]) {
+    assert.doesNotMatch(read(relativePath), /test-planner|Test Planner/,
+      `${relativePath} must not advertise the retired Test Planner role`);
+  }
   for (const [name, heading] of developmentAgents) {
     const relativePath = `development/agents/${name}.md`;
     assert.ok(existsSync(path.join(repoRoot, relativePath)), `${relativePath} must exist`);
@@ -104,7 +120,6 @@ test("Agile development skill preserves the AGENTS.md team gates", () => {
 
   for (const agentId of [
     "development:architect",
-    "development:test-planner",
     "development:manual-tester",
     "development:developer",
     "development:critic",
@@ -114,20 +129,23 @@ test("Agile development skill preserves the AGENTS.md team gates", () => {
   }
 
   assert.match(content, /thin end-to-end slice/i, "skill must start with a thin end-to-end slice");
-  assertManualApprovalPrecedesAutomatedTests(content);
+  assertManualTestingStartsBeforeCoverageReview(content);
 
   assert.throws(
     () =>
-      assertManualApprovalPrecedesAutomatedTests(`
+      assertManualTestingStartsBeforeCoverageReview(`
 ### 1. Build the thin slice
 
-1. Only after that thumbs-up, have the Developer author focused automated tests.
-2. Loop Developer fixes until the Manual Tester records a thumbs-up.
+1. Only after all manual scenarios pass, inspect coverage.
+2. Dispatch the Manual Tester to choose the tiniest observable scenario.
+3. For each observed defect, write a failing regression test.
+4. For each material acceptance contract, add an automated behavioral test.
+5. Loop fixes until the Manual Tester records a thumbs-up for every scenario.
 
 ### 2. Expand by independent workstream
 `),
-    /manual approval must precede automated test authoring/,
-    "the sequencing contract must reject reversed execution steps"
+    /coverage review must follow full manual verification/,
+    "the sequencing contract must reject early coverage review"
   );
 
   for (const requiredIntegration of [

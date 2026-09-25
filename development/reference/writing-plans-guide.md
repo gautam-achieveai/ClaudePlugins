@@ -4,9 +4,9 @@ Adapted from obra/superpowers `writing-plans` (MIT).
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Scenarios by hand, then regression tests (`development:scenario-driven-development`). Frequent commits.
+Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Start manual testing with the smallest runnable scenario; write regression tests for observed defects; protect material acceptance contracts; inspect coverage after all scenarios pass (`development:scenario-driven-development`). Frequent commits.
 
-Testing default is `development:scenario-driven-development`: implement, run the scenario by hand, lock it with a regression test, check coverage. Write RED-GREEN TDD steps only when the user explicitly asks for TDD.
+Testing default is `development:scenario-driven-development`: expose a tiny slice, test it by hand while work continues, write failing regression tests for actual bugs, add automated behavioral tests for stable material acceptance contracts, then inspect coverage after full manual verification. Write RED-GREEN TDD steps only when the user explicitly asks for TDD.
 
 Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
 
@@ -46,8 +46,9 @@ independently testable deliverable.
 **Each step is one action (2-5 minutes):**
 - "Implement the change" - step
 - "Run the scenario by hand and record the verdict" - step
-- "Add the regression test; show it fails when the change is reverted" - step
-- "Run coverage on the changed code and close risky gaps" - step
+- "For an observed defect, add a failing regression test, fix it, and re-test by hand" - step
+- "Protect the stable material acceptance contract with the cheapest behavioral test" - step
+- "After all scenarios pass, run coverage on changed code and close risky gaps" - step
 - "Commit" - step
 
 ## Plan Document Header
@@ -78,15 +79,16 @@ include this section.]
 ## Review Focus
 
 [Up to five input classes or failure modes the spec implies but no task's
-tests exercise that are most likely to bite a person using this software
+manual scenarios exercise that are most likely to bite a person using this software
 — one line each, naming the input or condition and the behavior a
 reasonable person would expect, most likely first. The spec is a vision
 document: it says what the software must do, not everything it will
 meet, and its silence on an input is not permission for that input to
 break the program. Write the list here, once, with the spec in front of
-you. Then, for each line, add the regression or coverage test that pins
-it to the task that owns the code, in that task's own step style, and
-name that task here.]
+you. Then, for each line, add a manual scenario to the task that owns
+the code, mark whether it is a material acceptance contract, and name that
+task here. Material contracts get focused behavioral tests after manual
+stabilization; do not prewrite an exhaustive test catalogue.]
 
 ---
 ```
@@ -99,7 +101,8 @@ name that task here.]
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
-- Test: `tests/exact/path/to/test.py`
+- Regression test location, if a defect is observed: `tests/exact/path/to/test.py`
+- Behavioral contract test location: `tests/exact/path/to/test.py`
 
 **Interfaces:**
 - Consumes: [what this task uses from earlier tasks — exact signatures]
@@ -122,9 +125,9 @@ error, and re-entry states that apply.
 Run: `python -m app.cli function --input sample`
 Expected: prints `expected`; exit 0. Verdict: pass / fail / blocked, with the output as evidence.
 
-- [ ] **Step 3: Add the regression test**
+- [ ] **Step 3: If a defect is observed, add its regression test and fix it**
 
-Cheapest layer that still proves the scenario. Under 1 second; no sleeps, network, or shared state.
+Capture the wrong result first. Use the cheapest layer that reproduces it. Watch the test fail, fix the defect, watch it pass, then re-run the manual scenario. Under 1 second; no sleeps, network, or shared state. Skip this step when no defect was observed.
 
 ```python
 def test_specific_behavior():
@@ -133,14 +136,21 @@ def test_specific_behavior():
 ```
 
 Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS. For a defect fixed in Step 2: edit the fix out → FAIL → restore → PASS.
+Expected: FAIL before the fix, PASS after it.
 
-- [ ] **Step 4: Coverage check on the changed code**
+- [ ] **Step 4: Protect the material acceptance contract**
+
+After the behavior stabilizes manually, add the cheapest automated behavioral test that proves the contract. One test may protect several scenarios; do not duplicate every interaction variant.
+
+Run: `pytest tests/path/test.py::test_contract -v`
+Expected: PASS and fail if the asserted contract is deliberately broken.
+
+- [ ] **Step 5 (final feature task only): After all scenarios pass, coverage check on changed code**
 
 Run: `pytest --cov=src/path --cov-report=term-missing tests/path/test.py`
-Expected: no uncovered risky changed lines (error paths, boundaries); each one left gets a one-line reason. No % target.
+Expected: no uncovered risky changed lines (error paths, boundaries); each one left gets a one-line reason. No % target. Earlier tasks defer this check to the final feature task.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add tests/path/test.py src/path/file.py
@@ -148,7 +158,7 @@ git commit -m "feat: add specific feature"
 ```
 ````
 
-**Bug-fix task steps:** 1. Reproduce by hand (command + wrong output) → 2. Failing test that shows the same wrong result → 3. Fix until green → 4. Re-run the manual scenario → 5. Coverage check → 6. Commit.
+**Bug-fix task steps:** 1. Reproduce by hand (command + wrong output) → 2. Failing test that shows the same wrong result → 3. Fix until green → 4. Re-run the manual scenario → 5. Confirm material acceptance contracts remain protected → 6. Coverage check after all scenarios pass → 7. Commit.
 
 **TDD task steps** (only when the user explicitly asks for TDD — opt-in): failing test → watch it fail → implement → green → scenario by hand → coverage check → commit.
 
@@ -176,7 +186,7 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 **4. Global Constraints:** Is every exact value copied verbatim from the spec, and does no task contradict one?
 
-**5. Review Focus:** For each input class or failure mode the spec implies, is there a task whose scenarios or tests exercise it? The five uncovered ones most likely to bite a person go in the Review Focus section, and each line there gets its regression or coverage test added to the owning task. An empty section means you checked and found none, not that you skipped the check.
+**5. Review Focus:** For each input class or failure mode the spec implies, is there a task whose manual scenarios exercise it? The five uncovered ones most likely to bite a person go in the Review Focus section, and each line there gets a manual scenario in the owning task. Does every material acceptance contract also have a focused automated behavioral test? An empty section means you checked and found none, not that you skipped the check.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 

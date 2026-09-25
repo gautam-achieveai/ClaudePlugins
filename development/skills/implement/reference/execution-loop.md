@@ -64,14 +64,15 @@ Inspect the task structure:
 ### Scenario-Driven Development (both modes)
 
 Use `development:scenario-driven-development` for every task:
-1. **Scenario by hand** — implement, then run each scenario for the task through
+1. **Scenario by hand** — expose the smallest runnable path first, then run each scenario for the task through
    a real entry point (entry → action → result → destination → aftermath, plus
    empty, boundary, error, and re-entry states). Record pass / fail / blocked
    with evidence. A scenario that could not run is not a pass.
-2. **Regression tests** — only after the scenarios pass, lock each one in at the
-   cheapest layer that still proves it. Every defect found by hand gets a test
-   that fails when its fix is reverted; show that failure once.
-3. **Coverage check** — run the language's coverage tool on the changed code,
+2. **Regression and contract tests** — for each defect found by hand, write a focused failing
+  test at the cheapest layer that reproduces it, fix it, then re-run the manual path.
+  After behavior stabilizes, protect every material acceptance contract with an automated
+  behavioral test; one test may cover several scenarios.
+3. **Coverage check** — at the end of the feature, after all acceptance scenarios and corner cases pass by hand, run the language's coverage tool on the changed code,
    rank uncovered changed lines by risk, and add the fewest tests that cover the
    most. No % target; give each line left uncovered a one-line reason.
 
@@ -142,7 +143,8 @@ implementing, e.g.:
 
 - `Reproduce and confirm root cause in <area>`
 - `Implement <core change>`
-- `Add regression tests for <scenario>`
+- `Add a regression test for <observed defect>`
+- `Protect <material acceptance contract> with a behavioral test`
 - `Verify against all acceptance criteria`
 
 Each checkpoint becomes a group of tasks in `tasks.md`. Promoting checkpoints into

@@ -473,8 +473,8 @@ the provider-agnostic engine. Use it (via the **Skill** tool), passing:
 
 `development:implement` runs Phase 0 (purpose & consumption brief), Phase 1
 (decompose into `tasks.md`), Phase 2 (execution loop using
-`development:scenario-driven-development` — scenario by hand, then regression
-and coverage-guided tests; bug fixes reproduce by hand, then in code — auto-detecting
+`development:scenario-driven-development` — manual testing from the first tiny slice, regression
+tests for observed defects, behavioral tests for material acceptance contracts, then coverage-guided tests after all scenarios pass — auto-detecting
 subagent-driven vs sequential, with `debugging:systematic-debugging` and a max of
 3 attempts per task), Phase 3 (self-review via `code-reviewer:pr-review`), and
 Phase 4 (verification). It commits each green increment and returns a **success**

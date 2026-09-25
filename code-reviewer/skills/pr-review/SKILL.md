@@ -15,111 +15,38 @@ Review individual PRs for code quality, security (OWASP Top 10), performance, an
 reference file to load WHEN you reach it. Load references at their step, not
 up front — the load instructions are mandatory, not optional.
 
-<reviewer_philosophy>
 ## Rigorous Reviews That Converge
 
-The reviewer protects the codebase **and** helps the developer land the right
-change without avoidable review rounds. Rigor and flow are not competing goals:
-the review succeeds when material risk is exposed early, the author knows the
-shortest path to resolve it, and the acceptance bar remains stable.
+The reviewer holds two equally important roles:
 
-Apply this decision order throughout the review:
+- **Guardian of engineering excellence and the codebase.** Protect correctness,
+  security, maintainability, and long-term code health. Uphold evidence-based
+  engineering standards, not personal preferences.
+- **Mentor to other developers.** Explain the underlying problem, why it
+  matters, and the tradeoffs behind a correction. Help developers build their
+  judgment and ownership, not merely comply with instructions. Challenge the
+  work respectfully, never the person's ability or worth.
 
-1. **Does the code solve the stated problem?** Check the linked work item, PR
-   description, acceptance criteria, and explicit non-goals.
-2. **Is the solution substantially in the right ballpark?** The implementation
-   may not be the reviewer's preferred design, but it must be sound, fit the
-   codebase, and avoid a fundamental architectural dead end.
-3. **What must change before merge?** Be ruthless about demonstrated correctness,
-   security, data-loss, compatibility, and material operability risks. Do not
-   block on perfection, personal preference, or unrelated cleanup.
-4. **How can the author close each blocker efficiently?** State the required
-   outcome, offer a minimal viable path when useful, and define objective
-   evidence that will close the thread.
+Balance both roles without sacrificing either. Do not lower engineering
+standards to be encouraging, or use harshness as a substitute for rigor.
+Make necessary corrections clear and actionable; make teaching constructive
+and proportionate, without turning optional lessons into merge blockers.
 
-**Core beliefs:**
+Apply this decision order:
 
-- **The PR goal is the invariant anchor.** Never let accumulated review comments
-  replace the original problem as the purpose of the PR.
-- **Improve, do not perfect.** Favor approval once a PR solves its stated problem,
-  uses a substantially sound approach, and improves or preserves overall code
-  health, even when optional improvements remain.
-- **Severity and blocking are separate decisions.** Severity describes impact;
-  `[BLOCKER]` means the issue must be resolved in this PR. A Medium observation
-  is not automatically a reason for another iteration.
-- **Evidence outranks reviewer taste.** Accept any implementation that satisfies
-  the required outcome safely; do not require the author to use the reviewer's
-  exact suggestion.
-- **Do not move the goalposts.** Re-reviews verify the original closure criteria
-  against the delta. New blocking findings require new evidence or new code, not
-  a fresh preference about unchanged code.
+1. **Does the code solve the stated problem?** Check acceptance criteria and
+  explicit non-goals before judging individual changes.
+2. **Is the solution in the right ballpark?** A sound alternative to the
+  reviewer's preferred design is acceptable.
+3. **What must change before merge?** Block demonstrated correctness, security,
+  data-loss, compatibility, and material operability risks, not preferences.
+4. **How can each blocker close?** State the required outcome, a minimal path,
+  and objective done-when evidence.
 
-**What this means in practice:**
-
-- Do NOT soften findings to be "nice" — be direct, specific, and honest. A
-  clear `[BLOCKER]` tag is kinder than a production outage.
-- Do NOT approve with known merge risks just because the PR has been open too
-  long — time pressure is not a reason to lower the bar. Equally, do not hold
-  a goal-complete PR for polish.
-- DO acknowledge genuinely good work — but only when it's genuinely good, not
-  as a social lubricant before delivering criticism.
-- DO state the defect precisely. When suggesting a remedy, propose the
-  **smallest correction that fixes it** and label it as a floor, not a spec.
-  A suggestion that adds API surface (new types, actions, endpoints, tables)
-  must first state why no smaller correction exists — oversized suggestions
-  get adopted verbatim, the artifact grows, and the next review round finds
-  contradictions inside the growth.
-- DO assign every finding a lane — **merge-blocking** or **follow-up** (see
-  Severity Model below). A reviewer that cannot separate "ships broken" from
-  "should be fixed eventually" forces every observation into a blocker and
-  generates micro-work instead of quality.
-- DO give every Critical, High, or blocking Medium finding a closure contract:
-  **why it matters**, an implementation-neutral **required outcome**, a minimal
-  **suggested path**, and objective **done-when** evidence the next round can
-  verify without reinterpretation.
-</reviewer_philosophy>
-
-<severity_model>
-## Severity Model — Two Axes, Two Lanes
-
-Every finding is graded on **two independent axes**:
-
-| Axis | Values | Question |
-|---|---|---|
-| **Impact** | CRITICAL / HIGH / MEDIUM / LOW | How bad is it if this ships? |
-| **Remediation** | TRIVIAL / SMALL / SUBSTANTIAL / REDESIGN | How big is the smallest real fix? |
-
-A one-cell HIGH and a redesign HIGH need completely different author
-responses. Fifteen findings all marked HIGH with no remediation axis is zero
-signal.
-
-The two axes assign each finding to one of **two lanes**. The lane IS the
-blocker flag: merge-blocking = `blocker: true`, follow-up = `blocker: false`.
-
-**Merge-blocking lane** (gates the verdict):
-- CRITICAL or HIGH impact — any remediation size (verify, don't infer: the
-  blocker must answer why this cannot safely merge now)
-- Violations of documented or enforced convention contracts — semver, release
-  metadata, repository policy, wire formats, public API shape. The fix is
-  trivial, but approving one tells the team the contract is optional.
-- Schema / migration / wire-compatibility issues — near-irreversible once
-  shipped; undefined behavior for existing state is a future minefield
-- MEDIUM-impact defects with TRIVIAL or SMALL remediation — real defect, cheap
-  to fix now
-
-**Follow-up lane** (never gates the verdict — becomes issues/work items):
-- MEDIUM impact requiring SUBSTANTIAL or REDESIGN remediation — file an issue
-  against the implementation; do not hold the PR hostage to a redesign
-- Informal-preference deviations without a demonstrated merge risk (a valid
-  alternative design is not a finding)
-- Pre-existing problems the PR touches but did not make worse
-- LOW-impact findings
-
-**Every review MUST end with two lists**: "These block merge" (the shortest
-path to approval, with each blocker's required outcome and done-when) and
-"These become follow-up issues". A finding not explicitly placed in the
-blocking lane is follow-up by default.
-</severity_model>
+The PR goal is the invariant anchor. Improve, do not perfect. Separate impact
+from whether a finding blocks merge; evidence outranks taste. Re-reviews check
+the original closure criteria rather than moving the goalposts. Be direct
+about risks without holding a goal-complete PR for unrelated cleanup.
 
 ## Skill Scope
 
@@ -127,11 +54,68 @@ Reviews individual pull requests (GitHub or Azure DevOps) or the current local
 branch, including re-reviews after updates. NOT for developer performance
 reviews over time.
 
+## Review Team
+
+When classifying the diff in Step 2, use this roster to understand the planned
+lanes and give each specialist a distinct question and expected result.
+**Aim for 3-7 specialist agents per review.** Too many duplicate work and cost;
+too few can miss important perspectives. Do not pad a tiny review to reach
+three or drop required risk coverage to fit seven. If the plan requires more,
+explain the coverage need and use focused waves of at most seven; waves limit
+fan-out, not total cost. This is team-building guidance, not another classifier
+or a reason to launch every agent below. Follow the plan and load detailed
+triggers from `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md` at Step 2.
+
+Bundled names below use `code-reviewer:<agent-id>`; definitions are at
+`${CLAUDE_PLUGIN_ROOT}/agents/<agent-id>.md`. Each scanner returns evidenced
+findings or an explicit clean result for its assigned scope.
+
+| Specialist | When useful and expected contribution |
+| --- | --- |
+| `correctness-review` | Changed behavior: trace concrete inputs and states to wrong results, boundary errors, or concurrency defects. |
+| `accessibility-review` | UI changes: identify keyboard, focus, semantics, and visual-access barriers with evidence of the affected user task. |
+| `css-consistency-review` | Styling changes: check token/component reuse, stylesheet ownership, cascade conflicts, and local design-system consistency. |
+| `agent-contract-review` | Agent/tool changes: trace declared tasks through available context, permissions, schemas, and handoff contracts. |
+| `security-review` | Trust-boundary changes: trace attacker-controlled inputs to unauthorized access, unsafe operations, or exposed assets. |
+| `reliability-review` | Failure/recovery changes: trace partial failures, retries, duplicate delivery, cancellation, and false-green deployment checks. |
+| `temp-code-review` | Every diff: identify debug artifacts, temporary bypasses, disabled tests, and accidental inclusions. |
+| `history-context-review` | Existing code: expose regressions against prior fixes and documented repository decisions. |
+| `test-coverage-review` | Behavior changes: identify missing regression and edge-case tests that would catch the defect. |
+| `exception-handling-review` | Error paths: expose swallowed failures, broken propagation, and unsafe async exception handling. |
+| `performance-review` | Hot paths, I/O, UI, or collections: demonstrate latency, throughput, allocation, or resource risks. |
+| `schema-compatibility-review` | Persisted, public, or wire contracts: identify compatibility breaks and unsafe deployment sequencing. |
+| `euii-leak-detector` | Logs, telemetry, or responses: identify exposed personal data and secrets with the leak path. |
+| `feature-flag-reviewer` | Risky rollout: assess blast radius and reversibility; recommend justified gating or no flag. |
+| `architecture-review` | Structural changes: identify dependency, boundary, lifetime, and integration problems. |
+| `class-design-simplifier` | New types or layers: identify unnecessary abstractions and the smallest sound simplification. |
+| `code-simplifier` | Complex method bodies: propose behavior-preserving simplification of expressions and control flow. |
+| `duplicate-code-detector` | Substantial new logic: locate repeated mechanisms and evidence where reuse would help. |
+| `over-engineering-review` | Scope and implementation fit: identify unnecessary complexity, superficial completion, and claims unsupported by behavior. |
+| `nscript-review` | Confirmed NScript code: identify framework, interop, binding, and template defects. |
+| `orleans-review` | Confirmed Orleans code: identify grain concurrency, state, stream, and lifecycle defects. |
+| `debugging:logging-review` | Logging changes: assess structured events, useful levels, and diagnostic coverage; supplied by the debugging plugin. |
+
+These supporting roles are not extra scanning perspectives to fill the team;
+invoke them only at their workflow triggers and account for their cost too.
+
+Do not dispatch `code-reviewer:code-reviewer` from this workflow; it invokes
+this skill.
+
+| Supporting agent | When useful and expected contribution |
+| --- | --- |
+| `pr-context-gatherer` | Before team scoping: establish sourced goals and constraints, then group changed files with evidence and context gaps. |
+| `finding-verifier` | Candidate findings: try to disprove each claim and return its verification verdict. |
+| `root-cause-synthesizer` | Several verified findings: cluster shared causes into coherent corrections. |
+| `review-grader` | Planned grading gate: calibrate impact, remediation, and blocker status with closure criteria. |
+| `review-adjudicator` | Contested findings: resolve the deciding factual question and return an evidence-based ruling. |
+| `remediation-planner` | Multiple blockers: return the minimum ordered correction plan and conflicting fix dependencies. |
+| `review-performance-judge` | Retrospective after feedback: assess review quality, tone, cost, and lessons, not PR merge readiness. |
+
 ## Step 0a: Resolve the Provider & Repo
 
 This skill reviews PRs on **GitHub or Azure DevOps**. Resolve the provider once
 from the git remote, then use the matching tools throughout — full mapping in
-[Provider Resolution & Tool Mapping](../../references/provider-resolution.md).
+`${CLAUDE_PLUGIN_ROOT}/references/provider-resolution.md` (read it now).
 
 - `git remote get-url origin` → host `github.com` = **GitHub** (`<owner>/<repo>`);
   host `dev.azure.com` / `visualstudio.com` = **Azure DevOps**
@@ -146,7 +130,7 @@ from the git remote, then use the matching tools throughout — full mapping in
 
 ## Step 0: Eligibility, Review Tier, and Workspace Mode
 
-**Load [reference/review-modes.md](reference/review-modes.md) now.** It covers
+**Read `${CLAUDE_SKILL_DIR}/reference/review-modes.md` now.** It covers
 the cheap eligibility gate, repo-convention loading, deterministic tiering,
 and workspace setup.
 
@@ -161,40 +145,17 @@ After Step 1 builds the context pack, `scripts/classify-review.mjs` emits the
 only authoritative tier and lane plan. The closed vocabulary is:
 `TINY | SMALL | MEDIUM | LARGE`.
 
-The script evaluates these rows in order. First match wins:
-
-| Order | Tier | Numeric/structural rule | Review emphasis |
-|---:|---|---|---|
-| 1 | **LARGE** | more than 25 files; or more than 1200 changed lines; or a new project/module; or 3+ top-level areas | architecture, cross-area correctness, scope fit, over-engineering, AI slop, blind spots |
-| 2 | **MEDIUM** | 11-25 files; or 401-1200 changed lines; or a new public type/interface; or DI/project-reference change | integration, contracts, rollout, errors, performance |
-| 3 | **SMALL** | 3-10 files; or 51-400 changed lines; or any risk flag | correctness plus changed callers/default consumers, history, and tests |
-| 4 | **TINY** | 1-2 files and 0-50 changed lines | correctness, boundaries, the regression test, and temp artifacts |
-
-Risk is a separate axis. Each risk flag adds its named lane whatever the size;
-`SECURITY` is the one exception because it adds the required
-`security-checklist` to correctness or the owning domain lane instead of
-inventing a duplicate security agent. Any risk raises TINY to SMALL; it does not
-raise a review further by itself. A uniform mechanical change that the script
-proves from normalized hunk shapes is capped at SMALL. Titles and descriptions
-never earn the mechanical discount.
-
-| Tier | Lane budget | Verification and reasoning | Workspace |
-|---|---|---|---|
-| **TINY** | correctness + temp-code | verify MEDIUM+; written verdict rules; grader only if HIGH/CRITICAL survives | Lightweight |
-| **SMALL** | + history, all risk lanes, tests when behavior changed | verify survivors; one grader | Lightweight |
-| **MEDIUM** | + duplicate detection, architecture on a DI or project-reference change; max 2 unique external agents | grader; synthesizer at 4 findings; planner/adjudicator only on their triggers | Lightweight |
-| **LARGE** | + architecture, over-engineering, class design, simplification; correctness split by area | full conditional reasoning pipeline | Deep worktree |
-
 A user may raise the tier. Never lower the classifier's tier. Escalation is
 upward only: a surviving HIGH or CRITICAL finding moves the review one tier up
 and applies the next tier's complete plan. Run newly added lanes and newly
 required verification or reasoning work; do not repeat equivalent work already
-completed. Example: TINY to SMALL runs SMALL's always-on grader even when no new
-scanning lane is needed.
+completed. Tier thresholds, risk floors, mechanical caps, lane budgets, and
+workspace modes live only in the classifier and the Step 0 reference.
 
 ## Essential Workflow
 
-1. **Setup — build the context pack once**: `<Use Agent to complete this step>`
+1. **Setup — build the context pack once**: the orchestrator fetches metadata
+  and creates the pack before dispatching review agents.
    - Fetch PR details — GitHub `gh pr view <n> --json …`, ADO `getPullRequest`.
    - Triage scope (files added/modified/deleted) to gauge how many parallel
      agents to dispatch.
@@ -203,8 +164,8 @@ scanning lane is needed.
    scratch directory, and pass its paths to every agent. No agent fetches its
    own diff: N agents re-fetching the same diff is N times the tokens for
    identical bytes, and separate fetches can end up reviewing different
-   commits. Full manifest in
-   [reference/review-modes.md](reference/review-modes.md#the-context-pack-step-1).
+  commits. Full manifest in
+  `${CLAUDE_SKILL_DIR}/reference/review-modes.md`.
    - Run the classifier and persist the exact plan:
      ```bash
      node "${CLAUDE_SKILL_DIR}/scripts/classify-review.mjs" \
@@ -214,23 +175,38 @@ scanning lane is needed.
    - Add the absolute `reviewPlanPath` to `context.json`. Echo the result as:
      `Review route: <tier> / <triggeringRule> / <workspaceMode>; <N> lanes; risk flags: <flags|none>.`
    - Follow `review-plan.json` exactly. Do not reclassify from prose or add a
-     second size heuristic. If it selects DEEP, run the worktree setup from
-     `reference/review-modes.md` before dispatch.
+     second size heuristic. If it selects DEEP, use the worktree setup in
+     `${CLAUDE_SKILL_DIR}/reference/review-modes.md` before dispatch.
    - **Check previous comments** — GitHub `gh pr view <n> --json comments,reviews`,
      ADO `getPullRequestComments`. **If previous review comments exist from this
-     reviewer (or Claude), load
-     [reference/re-review-workflow.md](reference/re-review-workflow.md) and
-     switch to the re-review workflow instead of continuing.**
+     reviewer (or Claude), read
+     `${CLAUDE_SKILL_DIR}/reference/re-review-workflow.md` now and switch to
+     re-review instead of continuing.**
    - Check linked work items (ADO `getWorkItemById`) or issues (GitHub
      `closingIssuesReferences`).
 
-2. **Classify changed files**: derive domains from the reviewed repository's
-   conventions, manifests, dependencies, and architecture documentation using
-   [reference/agent-dispatch.md](reference/agent-dispatch.md). Its project path
-   tables and server checks are conditional examples. Require local evidence
-   before applying them; a matching path alone is insufficient.
+2. **Gather context, then group changed files**: read
+  `${CLAUDE_PLUGIN_ROOT}/agents/pr-context-gatherer.md` and dispatch
+  `code-reviewer:pr-context-gatherer` with the provider, context-pack paths,
+  and `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md`. Include this task:
 
-3. **Understand the changes**: `<Launch agent>`
+  > First establish the PR's intent and repository context. Then group the
+  > supplied changed files by component/domain using repository conventions,
+  > manifests, dependencies, and architecture documentation. Treat the dispatch
+  > catalog's path tables and server checks as conditional examples, not proof.
+  > Return the sourced context plus a file-group map: group purpose, exact file
+  > paths, supporting evidence, relevant specialist perspectives, and shared
+  > contracts or dependencies between groups. Account for every changed file;
+  > mark uncertain placement explicitly rather than guessing. Reuse the supplied
+  > diff; do not fetch another diff or dispatch reviewers.
+
+  Wait for the gatherer's result before accepting the file groups. The
+  orchestrator checks coverage against the context pack and uses the groups
+  to scope planned lanes; the gatherer does not replace the classifier or
+  choose the review team.
+
+3. **Understand the changes**: use the gatherer's sourced context and file
+  groups to establish Review Intent from the PR and diff.
    - Analyze what was modified, the intent, and how it fits the project.
    - Cross-check the linked work item, if any.
    - Verify branch/target conventions from the repo's actual policy (repo
@@ -239,46 +215,9 @@ scanning lane is needed.
    - If PR title/description scope does not match the diff, emit a `[QUESTION]`
      on the first pass only.
 
-   <review_intent_gate>
-   **Create the Review Intent before judging individual findings.** This record
-   is the stable anchor for domain agents, grading, verdict selection, and every
-   re-review:
-
-   ```yaml
-   reviewIntent:
-     statedProblem: <the user/developer outcome the PR must deliver>
-     acceptanceCriteria: [<observable condition>, ...]
-     explicitNonGoals: [<out-of-scope item>, ...]
-     deliveredApproach: <brief implementation summary>
-     goalCoverage: SOLVED | PARTIALLY_SOLVED | NOT_SOLVED | UNCLEAR
-     solutionDirection: RIGHT_BALLPARK | FUNDAMENTALLY_MISALIGNED | UNCLEAR
-     evidence: [<work item, PR description, test, or code-path reference>, ...]
-   ```
-
-   Use empty arrays when acceptance criteria, non-goals, or evidence are not
-   supplied. Keep these exact lower-camel field names at every handoff and
-   persist the complete object in the review summary for future re-reviews.
-
-   Use sources in this order: explicit acceptance criteria and non-goals, linked
-   work item, PR description, implementation plan, then commit/user context. Do
-   not silently substitute a reviewer's preferred scope for the stated scope.
-
-   - `NOT_SOLVED` or `PARTIALLY_SOLVED`: identify the smallest concrete gaps
-     between delivered behavior and the stated outcome. These gaps can block.
-   - `FUNDAMENTALLY_MISALIGNED`: explain the unsafe or unsustainable direction
-     and guide the author toward the nearest sound correction, not a wholesale
-     redesign unless one is genuinely required.
-   - `SOLVED` + `RIGHT_BALLPARK`: enter **convergence mode**. Continue reviewing
-     rigorously, but create blockers only for evidence-backed merge risks. Keep
-     preferences, polish, and unrelated cleanup non-blocking.
-   - `UNCLEAR`: ask one consolidated, high-value context question. Uncertainty
-     alone is not a blocker; inability to verify a core acceptance condition can
-     become a blocker only when the missing evidence itself creates merge risk.
-
-   Pass this exact Review Intent unchanged to every dispatched reviewer and to
-   `review-grader`. Revisions require newly discovered authoritative context and
-   must be called out explicitly; review comments themselves never redefine it.
-   </review_intent_gate>
+   **Read `${CLAUDE_SKILL_DIR}/reference/agent-guidance.md` now.** Create its
+   Review Intent record before judging findings; pass it unchanged to every
+   bundled agent, the grader, and re-review. Do not silently revise the goal.
 
    **Use relevant prior learning:** run the read-back of
    `development:compound-learning` on `docs/superpowers/learnings/` in the target
@@ -292,20 +231,24 @@ scanning lane is needed.
 4. **Run the planned scanning lanes** — `<parallel agents>`:
 
    Dispatch exactly the entries in `review-plan.json.plan.lanes`.
+  For each entry with `id: <agent-id>`, load
+  `${CLAUDE_PLUGIN_ROOT}/agents/<agent-id>.md` and spawn
+  `code-reviewer:<agent-id>` through the host's Agent tool. These are bundled
+  agents in this plugin, not agents to rediscover in the reviewed repository.
    `correctness-review` and `temp-code-review` appear at every tier.
    `history-context-review` starts at SMALL. LARGE reviews split correctness by
    top-level area so one scanner never absorbs the whole diff. Each lane owns
    only its assigned files and focus. Risk lanes keep their base intelligence
    even when the review is otherwise TINY or SMALL.
 
-   **Before dispatching ANY agent in steps 4-8, load
-   [reference/agent-guidance.md](reference/agent-guidance.md) and include its
+    **Before dispatching ANY agent in steps 4-8, read
+    `${CLAUDE_SKILL_DIR}/reference/agent-guidance.md` and include its
    discipline blocks in every agent prompt**: Context Question Emission,
    Claim-Strength Discipline, Defect-Statement Discipline (smallest-fix
    floors, quoted searches for absence claims, mandatory `underlyingProblem`),
    Convergence Guidance (include the Review Intent), and the Output Contract
    (the JSON schema and the 5-finding cap).
-   **Also load [reference/finding-schema.md](reference/finding-schema.md) now** —
+    **Also read `${CLAUDE_SKILL_DIR}/reference/finding-schema.md` now** —
    it is the output contract for every agent from here to posting.
    Every agent prompt names the reference directory as an absolute path —
    `${CLAUDE_SKILL_DIR}/reference/` — so the files an agent must load resolve
@@ -324,7 +267,7 @@ scanning lane is needed.
    | [Code Alignment](reference/code-project-alignment-guide.md) | the domain agent for the changed stack, plus `history-context-review` for convention history |
    | [Code Quality](reference/code-quality-guide.md) | `class-design-simplifier`, `code-simplifier` |
    | [Performance](reference/performance-guide.md) | `performance-review` |
-   | [Security Checklist](reference/security-checklist.md) | `correctness-review` when the diff touches auth, crypto, input handling, or data access; otherwise the domain agent for that area |
+  | [Security Checklist](reference/security-checklist.md) | `security-review` when planned; otherwise the domain agent for input handling or data access |
    | [Testing](reference/testing-guide.md) | `test-coverage-review` |
 
    A separate generic pass over the same guides produced near-duplicate
@@ -337,15 +280,16 @@ scanning lane is needed.
    `class-design-simplifier`, `code-simplifier`, and `duplicate-code-detector`
    on their triggers. Do not run an additional design pass here.
 
-7. **Domain-specific review**: `<parallel agents>` — **Load
-   [reference/agent-dispatch.md](reference/agent-dispatch.md) now.** Dispatch
+7. **Domain-specific review**: `<parallel agents>` — use the already loaded
+  `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md`. Dispatch
    only domain agents present in the plan. Use the catalog to scope their files
    and checks, not to choose review breadth. If a new risk signal is found,
    escalate one tier and record the evidence; never append an unplanned lane
    silently. Run planned lanes in parallel and collect their
    JSON envelopes into one array for step 10a.
 
-8. **External agents**: `<parallel agents>` — from the same catalog, dispatch
+8. **External agents**: `<parallel agents>` — from the same
+  `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md` catalog, dispatch
    only agents selected by its ordered external-agent matrix and the plan's
    `externalAgentLimit`. TINY and SMALL use none; MEDIUM uses the first two
    eligible available agents; LARGE uses every eligible available agent in
@@ -364,8 +308,8 @@ scanning lane is needed.
     [reference/agent-guidance.md](reference/agent-guidance.md). Questions are
     always non-blocking and never affect the verdict.
 
-10a-b. **Filter, then verify** — **Load
-    [reference/filter-and-verify.md](reference/filter-and-verify.md) now.**
+10a-b. **Filter, then verify** — **Read
+  `${CLAUDE_SKILL_DIR}/reference/filter-and-verify.md` now.**
 
     1. Run `${CLAUDE_SKILL_DIR}/scripts/filter-findings.mjs` over the collected agent envelopes and
        the context-pack diff. It anchors every finding to the diff, merges
@@ -410,41 +354,11 @@ scanning lane is needed.
 
 11. **Severity grading — planned quality gate**: dispatch `review-grader` only
     when its `when` condition in `review-plan.json` is true. A clean TINY review
-    skips it. For an ungraded TINY review, apply the written Severity Model and
-    verdict rules directly. The grader corrects over- and under-weighted
-    findings, separates severity from blocking status, and makes substantive
-    feedback ready to resolve in one focused pass.
-
-    1. Start the grader input with the unchanged Review Intent from Step 3.
-    2. Pass the verified findings from step 10b as JSON records in the
-       [finding schema](reference/finding-schema.md), each carrying its
-       `verification` object. Mechanical de-duplication and clustering already
-       happened in step 10a — do not redo them by hand.
-    3. Step 10c clusters arrive already folded into finding records. Never pass
-       the raw synthesizer output; the grader grades a cluster as one finding
-       whose instances are its dissolved members.
-    4. Keep the IDs assigned in step 10b. The grader never renumbers them.
-    5. **Cluster by mechanism** where the script could not: findings in
-       different files that share one root cause are one finding with the
-       instances listed beneath it. A repeated mechanism is the primary
-       finding — never N separate findings, never a "secondary theme"
-       paragraph.
-    6. The grader returns the same records, carrying the full posting contract:
-       `id`, `severity`, `remediation`, `blocker`, `category`, `file`, `line`,
-       `instances`, `issue`, `underlyingProblem`, `whyItMatters`,
-       `requiredOutcome`, `suggestedPath`, and `doneWhen`. It may set
-       `blocker` and adjust `severity` / `remediation`; it preserves `id`, `file`,
-       `line`, `instances`, `diffAnchor`, `issue`, and `evidence` byte-exact.
-       Merge by stable `id`; never reconstruct location or issue text from
-       grader prose.
-    7. Use both the **graded severity and graded blocker status** (not the
-       originals) for verdict determination in Step 12. Do not infer blocking
-       from severity alone.
-
-    **Assemble durable thread state before Step 12** — build `reviewThreads[]`
-    from existing bot-owned finding threads plus new final findings, per the
-    thread-state contract in
-    [reference/publish-and-track.md](reference/publish-and-track.md).
+   skips it. Read `${CLAUDE_SKILL_DIR}/reference/grading-rubric.md` now for
+   the input/output handoff and two-axis grading rules. For an ungraded TINY
+   review, apply its written verdict rules directly. Read
+   `${CLAUDE_SKILL_DIR}/reference/publish-and-track.md` before building
+   `reviewThreads[]` for Step 12.
 
 11a. **Adjudicate contested findings** — dispatch `review-adjudicator` only
     when it appears in the plan **and** the review disagrees with itself.
@@ -477,51 +391,15 @@ scanning lane is needed.
     Below that threshold the grader's own shortest-path line is the better
     answer and the planner is not dispatched.
 
-12. **Provide feedback**: **Load
-    [reference/publish-and-track.md](reference/publish-and-track.md) now** for
+12. **Provide feedback**: **Read
+    `${CLAUDE_SKILL_DIR}/reference/publish-and-track.md` now** for
     the `post-pr-review` input contract, then delegate all posting to
     `skill: "code-reviewer:post-pr-review"`.
 
-    **Determine verdict first** — use the Review Intent and graded blocker
-    status. The verdict is driven by the **merge-blocking lane only** (see
-    Severity Model). Follow-up-lane findings never gate the verdict:
-    - **`APPROVE`** — The stated problem is solved, the solution is in the
-      right ballpark, the merge-blocking lane is empty, and no substantive
-      follow-up remains. Reserve for clean PRs.
-    - **`APPROVE_WITH_COMMENTS`** — The stated problem is solved, the solution
-      is in the right ballpark, the merge-blocking lane is empty, but useful
-      follow-up findings exist. They are posted as comments and offered as
-      work items — they must not create another required review cycle.
-    - **`REQUEST_CHANGES`** — The stated problem is not solved, the solution is
-      fundamentally misaligned, or any merge-blocking finding remains. Multiple
-      Medium findings justify this only when their combined, concrete impact
-      makes the PR unsafe or incomplete to merge — a clustered mechanism whose
-      instances are individually Medium can qualify; an abstract pattern of
-      polish concerns cannot.
-
-    If Review Intent is `UNCLEAR` and no merge risk is demonstrated, use
-    `APPROVE_WITH_COMMENTS` and ask one non-blocking question. If the missing
-    evidence prevents verification of a core outcome or safety property, create
-    one evidence blocker with objective `Done When` and use `REQUEST_CHANGES`.
-    Do not invent a fourth `COMMENT` verdict.
-
-    Never request changes solely for personal style, a valid alternative
-    design, unrelated cleanup, speculative precedent, or perfection beyond the
-    PR goal.
-
-    **After the verdict, ALWAYS close with the two lists:**
-    1. **Blocks merge / shortest path to approval** — each merge-blocking
-       finding in priority order, one line each, using its stable
-       `Required Outcome` and `Done When`
-    2. **Follow-up issues** — each follow-up finding, one line each. Offer to
-       file these as work items (ADO `convertFindingsToWorkItems` /
-       `createWorkItem`; GitHub `gh issue create`) so they leave the merge
-       gate but stay tracked.
-
-    Use the summary template from
-    [reference/output-format.md](reference/output-format.md). Posting is
-    automatic — but approving or merging the PR always requires user
-    confirmation first.
+    Determine the verdict from Review Intent and the graded blocker lane, not
+    severity alone. Read `${CLAUDE_SKILL_DIR}/reference/output-format.md` now
+    for the summary and its two closing lists. Posting is automatic; approving
+    or merging still requires user confirmation.
 
 13. **Record what this review cost and caught, then update tracking.** Before
     calling the tracking skill, assemble `reviewMetrics` from data you already
@@ -557,93 +435,20 @@ scanning lane is needed.
   never ask a model to recreate the numeric classification by judgment. A
   context/diff file mismatch is a classifier failure, not permission to classify
   an incomplete diff.
-- **Agent dispatch fails** → skip that agent, note in findings, continue with others
-- **Agent returns malformed JSON** → ask that one agent to re-emit its envelope; if it fails twice, drop its output and record the gap in the summary. Never hand-transcribe findings out of prose — that is how locations drift.
+- **Agent dispatch fails or lacks access** → retry that named bundled agent once with the resolved context-pack and agent paths. Do not count a failed or inaccessible agent as a completed lane. If any planned lane still cannot return a usable result, stop before grading or posting; report the incomplete review and missing lanes to the user.
+- **Agent returns malformed JSON** → ask that same agent to re-emit its envelope once. If it fails again, apply the missing-lane rule above. Never hand-transcribe findings out of prose — that is how locations drift.
 - **Filter script fails** → report the failure, then anchor findings by hand against the diff before verifying. Never skip anchoring and post unanchored findings.
 - **Verifier fails or times out** → treat that finding as `UNPROVEN`: it can be reported, but it cannot block and cannot exceed MEDIUM.
 - **Comment posting fails** → retry once, then present findings to user in conversation
 </error_handling>
 
-## Critical Principles
+## Completion Check
 
-**1. Be Specific and Actionable**
-
-- ❌ "This code has issues"
-- ✅ "Line 45: Missing null check for `user` parameter can cause NullReferenceException when called from endpoint X"
-
-**2. Include Code Examples** — show the problematic code, why it's a problem,
-and the recommended (minimal) fix.
-
-**3. Reference Exact Locations** — `path/to/file.cs:123` or `UserService.cs:45-67`.
-
-**4. Lead with Substance**
-
-- Acknowledge genuinely good patterns when they exist — but never manufacture
-  praise to soften criticism. Empty compliments dilute the signal.
-- Lead with the most important findings. End with clear action items
-  prioritized by severity.
-
-**5. Hold a Stable, Evidence-Based Bar**
-
-- Do not lower the bar because a PR is small, the author is senior, or the
-  deadline is tight.
-- Do not raise or reinterpret the bar after the author addresses the stated
-  required outcome. Accept equivalent safe fixes.
-- Flag patterns that would be copied by future developers — a bad pattern in
-  the codebase is an implicit recommendation to repeat it — but verify the
-  code is genuinely a template before treating precedent as impact.
-- When the same issue appears in multiple files, capture every instance — but
-  as ONE clustered finding (the mechanism) with the instances listed as
-  evidence beneath it, one closure condition covering all of them, not as N
-  separate findings. Partial fixes create inconsistency; N copies of the same
-  finding create micro-work and bury the actual pattern.
-
-**6. Verify Before Claiming — Avoid False Positives**
-
-Do NOT claim something "doesn't exist", "won't compile", "has no callers", "is
-unused", or that code "only/all/always/never" behaves a certain way unless you
-have high-confidence evidence. A false positive damages reviewer credibility
-more than a missed finding. **Quote your search in the finding**: an absence
-claim ("X is undefined") must show the search performed and the nearest section
-that would define X, demonstrating it doesn't. Qualify scope-limited evidence
-in the wording. Full rules:
-[Codebase Search Discipline](../../references/codebase-search-discipline.md).
-
-## Quick Reference Checklist
-
-- [ ] **Code Alignment** (do first): Follows project patterns, no duplication, framework best practices
-- [ ] `review-plan.json` exists; one tier and triggering rule were echoed
-- [ ] Every dispatched lane appears in the plan; every skipped conditional lane records why
-- [ ] **Goal Alignment**: Solves the stated problem and satisfies acceptance criteria
-- [ ] **Solution Direction**: Substantially sound and in the right ballpark
-- [ ] Bugs & Correctness: Logic errors, off-by-one, null/undefined handling, edge cases, incorrect API usage
-- [ ] Security: OWASP Top 10, injection, hardcoded secrets, input validation, insecure defaults
-- [ ] Performance: N+1 queries, memory leaks, algorithm efficiency, redundant computations, missing caching
-- [ ] Code Quality: SOLID, code smells, duplication
-- [ ] Maintainability: Code clarity, overly complex logic, misleading names
-- [ ] Testing: Coverage, edge cases, integration tests
-- [ ] EUII / PII: No user-identifiable info in logs, telemetry, or error messages
-- [ ] Every finding: file:line, Underlying problem line, both axes, a lane
-- [ ] Every finding anchored to the diff, or reported as pre-existing
-- [ ] Every posted finding survived an adversarial verification pass
-- [ ] Every blocker: required outcome + objective done-when closure check
-- [ ] Summary ends with the two lists (blocks merge / follow-up issues)
-
-## Reference Index (load at the step that names them)
-
-- [Review Modes, Gates & Setup](reference/review-modes.md) — Step 0
-- [Finding Schema](reference/finding-schema.md) — Steps 4-11, the output contract
-- [Agent Dispatch Catalog](reference/agent-dispatch.md) — Steps 2, 4, 7-8
-- [Filter & Verify](reference/filter-and-verify.md) — Steps 10a-b
-- [Agent Guidance / Discipline Blocks](reference/agent-guidance.md) — Steps 4-8, 10
-- [Grading Rubric](reference/grading-rubric.md) — loaded by `review-grader` on demand
-- [Re-Review Workflow](reference/re-review-workflow.md) — when prior review comments exist
-- [Output Format](reference/output-format.md) — Step 12
-- [Publishing & Tracking Contracts](reference/publish-and-track.md) — Steps 12-13
-- Domain guides: [Code Alignment](reference/code-project-alignment-guide.md) ·
-  [Code Quality](reference/code-quality-guide.md) ·
-  [Performance](reference/performance-guide.md) ·
-  [Security](reference/security-checklist.md) ·
-  [Testing](reference/testing-guide.md) ·
-  [Tool Catalog](reference/tool-catalog.md) ·
-  [Scripts](scripts/README.md)
+Before Step 12, compare planned lanes with usable agent results. A clean lane
+is an explicit empty finding envelope with its scope recorded, not a missing
+agent. Verify findings, honor the Review Intent and two-axis severity model,
+and publish only after the required agent work is complete. Read
+`${CLAUDE_SKILL_DIR}/reference/output-format.md` at Step 12 for the finding
+and verdict checklist; consult
+`${CLAUDE_PLUGIN_ROOT}/references/codebase-search-discipline.md` before
+making absence claims.

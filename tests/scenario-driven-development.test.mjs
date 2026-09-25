@@ -27,6 +27,7 @@ test("scenario-driven-development skill defines the three stages in order", () =
 
   assert.match(skill, /reproduce by hand.*reproduce in code.*green/is, "bug-fix order");
   assert.match(skill, /fails when (its|the) fix is reverted/i);
+  assert.match(skill, /material acceptance contract.*automated behavioral test/is);
   assert.match(skill, /under 1 second/i);
   assert.match(skill, /under 30 seconds/i);
   assert.match(skill, /No % target/i);
@@ -59,7 +60,7 @@ test("TDD stays available as an explicit opt-in", () => {
 test("callers route to scenario-driven-development by default", () => {
   const callers = [
     "development/agents/developer.md",
-    "development/agents/test-planner.md",
+    "development/agents/manual-tester.md",
     "development/skills/agile-development/SKILL.md",
     "development/skills/implement/SKILL.md",
     "development/skills/implement/reference/execution-loop.md",

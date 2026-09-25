@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -25,6 +25,17 @@ const changedFiles = (count, options = {}) =>
 
 const context = (files, diffText = "") => ({ changedFiles: files, diffText });
 
+function singleLineChange(filePath, before, after) {
+  return context(changedFiles(1, { path: () => filePath, removedLines: 1 }), [
+    `diff --git a/${filePath} b/${filePath}`,
+    `--- a/${filePath}`,
+    `+++ b/${filePath}`,
+    "@@ -1 +1 @@",
+    `-${before}`,
+    `+${after}`,
+  ].join("\n"));
+}
+
 test("ordered numeric thresholds classify Tiny, Small, Medium, and Large", () => {
   assert.equal(classifyReview(context(changedFiles(1, { addedLines: 8 }))).tier, "TINY");
   assert.equal(classifyReview(context(changedFiles(6, { addedLines: 15, removedLines: 8 }))).tier, "SMALL");
@@ -43,8 +54,123 @@ test("a risk flag raises a numerically Tiny review to Small and adds its named l
   assert.equal(result.tier, "SMALL");
   assert.ok(result.signals.riskFlags.includes("SECURITY"));
   assert.ok(result.plan.lanes.some((lane) => lane.id === "correctness-review"));
+  assert.ok(result.plan.lanes.some((lane) => lane.id === "security-review"));
   assert.ok(result.plan.requiredGuides.includes("security-checklist"));
   assert.equal(result.triggeringRule, "RISK_FLOOR");
+});
+
+test("UI, styling, agent, and recovery changes select their specialist lanes", () => {
+  const cases = [
+    ["src/Dialog.tsx", '+return <dialog aria-label="Confirm" />;', ["accessibility-review"]],
+    ["src/dialog.scss", "+.dialog { color: red; }", ["accessibility-review", "css-consistency-review"]],
+    ["src/Panel.vue", '+<div class="panel">Text</div>', ["accessibility-review", "css-consistency-review"]],
+    ["src/styles/tokens.ts", '+export const spacing = "8px";', ["accessibility-review", "css-consistency-review"]],
+    ["src/Panel.js", "+const Panel = styled.div`color: red;`;", ["accessibility-review", "css-consistency-review"]],
+    ["plugin/agents/helper.md", "+Use the supplied context.", ["agent-contract-review"]],
+    ["plugin/skills/helper/SKILL.md", "+Read the tool result.", ["agent-contract-review"]],
+    [".github/prompts/helper.prompt.md", "+Inspect the handoff.", ["agent-contract-review"]],
+    [".mcp.json", '+{"mcpServers": {}}', ["agent-contract-review"]],
+    ["src/tools.ts", '+server.registerTool("read", {}, handler);', ["agent-contract-review"]],
+    ["src/client.ts", "+const timeout = 5000;", ["reliability-review"]],
+    ["deploy/service.yaml", "+readinessProbe:", ["reliability-review"]],
+    ["src/Worker.cs", "+await receiver.CompleteMessageAsync(message);", ["reliability-review"]],
+  ];
+  for (const [filePath, diffText, expectedAgents] of cases) {
+    const result = classifyReview(context(changedFiles(1, { path: () => filePath }), diffText));
+    assert.notEqual(result.tier, "TINY", filePath);
+    for (const agentId of expectedAgents) {
+      const selected = result.plan.lanes.find((item) => item.id === agentId);
+      assert.ok(selected, `${filePath} must select ${agentId}`);
+      const definition = readFileSync(path.join(root, "code-reviewer/agents", `${agentId}.md`), "utf8");
+      assert.ok(definition.includes(`modelintelligence: ${selected.modelIntelligence}`), agentId);
+      assert.ok(definition.includes(`effort: ${selected.effort}`), agentId);
+    }
+    assert.equal(new Set(result.plan.lanes.map((item) => item.id)).size, result.plan.lanes.length);
+  }
+});
+
+test("bare, suffixed, and nested style modules select accessibility and CSS review", () => {
+  for (const filePath of [
+    "src/theme.ts", "src/themes.js", "src/styles.ts", "src/tokens.json",
+    "src/theme.dark.ts", "src/styles.module.js", "src/theme/palette.ts",
+    "src/styles/tokens.ts", "src/tokens/colors.json",
+  ]) {
+    const input = singleLineChange(filePath, '{"primaryColor":"#ffffff"}', '{"primaryColor":"#eeeeee"}');
+    assert.equal(validateDiffCoverage(input).complete, true, filePath);
+    const result = classifyReview(input);
+    assert.equal(result.tier, "SMALL", filePath);
+    for (const id of ["accessibility-review", "css-consistency-review"]) {
+      assert.ok(result.plan.lanes.some((lane) => lane.id === id), `${filePath}: ${id}`);
+    }
+  }
+  for (const filePath of ["src/themeLoader.ts", "src/styles.test.txt", "docs/theme.ts"]) {
+    const result = classifyReview(singleLineChange(filePath, "const value = 1;", "const value = 2;"));
+    assert.deepEqual(result.signals.riskFlags, [], filePath);
+  }
+});
+
+test("quoted resilience settings select the same risk lanes as unquoted settings", () => {
+  for (const [filePath, before, after] of [
+    ["config/client.json", '{"timeout":5000}', '{"timeout":0}'],
+    ["config/client.json", '{"retries":3}', '{"retries":0}'],
+    ["config/client.yaml", "'timeout': 5000", "'timeout': 0"],
+    ["config/client.yaml", '"backoff": 100', '"backoff": 0'],
+    ["config/client.yaml", "timeout: 5000", "timeout: 0"],
+    ["config/client.json", '{"timeout":5000}', "{}"],
+  ]) {
+    const input = singleLineChange(filePath, before, after);
+    assert.equal(validateDiffCoverage(input).complete, true, filePath);
+    const result = classifyReview(input);
+    assert.equal(result.tier, "SMALL", `${filePath}: ${after}`);
+    for (const id of ["reliability-review", "feature-flag-reviewer"]) {
+      assert.ok(result.plan.lanes.some((lane) => lane.id === id), `${filePath}: ${after}: ${id}`);
+    }
+  }
+  const prose = singleLineChange("docs/client.md", '{"timeout":5000}', '{"timeout":0}');
+  assert.deepEqual(classifyReview(prose).signals.riskFlags, []);
+});
+
+test("quoted health and shutdown settings select reliability review", () => {
+  for (const [filePath, before, after] of [
+    ["deploy/service.json", '{"terminationGracePeriodSeconds":30}', '{"terminationGracePeriodSeconds":0}'],
+    ["deploy/service.json", '{"readinessProbe":{}}', "{}"],
+    ["deploy/service.yaml", "'livenessProbe': {}", "'livenessProbe': null"],
+    ["deploy/service.yaml", '"startupProbe": {}', '"startupProbe": null'],
+  ]) {
+    const input = singleLineChange(filePath, before, after);
+    assert.equal(validateDiffCoverage(input).complete, true, filePath);
+    const result = classifyReview(input);
+    assert.equal(result.tier, "SMALL", `${filePath}: ${after}`);
+    assert.ok(result.plan.lanes.some((lane) => lane.id === "reliability-review"), filePath);
+  }
+});
+
+test("new specialist signals ignore ordinary prose and unrelated code", () => {
+  const filePath = "docs/review.md";
+  const diffText = [
+    `diff --git a/${filePath} b/${filePath}`,
+    `--- a/${filePath}`,
+    `+++ b/${filePath}`,
+    "@@ -1 +1 @@",
+    "-Review notes",
+    '+McpServer registerTool aria-label="x" class="x" timeout = 1 styled.div',
+  ].join("\n");
+  assert.deepEqual(detectDiffFeatures(context(changedFiles(1, { path: () => filePath }), diffText)).riskFlags, []);
+  const plainCode = classifyReview(context(changedFiles(1), "+return count + 1;"));
+  assert.deepEqual(plainCode.plan.lanes.map((item) => item.id), ["correctness-review", "temp-code-review"]);
+  const ui = classifyReview(context(changedFiles(1, { path: () => "src/Button.tsx" }), "+return <button>OK</button>;"));
+  assert.ok(!ui.plan.lanes.some((item) => item.id === "css-consistency-review"));
+});
+
+test("removing UI, tool, or recovery protections still triggers review", () => {
+  for (const [change, agentId] of [
+    ['-element.setAttribute("aria-label", "Confirm");', "accessibility-review"],
+    ['-server.registerTool("read", {}, handler);', "agent-contract-review"],
+    ["-const timeout = 5000;", "reliability-review"],
+  ]) {
+    const result = classifyReview(context(changedFiles(1, { path: () => "src/changed.ts" }), change));
+    assert.ok(result.plan.lanes.some((item) => item.id === agentId), agentId);
+  }
 });
 
 test("CamelCase DTO, request, and response names trigger schema compatibility review", () => {
@@ -250,6 +376,11 @@ test("agent frontmatter keeps the approved intelligence distribution", () => {
     "orleans-review": 3,
     "test-coverage-review": 3,
     "performance-review": 3,
+    "accessibility-review": 2,
+    "css-consistency-review": 2,
+    "agent-contract-review": 3,
+    "security-review": 4,
+    "reliability-review": 4,
     "review-performance-judge": 3,
     "correctness-review": 4,
     "exception-handling-review": 4,
@@ -266,6 +397,14 @@ test("agent frontmatter keeps the approved intelligence distribution", () => {
     const content = readFileSync(path.join(root, "code-reviewer", "agents", `${name}.md`), "utf8");
     assert.match(content, new RegExp(`^modelintelligence: ${tier}$`, "m"), `${name} tier drifted`);
     assert.doesNotMatch(content, /^model:/m, `${name} pins a model instead of using the intelligence contract`);
+  }
+});
+
+test("documented employee levels use the zero-based intelligence mapping", () => {
+  const catalog = readFileSync(path.join(root, "code-reviewer/skills/pr-review/reference/agent-dispatch.md"), "utf8");
+  assert.match(catalog, /0 = L1/);
+  for (let intelligence = 1; intelligence <= 6; intelligence++) {
+    assert.ok(catalog.includes(`| **${intelligence}** | L${intelligence + 1} `), `intelligence ${intelligence}`);
   }
 });
 
@@ -300,11 +439,98 @@ test("NScript routing requires framework evidence rather than a project-specific
 test("the skill spine names one authoritative classifier and separates tier from workspace mode", () => {
   const skill = readFileSync(path.join(root, "code-reviewer", "skills", "pr-review", "SKILL.md"), "utf8");
   assert.match(skill, /classify-review\.mjs/);
+  assert.match(skill, /\$\{CLAUDE_SKILL_DIR\}\/reference\//);
+  assert.match(skill, /\$\{CLAUDE_PLUGIN_ROOT\}\/agents\//);
+  assert.match(skill, /code-reviewer:<agent-id>/);
+  assert.match(skill, /any planned lane still cannot return a usable result/);
+  assert.match(skill, /stop before grading or posting; report the incomplete review/);
+  assert.doesNotMatch(skill, /Agent dispatch fails.*skip that agent/);
   assert.match(skill, /TINY \| SMALL \| MEDIUM \| LARGE/);
   assert.match(skill, /review tier is not (?:the same as )?(?:a )?workspace mode/i);
   assert.match(skill, /upward only/i);
   assert.doesNotMatch(skill, /Fast path gate/i);
   assert.doesNotMatch(skill, /mandatory for every review/i);
+});
+
+test("review skill references and planned bundled agents resolve within the plugin", () => {
+  const skill = readFileSync(path.join(root, "code-reviewer/skills/pr-review/SKILL.md"), "utf8");
+  const skillDir = path.join(root, "code-reviewer/skills/pr-review");
+  const pluginRoot = path.join(root, "code-reviewer");
+
+  for (const [, relativePath] of skill.matchAll(/\$\{CLAUDE_SKILL_DIR\}\/((?:reference|scripts)\/[\w.-]+)/g)) {
+    assert.ok(existsSync(path.join(skillDir, relativePath)), `missing skill resource: ${relativePath}`);
+  }
+  for (const [, relativePath] of skill.matchAll(/\$\{CLAUDE_PLUGIN_ROOT\}\/((?:references|agents)\/[\w.-]+)/g)) {
+    assert.ok(existsSync(path.join(pluginRoot, relativePath)), `missing plugin resource: ${relativePath}`);
+  }
+
+  for (const files of [changedFiles(1), changedFiles(6), changedFiles(14), changedFiles(26)]) {
+    const plan = classifyReview(context(files)).plan;
+    for (const { id } of [...plan.lanes, ...plan.reasoningAgents, plan.verification.firstLens]) {
+      assert.ok(existsSync(path.join(pluginRoot, "agents", `${id}.md`)), `missing bundled agent: ${id}`);
+    }
+  }
+});
+
+test("review team guidance names bundled workers, excludes the caller, and keeps a bounded specialist target", () => {
+  const skill = readFileSync(path.join(root, "code-reviewer/skills/pr-review/SKILL.md"), "utf8");
+  const roster = skill.split("## Review Team\n")[1]?.split("## Step 0a:")[0];
+  assert.ok(roster, "missing team-building guidance in the skill entrypoint");
+  assert.match(roster, /3-7 specialist agents per review/);
+  assert.match(roster, /not another classifier/);
+  assert.match(roster, /drop required risk coverage/);
+  assert.match(roster, /Do not dispatch `code-reviewer:code-reviewer` from this workflow/);
+  assert.doesNotMatch(roster, /^\| `code-reviewer` \|/m);
+
+  for (const file of readdirSync(path.join(root, "code-reviewer/agents"))) {
+    if (!file.endsWith(".md")) continue;
+    const agentId = path.basename(file, ".md");
+    if (agentId === "code-reviewer") continue;
+    const row = roster.split("\n").find((line) => line.startsWith(`| \`${agentId}\` |`));
+    assert.ok(row, `missing one-line role for ${agentId}`);
+    assert.ok(row.split("|")[2].trim().length > 20, `missing expected contribution for ${agentId}`);
+  }
+});
+
+test("context gathering precedes file grouping and supplies specialist scope", () => {
+  const skill = readFileSync(path.join(root, "code-reviewer/skills/pr-review/SKILL.md"), "utf8");
+  const step = skill.split("2. **Gather context, then group changed files**:")[1]?.split("3. **Understand the changes**:")[0];
+  assert.ok(step, "missing context-first file grouping step");
+  assert.match(step, /code-reviewer:pr-context-gatherer/);
+  assert.match(step, /First establish the PR's intent and repository context\. Then group/);
+  assert.match(step, /Account for every changed file/);
+  assert.match(step, /supporting evidence, relevant specialist perspectives/);
+  assert.match(step, /Wait for the gatherer's result before accepting the file groups/);
+  assert.match(step, /does not replace the classifier/);
+});
+
+test("PR context gatherer loads its skill and calibrates scrutiny by lifecycle and deployment", () => {
+  const agent = readFileSync(path.join(root, "code-reviewer/agents/pr-context-gatherer.md"), "utf8");
+  const frontmatter = agent.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1];
+
+  assert.ok(frontmatter, "missing pr-context-gatherer frontmatter");
+  assert.match(frontmatter, /^skills:\r?\n\s+- pr-context$/m);
+  assert.match(agent, /`PoC`, `Development \(not released\)`,\s+`Alpha`, `Production`, or `Unknown`/);
+  assert.match(agent, /Account for every changed file/);
+  assert.match(agent, /Deployment status.*`Deployed`.*`Deployment-affecting`.*`Not deployed`/s);
+  assert.match(agent, /Use `minimal` for isolated samples, documentation, and generated\/vendor output/);
+  assert.match(agent, /emit a focused question asking the caller or author/);
+  assert.match(agent, /\*\*Knowledge Base candidate\*\*/);
+  assert.match(agent, /Do not add top-level JSON fields/);
+});
+
+test("new specialists preserve the shared finding and evidence contract", () => {
+  for (const agentId of ["accessibility-review", "css-consistency-review", "agent-contract-review", "security-review", "reliability-review"]) {
+    const content = readFileSync(path.join(root, "code-reviewer/agents", `${agentId}.md`), "utf8");
+    assert.ok(content.includes(`agent: "${agentId}"`), agentId);
+    assert.match(content, /\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/pr-review\/reference\/finding-schema\.md/);
+    assert.match(content, /at most 5 findings/);
+    assert.match(content, /id: null/);
+    assert.match(content, /no `blocker`/);
+    assert.match(content, /coverageNote/);
+    assert.match(content, /## When to Invoke/);
+    assert.match(content, /## Boundaries and Evidence/);
+  }
 });
 
 test("routing references do not reintroduce competing size heuristics", () => {
@@ -324,11 +550,45 @@ test("external-agent selection has one stable order and no duplicate simplifier 
   assert.doesNotMatch(dispatch, /\| `code-simplifier:code-simplifier` \| PR introduces verbose/);
 });
 
-test("the large-review scope lane names the missing AI-slop patterns", () => {
-  const content = readFileSync(path.join(root, "code-reviewer", "agents", "over-engineering-review.md"), "utf8");
-  assert.match(content, /invented APIs/i);
-  assert.match(content, /hollow tests/i);
-  assert.match(content, /restated comments/i);
+test("the existing over-engineering lane loads the implementation-fit checks", () => {
+  const agent = readFileSync(path.join(root, "code-reviewer/agents/over-engineering-review.md"), "utf8");
+  const skill = readFileSync(path.join(root, "code-reviewer/skills/over-engineering-review/SKILL.md"), "utf8");
+  assert.match(agent, /code-reviewer:over-engineering-review/);
+  assert.match(agent, /Implementation-Fit Checks/);
+  assert.match(agent, /invented APIs/i);
+  assert.match(agent, /hollow tests/i);
+  assert.match(agent, /restated comments/i);
+  assert.match(agent, /one primary owner/);
+  assert.match(agent, /coverageNote/);
+
+  const matrix = skill.split("## Implementation-Fit Checks")[1]?.split("## How to Use This Catalog")[0];
+  assert.ok(matrix, "missing bounded implementation-fit methodology");
+  for (const pattern of [
+    "Superficial Completion", "Fabricated Integration", "Success-Shaped Fallback",
+    "Hollow Tests", "Misleading Documentation", "Workaround Accumulation",
+  ]) {
+    const row = matrix.split("\n").find((line) => line.startsWith(`| ${pattern} |`));
+    assert.ok(row, `missing pattern: ${pattern}`);
+    const cells = row.split("|").slice(1, -1).map((cell) => cell.trim());
+    assert.equal(cells.length, 5, `${pattern}: pattern, signal, evidence, exclusion, owner`);
+    assert.ok(cells.slice(1).every((cell) => cell.length > 15), `${pattern}: incomplete review guidance`);
+  }
+});
+
+test("over-engineering guidance requires evidence and rejects authorship and shape-only findings", () => {
+  const agent = readFileSync(path.join(root, "code-reviewer/agents/over-engineering-review.md"), "utf8");
+  const skill = readFileSync(path.join(root, "code-reviewer/skills/over-engineering-review/SKILL.md"), "utf8");
+  assert.match(skill, /A pattern is a lead, not a finding/);
+  assert.match(skill, /Never infer AI authorship/);
+  assert.match(skill, /single implementation or caller/);
+  assert.match(skill, /non-nullable annotation alone/);
+  assert.match(skill, /actual dependency version/);
+  assert.match(skill, /not the absence of a word in a ticket/);
+  assert.match(skill, /Do not remove existing tests/);
+  assert.match(agent, /requiredOutcome.*suggestedPath.*doneWhen/s);
+  assert.doesNotMatch(skill, /giveaway that the code wasn't reviewed/);
+  assert.doesNotMatch(skill, /40%\+/);
+  assert.doesNotMatch(agent, /flag them as LOW for "should be in own commit/);
 });
 
 test("files at the repository root share one top-level area", () => {

@@ -40,13 +40,13 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v1.9.0)
+### development (v2.0.0)
 
-Development methodology toolkit — Agile team delivery for large features, thin end-to-end slices, durable long-horizon progress, design-first brainstorming, autonomous design, scenario-driven development as the default testing flow (scenario manual testing → regression tests → coverage-guided tests; TDD as an explicit opt-in), manual and automated verification, parallel subagent execution, review gates, course-correction when fixes stack, compound-learning lessons read back at plan time, and provider-agnostic work-item implementation. Ships two hooks: a PreToolUse guard that blocks git hook and signing bypasses, and a Stop gate that blocks ending a turn when code changed after the last test run (`DEVELOPMENT_HOOKS=off` disables it).
+Development methodology toolkit — Agile team delivery for large features, thin end-to-end slices, durable long-horizon progress, design-first brainstorming, autonomous design, scenario-driven development as the default testing flow (manual testing from the first runnable slice → regression tests for observed bugs → behavioral tests for material acceptance contracts → coverage-guided tests after all scenarios pass; TDD as an explicit opt-in), manual and automated verification, parallel subagent execution, review gates, course-correction when fixes stack, compound-learning lessons read back at plan time, and provider-agnostic work-item implementation. Ships two hooks: a PreToolUse guard that blocks git hook and signing bypasses, and a Stop gate that blocks ending a turn when code changed after the last test run (`DEVELOPMENT_HOOKS=off` disables it).
 
 **Skills**: `agile-development`, `brainstorming`, `autonomous-design`, `work-on`, `implement`, `scenario-driven-development`, `test-driven-development`, `subagent-driven-development`, `course-correction`, `compound-learning`, `verification-before-completion`, `receiving-code-review`, `draft-work-item`, `draft-feature`, `draft-bug`
 
-**Agents**: `architect`, `test-planner`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
+**Agents**: `architect`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
 
 ### code-reviewer (v1.25.0)
 

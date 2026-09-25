@@ -1,7 +1,7 @@
 ---
 name: temp-code-review
 description: Internal subagent. Invoke only when explicitly dispatched by an orchestrator skill.
-user-invocable: true
+user-invocable: false
 disable-model-invocation: false
 modelintelligence: 1
 effort: low

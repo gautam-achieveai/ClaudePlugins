@@ -1,8 +1,40 @@
 # Agent Guidance — Discipline Blocks & Question Handling
 
-Load this file **before dispatching any review agent (Steps 4-8)** and again at
+Load this file **before forming Review Intent (Step 3)**, before dispatching any
+review agent (Steps 4-8), and again at
 **Step 10** (question consolidation). The five discipline blocks below MUST be
 included (verbatim or faithfully summarized) in every dispatched agent's prompt.
+
+## Review Intent (Step 3)
+
+Create this stable record before judging individual findings:
+
+```yaml
+reviewIntent:
+   statedProblem: <the outcome the PR must deliver>
+   acceptanceCriteria: [<observable condition>, ...]
+   explicitNonGoals: [<out-of-scope item>, ...]
+   deliveredApproach: <brief implementation summary>
+   goalCoverage: SOLVED | PARTIALLY_SOLVED | NOT_SOLVED | UNCLEAR
+   solutionDirection: RIGHT_BALLPARK | FUNDAMENTALLY_MISALIGNED | UNCLEAR
+   evidence: [<work item, PR description, test, or code-path reference>, ...]
+```
+
+Use empty arrays for missing criteria, non-goals, or evidence. Keep these
+lower-camel field names at every handoff and persist the complete object in
+the summary. Use sources in order: explicit acceptance criteria and non-goals,
+linked work item, PR description, implementation plan, commit/user context.
+Do not substitute a reviewer's preferred scope for the stated scope.
+
+- `NOT_SOLVED` or `PARTIALLY_SOLVED`: name the smallest concrete gap; it may block.
+- `FUNDAMENTALLY_MISALIGNED`: explain the unsafe direction and nearest sound correction.
+- `SOLVED` + `RIGHT_BALLPARK`: converge; only evidence-backed merge risks block.
+- `UNCLEAR`: ask one consolidated question. Only missing evidence that prevents
+   verification of a core outcome or safety property can become a blocker.
+
+Pass Review Intent unchanged to every dispatched reviewer and `review-grader`.
+Revise it only for newly discovered authoritative context, calling out the
+revision explicitly; review comments themselves never redefine it.
 
 <output_contract>
 **Output Contract — applies to ALL agents dispatched in steps 4-8:**

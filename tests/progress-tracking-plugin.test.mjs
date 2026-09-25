@@ -80,7 +80,7 @@ test('Agile dispatch and handoff contracts feed durable progress tracking', () =
 });
 
 test('every Agile role can persist its owned checkpoints without editing shared tracking state', () => {
-  const roles = ['architect', 'test-planner', 'manual-tester', 'developer', 'critic']
+  const roles = ['architect', 'manual-tester', 'developer', 'critic']
     .map(name => `development/agents/${name}.md`)
     .concat('code-reviewer/agents/code-reviewer.md');
   for (const file of roles) {
