@@ -43,6 +43,24 @@ Full lifecycle rules:
 
 ## Step 12: post-pr-review Input Contract
 
+Determine the verdict from Review Intent and the **merge-blocking lane**, not
+severity alone. `APPROVE` means solved, substantially sound, no blockers or
+substantive follow-up. `APPROVE_WITH_COMMENTS` means solved and sound with
+useful non-blocking follow-up. `REQUEST_CHANGES` means the goal remains unmet,
+the direction is fundamentally unsound, or a demonstrated blocker remains.
+Several Medium issues block only when their combined concrete impact makes
+merging unsafe or incomplete, not merely because there are several.
+
+If Review Intent is `UNCLEAR` with no demonstrated merge risk, ask one
+non-blocking question and use `APPROVE_WITH_COMMENTS`. Missing evidence for a
+core outcome or safety property may itself block with objective done-when
+evidence. Do not invent a fourth `COMMENT` verdict or block on preference,
+polish, unrelated cleanup, or perfection beyond the PR goal.
+
+Close the summary with **Blocks merge / shortest path to approval** (each
+required outcome and done-when) and **Follow-up issues** (non-blocking items
+offered as work items, never as a required review cycle).
+
 Delegate all comment posting, question posting, and summary thread management to
 the `post-pr-review` skill (`skill: "code-reviewer:post-pr-review"`). Pass:
 

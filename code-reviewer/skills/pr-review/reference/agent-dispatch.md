@@ -52,16 +52,20 @@ configuration drift instead of pretending the requested tier ran.
 
 | Tier | Level | Agents | Why this tier |
 |---|---|---|---|
-| **1** | L1 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
-| **2** | L2 — narrow judgement inside a fixed rulebook | `euii-leak-detector`, `feature-flag-reviewer`, `history-context-review`, `class-design-simplifier` | Recognizable shapes with a little reasoning at the edges. |
-| **3** | L3 — reasoning with domain expertise | `nscript-review`, `orleans-review`, `test-coverage-review`, `performance-review`, `review-performance-judge` | Real domain judgement, bounded by a written rulebook. |
-| **4** | L4 — the heavy scanning lanes | `correctness-review`, `exception-handling-review`, `schema-compatibility-review`, `architecture-review`, `over-engineering-review` | Subtle defects where a weaker model's miss is the expensive outcome. Still grunt work: they read the diff. |
-| **5** | L5 — reasons over other agents' findings, never scans | `review-grader`, `root-cause-synthesizer`, `remediation-planner` | Synthesis, calibration, and sequencing across the whole review. |
+| **1** | L2 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
+| **2** | L3 — narrow judgement inside a fixed rulebook | `euii-leak-detector`, `feature-flag-reviewer`, `history-context-review`, `class-design-simplifier`, `accessibility-review`, `css-consistency-review` | Recognizable shapes with a little reasoning at the edges. |
+| **3** | L4 — reasoning with domain expertise | `nscript-review`, `orleans-review`, `test-coverage-review`, `performance-review`, `agent-contract-review`, `review-performance-judge` | Real domain judgement, bounded by a written rulebook. |
+| **4** | L5 — the heavy scanning lanes | `correctness-review`, `exception-handling-review`, `schema-compatibility-review`, `architecture-review`, `over-engineering-review`, `security-review`, `reliability-review` | Subtle defects where a weaker model's miss is the expensive outcome. Still grunt work: they read the diff. |
+| **5** | L6 — reasons over other agents' findings, never scans | `review-grader`, `root-cause-synthesizer`, `remediation-planner` | Synthesis, calibration, and sequencing across the whole review. |
 | **6** | L7 — decomposes a stuck disagreement into a decidable question | `review-adjudicator` only | Dispatched only on a contested review. Most reviews never call it. |
 
-Distribution across the 23 tiered agents: tiers 1-2 = 9 (39%), tier 3 = 5
-(22%), tier 4 = 5 (22% residual heavy-scanning work), tier 5 = 3 (13%), and
-tier 6 = 1 (4%). The orchestrator remains untiered and inherits.
+The employee-level analogy is `0 = L1` (new graduate) through `6 = L7`
+(top engineer with deep domain knowledge): employee level is intelligence + 1.
+No bundled reviewer currently uses intelligence 0.
+
+Distribution across the 28 tiered agents: tiers 1-2 = 11, tier 3 = 6,
+tier 4 = 7, tier 5 = 3, and tier 6 = 1. The orchestrator remains untiered
+and inherits.
 
 Two rules hold this together:
 
@@ -119,6 +123,22 @@ version from the reviewed repository. Project conventions such as layering,
 logging policy, naming, and build commands require a local source before they
 can support a finding. File extensions are examples, not a language allowlist.
 
+- **`accessibility-review`** (`ACCESSIBILITY`): UI markup/components, accessibility attributes, and styling changes. Owns keyboard/focus flows, semantics, announcements, and visual-access barriers. Static inspection is not proof of screen-reader or browser behavior; record missing runtime evidence.
+
+- **`css-consistency-review`** (`CSS_CONSISTENCY`): stylesheets, style/theme/token modules, component classes, inline styles, and CSS-in-JS. Owns existing token/variant reuse, stylesheet ownership, cascade conflicts, and theme/responsive consistency. Cite the local style convention; do not mandate a new framework or abstract coincidentally similar rules.
+
+- **`agent-contract-review`** (`AGENT_CONTRACT`): executable agent/skill/prompt definitions, MCP configuration, and recognized tool APIs. Agent Markdown is an executable surface for this lane, unlike ordinary prose. Owns declared capabilities, available context/tools, producer-consumer schemas, failure handling, and harness assumptions. Do not demand agent integration for products that do not declare it.
+
+- **`security-review`** (`SECURITY`): changed authentication, authorization, permissions, cryptography, and other detected trust-boundary signals. Owns concrete abuse paths and the `security-checklist` guide. Correctness remains responsible for functional behavior; EUII owns leakage scanning. Never inflate uncertain severity to bypass filtering.
+
+- **`reliability-review`** (`RELIABILITY`): changed retry/timeout/idempotency settings, resilience APIs, message acknowledgments, and health/shutdown configuration. Owns end-to-end partial failure, duplicate side effects, cancellation, recovery, and false-green operational checks. Performance owns resource costs, exception handling owns local propagation, and compatibility owns data-shape rollout safety.
+
+The classifier uses bounded path and code signals, not exhaustive semantic
+detection. The context gatherer must confirm applicability and narrow assigned
+files; unknown context becomes a question. Do not run additional generic passes
+over these same subjects. Where two lanes encounter one mechanism, assign one
+owner and share the evidence rather than returning duplicate findings.
+
 - **`nscript-review`**: Scope to changed code in a confirmed NScript project, wherever it lives. Evidence includes the NScript SDK/dependency or NScript-specific attributes such as `[AutoFire]`. A `src/Client/` path, `ObservableObject`, or a generic `Promise<T>` alone does not establish NScript. Review framework constraints and applicable repository conventions for interop, templates, bindings, and styling; do not export one project's MVVM, naming, or IoC rules to another.
 
 - **`orleans-review`**: Dispatch when changed files include Orleans grain code — classes inheriting `Grain`/`Grain<TState>`, grain interfaces (`IGrainWithStringKey`, etc.), `[Reentrant]`/`[AlwaysInterleave]` attributes, stream subscriptions, or silo configuration. Covers reentrancy/deadlock analysis, state management, stream anti-patterns, grain-level architecture (upward level references, cross-level calls, missing marker interfaces, missing `[StorageProvider]`), and async patterns within grains.
@@ -135,7 +155,7 @@ can support a finding. File extensions are examples, not a language allowlist.
 
 - **`code-simplifier`**: Dispatch when PR introduces complex control flow (deep nesting, long method chains, verbose conditional logic) or when changed methods exceed ~30 lines. Finds code blocks and method chains that are more complex than they need to be — unnecessary method chains, overly verbose patterns, expressions with simpler equivalents, and control flow that can be flattened. Complements `class-design-simplifier` (which focuses on class/layer-level complexity) by focusing on **expression and block-level** simplification. **Do NOT dispatch** for PRs that are purely mechanical (renames, formatting, bulk attribute changes) or documentation-only.
 
-- **`over-engineering-review`**: Dispatch when a linked work item, PR description, or user-supplied task description gives a clear "what was asked" anchor — and the PR's diff feels larger or more elaborate than that anchor would justify. Compares delivered scope to stated intent and flags drive-by refactors, speculative abstractions for hypothetical futures, defensive code for impossible scenarios, premature optimization without measurement, unrequested features, excessive logging, tutorial-style comments, single-use helper extractions, unused configuration hooks, and parallel duplicate code paths added next to existing code instead of extending it. Especially valuable for LLM-generated PRs, which disproportionately over-produce. Distinct from `class-design-simplifier` and `code-simplifier`, which judge complexity in isolation; this agent judges complexity *relative to the task*. **Do NOT dispatch** when no anchor source is available (no work item, vague PR description, no commits/user context) and the diff is small — the YAGNI-only fallback is too noisy on tiny PRs.
+- **`over-engineering-review`**: For the planned scope lane, compare delivered complexity and behavior with stated intent and implementation claims. Load the existing `over-engineering-review` methodology's ten scope categories, Evidence Gate, and Implementation-Fit Checks. Cover superficial completion, fabricated integration assumptions, success-shaped fallbacks, hollow tests, misleading documentation, and workaround accumulation alongside excess scope. Require concrete evidence and check exclusions; never infer AI authorship or flag style alone. Share overlapping evidence with the planned defect owner instead of adding a second AI-slop agent or duplicate findings. Scope judgments need a sourced task anchor; without one, limit claims to demonstrated unnecessary complexity or contradictions of explicit contracts. This catalog does not change the classifier's dispatch plan.
 
 - **`exception-handling-review`**: Dispatch when changed files contain `try`/`catch` blocks, `throw` statements, custom exception classes, or error-handling middleware. Reviews exception handling for swallowed exceptions, overly broad catches, incorrect re-throws (`throw ex` vs `throw`), missing logging in catch blocks, exceptions used for flow control, catch-log-rethrow duplication across layers, async exception pitfalls (`async void`, fire-and-forget), finally block issues, and missing guard clauses. Findings are HIGH-MEDIUM severity.
 

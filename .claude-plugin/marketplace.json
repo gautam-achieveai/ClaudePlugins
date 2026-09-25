@@ -14,8 +14,23 @@
       "description": "Continuous tracking for large work items and agent teams, with sourced events, durable state, progress and no-progress reports, worker nudges, recovery, and Markdown, Mermaid, and accessible HTML views.",
       "version": "1.1.0",
       "category": "development",
-      "tags": ["progress", "agile", "agents", "monitoring", "mermaid"],
-      "keywords": ["tracking-progress", "accessible-progress-report", "progress-scout", "progress-tracker", "progress-architect", "no-progress", "workstreams", "checkpoints"]
+      "tags": [
+        "progress",
+        "agile",
+        "agents",
+        "monitoring",
+        "mermaid"
+      ],
+      "keywords": [
+        "tracking-progress",
+        "accessible-progress-report",
+        "progress-scout",
+        "progress-tracker",
+        "progress-architect",
+        "no-progress",
+        "workstreams",
+        "checkpoints"
+      ]
     },
     {
       "name": "ado",
@@ -77,8 +92,8 @@
     {
       "name": "development",
       "source": "./development",
-      "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, architecture and test-plan critique, manual testing before automated regression coverage, verification, and final review. Includes Architect, Test Planner, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (scenario manual testing, then regression tests, then coverage-guided tests), with TDD as an explicit opt-in; subagent-driven execution; course-correction when fixes stack; compound-learning lessons read back at plan time; hooks that block git bypasses and untested completion; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
-      "version": "1.9.0",
+      "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, early and continuous manual testing, observed-defect regression tests, behavioral tests for material acceptance contracts, final coverage review, verification, and final review. Includes Architect, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (manual testing from the first runnable slice, defect regressions, behavioral contract tests, then coverage-guided tests after all scenarios pass), with TDD as an explicit opt-in; subagent-driven execution; course-correction when fixes stack; compound-learning lessons read back at plan time; hooks that block git bypasses and untested completion; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
+      "version": "2.0.0",
       "category": "development",
       "tags": [
         "methodology",
@@ -112,7 +127,6 @@
         "course-correction",
         "compound-learning",
         "architect",
-        "test-planner",
         "manual-tester",
         "developer",
         "critic",
@@ -258,8 +272,19 @@
       "description": "Install and configure HITL, connect Inbox or the tray client, and guide cross-device questions, plan reviews, notifications, and durable progress through automatic usage hooks.",
       "version": "1.1.0",
       "category": "productivity",
-      "tags": ["hitl", "human-in-the-loop", "notifications", "hooks"],
-      "keywords": ["setup-hitl", "using-hitl", "inbox", "plan-review", "progress"]
+      "tags": [
+        "hitl",
+        "human-in-the-loop",
+        "notifications",
+        "hooks"
+      ],
+      "keywords": [
+        "setup-hitl",
+        "using-hitl",
+        "inbox",
+        "plan-review",
+        "progress"
+      ]
     }
   ]
 }

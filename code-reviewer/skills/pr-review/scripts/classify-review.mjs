@@ -18,6 +18,10 @@ export const REVIEW_TIERS = ["TINY", "SMALL", "MEDIUM", "LARGE"];
 
 const RISK_ORDER = [
   "SECURITY",
+  "ACCESSIBILITY",
+  "CSS_CONSISTENCY",
+  "AGENT_CONTRACT",
+  "RELIABILITY",
   "SCHEMA_COMPATIBILITY",
   "ORLEANS",
   "NSCRIPT",
@@ -41,6 +45,11 @@ const LANE_DEFAULTS = {
   "orleans-review": [3, "medium"],
   "test-coverage-review": [3, "medium"],
   "performance-review": [3, "medium"],
+  "accessibility-review": [2, "medium"],
+  "css-consistency-review": [2, "medium"],
+  "agent-contract-review": [3, "high"],
+  "security-review": [4, "high"],
+  "reliability-review": [4, "high"],
   "correctness-review": [4, "high"],
   "exception-handling-review": [4, "high"],
   "schema-compatibility-review": [4, "high"],
@@ -217,6 +226,20 @@ export function detectDiffFeatures(input) {
 
   const riskFlags = [];
   if (hasAny(searchText, [/(?:^|[/_.-])(auth|authorization|authentication|permission|crypto|payment)(?:[/_.-]|$)/i, /\b(?:authorize|authorization|authenticate|permission|forbid|cryptograph|encrypt|decrypt|payment)\w*\b/i])) riskFlags.push("SECURITY");
+  const stylingChange = hasAny(joinedPaths, [/\.(?:css|scss|sass|less|styl)$/im, /(?:^|\/)(?:styles|themes?|tokens)(?:[/.][^\n]*)?\.(?:js|ts|json)$/im])
+    || hasAny(changedText, [/\b(?:className|class|style)\s*=/, /\bstyled\s*(?:\.|\()/, /\b(?:createStyles|makeStyles|createTheme)\s*\(/]);
+  const uiChange = hasAny(joinedPaths, [/\.(?:jsx|tsx|vue|svelte|html|htm|razor|cshtml|xaml)$/im])
+    || hasAny(changedText, [/<(?:button|input|select|textarea|dialog|form|nav)\b/i, /\b(?:aria-[\w-]+|tabIndex|tabindex)\s*=/, /\b(?:setAttribute|removeAttribute)\s*\(\s*["'](?:aria-[\w-]+|tabindex|role)["']/i]);
+  if (uiChange || stylingChange) riskFlags.push("ACCESSIBILITY");
+  if (stylingChange) riskFlags.push("CSS_CONSISTENCY");
+  const agentDefinition = paths.some((filePath) => !/(?:^|\/)docs?\//i.test(filePath)
+    && /(?:^|\/)(?:agents\/[^/]+\.md|skills\/[^/]+\/skill\.md|commands\/[^/]+\.md|[^/]+\.(?:agent|prompt|instructions)\.md|\.?mcp\.json)$/i.test(filePath));
+  if (agentDefinition || hasAny(changedText, [/\b(?:McpServer|registerTool|CallToolRequestSchema|ListToolsRequestSchema|tool_choice|tool_calls)\b/, /@modelcontextprotocol\/sdk/])) riskFlags.push("AGENT_CONTRACT");
+  if (hasAny(changedText, [
+    /\b(?:retry|retries|max\w*Retries|timeout\w*|backoff|idempotencyKey)\b["']?\s*[:=]/i,
+    /\b(?:WaitAndRetryAsync|CircuitBreakerAsync|AddResilienceHandler|AddStandardResilienceHandler|BasicAck|BasicNack|CompleteMessageAsync|AbandonMessageAsync)\s*\(/,
+    /\b(?:readinessProbe|livenessProbe|startupProbe|terminationGracePeriodSeconds)["']?\s*:/,
+  ])) riskFlags.push("RELIABILITY");
   if (hasAny(searchText, [/\.(?:proto|thrift|avsc|fbs|bond)\b/i, /(?:^|\/)migrations?(?:\/|$)/i, /\b(?:DataContract|DataMember|JsonPropertyName|ProtoMember|BondMember|GenerateSerializer)\b/i, /\b(?:dto|schema|serialize|deserialize|wire format)\b/i, /[A-Z]\w*(?:Dto|Request|Response)\b/])) riskFlags.push("SCHEMA_COMPATIBILITY");
   if (hasAny(searchText, [/\borleans\b/i, /\b(?:Grain|IGrainWith\w+Key|Reentrant|AlwaysInterleave|StorageProvider)\b/])) riskFlags.push("ORLEANS");
   if (hasAny(searchText, [/\b(?:NScript|Mcqdb\.NScript|AutoFire)\b/i])) riskFlags.push("NSCRIPT");
@@ -226,7 +249,7 @@ export function detectDiffFeatures(input) {
   const riskyBehavior = riskFlags.includes("SCHEMA_COMPATIBILITY")
     || architectureChange
     || newProjectOrModule
-    || hasAny(changedText, [/\b(?:retry|retries|max\w*Retries|timeout\w*|backoff|threshold|default\w*)\b\s*[:=]/i]);
+    || hasAny(changedText, [/\b(?:retry|retries|max\w*Retries|timeout\w*|backoff|threshold|default\w*)\b["']?\s*[:=]/i]);
   if (riskyBehavior && !alreadyFlagged) riskFlags.push("FEATURE_FLAG");
   if (hasAny(searchText, [/\b(?:log|logger|telemetry|trace|error message)\w*\b[\s\S]{0,160}\b(?:email|user name|username|token|password|connection string|ip address)\b/i])) riskFlags.push("EUII");
   if (hasAny(changedText, [/\btry\s*\{/i, /\bcatch\s*\(/i, /\bthrow\s+/i])) riskFlags.push("EXCEPTION_HANDLING");
@@ -276,6 +299,11 @@ function initialTier(features) {
 function riskLanes(features) {
   const ids = [];
   const add = (id) => { if (!ids.includes(id)) ids.push(id); };
+  if (features.riskFlags.includes("SECURITY")) add("security-review");
+  if (features.riskFlags.includes("ACCESSIBILITY")) add("accessibility-review");
+  if (features.riskFlags.includes("CSS_CONSISTENCY")) add("css-consistency-review");
+  if (features.riskFlags.includes("AGENT_CONTRACT")) add("agent-contract-review");
+  if (features.riskFlags.includes("RELIABILITY")) add("reliability-review");
   if (features.riskFlags.includes("SCHEMA_COMPATIBILITY")) add("schema-compatibility-review");
   if (features.riskFlags.includes("ORLEANS")) add("orleans-review");
   if (features.riskFlags.includes("NSCRIPT")) add("nscript-review");

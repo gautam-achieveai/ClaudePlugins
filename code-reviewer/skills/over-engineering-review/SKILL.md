@@ -13,9 +13,9 @@ allowed-tools:
 # Over-Engineering Review — Methodology
 
 This skill is the working methodology used by the `over-engineering-review` agent and any
-other reviewer that needs to compare *delivered* code to *requested* scope. It catalogues the
-ten patterns of LLM and developer over-achievement, with detection signals, severity
-guidance, and explicit "what NOT to flag" rules for each.
+other reviewer that needs to compare *delivered* code to *requested* scope. It catalogues
+ten excess-scope patterns and six implementation-fit checks, with evidence requirements,
+ownership, and explicit "what NOT to flag" rules.
 
 ## Core Principle
 
@@ -33,7 +33,8 @@ unjustified complexity.
 
 Use this methodology when:
 
-- Reviewing an LLM-generated PR or implementation — LLMs disproportionately over-produce.
+- Reviewing an implementation for unnecessary complexity or claims of completion that
+  do not match the changed behavior, regardless of who wrote it.
 - A PR's diff feels much larger than the task it's linked to.
 - A PR introduces new abstractions, interfaces, or layers in an otherwise small change.
 - A bug fix PR touches files unrelated to the bug's reported area.
@@ -41,10 +42,38 @@ Use this methodology when:
 - The reviewer notices speculative comments like "to support future X" without a concrete
   current X being addressed.
 
+## Evidence Gate
+
+A pattern is a lead, not a finding. Never infer AI authorship from naming,
+verbosity, formatting, or recognizable code shapes. "AI slop" is shorthand for
+an evidenced implementation problem, not a finding category or a claim about
+the author. Use the same standard for human and generated code.
+
+Before reporting:
+
+1. Establish the requirement or current contract, not the absence of a word in a ticket.
+   Read applicable acceptance criteria, repository conventions, and approved rollout plans.
+2. Trace the changed behavior or maintenance burden. Cite the entry point, consumer,
+   or duplicated policy that makes it matter; missing context goes in `questions`.
+3. Check disqualifiers: a single implementation or caller, a large diff, defensive
+   code, or a new dependency alone does not prove over-engineering. Verify legitimate
+   test seams, framework requirements, trust boundaries, and current operational needs.
+4. Before claiming a symbol, registration, or consumer is absent, quote the scoped
+   search and check generated code, reflection, dependency injection, external consumers,
+   and the actual dependency version. Unavailable evidence is not proof of absence.
+5. State the smallest correction that preserves required behavior, compatibility,
+   and useful tests. If the simpler alternative cannot meet those constraints, do
+   not recommend it merely because it is shorter.
+
+Severity follows demonstrated impact, not the pattern name, comment density,
+number of mocks, or public visibility alone. Category severities below are
+conditional guidance, not automatic findings. Do not set `blocker`; the grader
+owns merge-blocking decisions. Preferences and harmless redundancy do not block.
+
 ## The Ten Categories
 
-Each category includes: detection signals, what the LLM/dev was probably trying to do, why
-it's a problem, severity guidance, and "do NOT flag" exclusions.
+Each category includes detection signals, potential consequences, severity guidance,
+and "do NOT flag" exclusions. Establish intent from sources rather than guessing motives.
 
 ---
 
@@ -110,9 +139,8 @@ hypothetical future need that the current task does not require.
   a reason" and dutifully add their new variants behind it, even when a direct call would
   suffice.
 
-**Severity:** MEDIUM by default. HIGH when the abstraction is exposed across module boundaries
-(other modules now have to depend on the interface, locking the design in). LOW when the
-abstraction is purely internal to a class or file (easily refactored later).
+**Severity:** MEDIUM for evidenced unnecessary indirection or coupling. HIGH requires
+a concrete cross-module contract or operability risk, not exposure alone.
 
 **Recommendation pattern:** "Inline the concrete implementation. When a second use case
 appears, the right abstraction will be obvious from the two concrete cases — and may differ
@@ -137,29 +165,27 @@ that cannot occur given the call graph.
 **Detection signals:**
 - A new public method that is only called from one internal caller — and the new method
   immediately validates inputs that the caller cannot pass invalidly.
-- `if (foo == null) throw ...` on a parameter whose only callers pass it directly from a
-  constructor or a non-nullable type.
+- Repeated checks on a closed internal call path whose validated invariant remains
+  unchanged between the checks; establish that invariant from the actual callers.
 - `try { ... } catch (Exception ex) { _logger.LogError(...); throw; }` blocks that swallow
   no exceptions and add no recovery — pure noise.
-- Retry loops or circuit breakers added to a one-shot internal call that has never reported
-  flakiness.
+- Retry loops or circuit breakers around a deterministic internal operation with no
+  transient failure mode; lack of past incidents alone is not evidence.
 - Re-validation in a service method of inputs already validated by the controller.
 
 **Why it's a problem:**
 - Adds untested code paths — the impossible branch will never be hit, so the catch/throw is
   effectively dead and unverified.
-- Hides real coupling: if a caller suddenly *does* start passing null, the callee will silently
-  reject it instead of the call chain breaking visibly.
-- Creates a culture of paranoid coding. Future developers will copy the pattern and add their
-  own impossible checks.
+- Repeated validation can create divergent copies of one invariant and obscure which
+  boundary owns it. A fail-fast guard is not itself a silent failure.
 
-**Severity:** MEDIUM by default. LOW when the defensive code is at a public API or
-trust-boundary entry point (validation at boundaries is correct — flag only that it's
-duplicating boundary validation done elsewhere).
+**Severity:** MEDIUM only for demonstrated redundant policy or unnecessary control flow.
+Do not flag necessary validation at a public API or trust boundary.
 
-**Recommendation pattern:** "Remove the null check / try-catch / retry — the only callers
-[name them] cannot trigger this branch. If a future caller does, the call chain should fail
-visibly so we discover the real coupling rather than silently swallowing it."
+**Recommendation pattern:** "Consolidate the repeated check at [existing invariant owner];
+the traced callers [name them] preserve that invariant, and [test] verifies the required
+failure behavior remains intact." A non-nullable annotation alone does not prove a
+runtime value cannot be null.
 
 **Do NOT flag:**
 - Defensive code at trust boundaries — public APIs, deserialization of external input, parsing
@@ -168,6 +194,8 @@ visibly so we discover the real coupling rather than silently swallowing it."
   operations) where retry/exception handling is part of normal operation.
 - Validation explicitly required by the codebase's contract conventions (e.g., `ArgumentNullException`
   on every public method) — flag only deviations from convention, not adherence.
+- Revalidation across a trust, mutation, or concurrency boundary where the earlier check
+  no longer guarantees the invariant.
 
 ---
 
@@ -195,9 +223,9 @@ introduced without a measured performance need.
 - The "right" optimization for a hypothetical future load may be entirely different from
   what's been added now.
 
-**Severity:** MEDIUM by default. HIGH when the optimization adds significant code complexity
-(custom data structures, threading) without measurement. LOW when it's a one-line idiomatic
-choice (e.g., `HashSet` instead of `List` for membership tests) consistent with the codebase.
+**Severity:** MEDIUM for demonstrated unnecessary complexity. HIGH requires a concrete
+correctness or resource risk, not missing benchmarks alone. Do not flag an idiomatic
+choice such as a `HashSet` for membership tests merely because it lacks a benchmark.
 
 **Recommendation pattern:** "Revert to the straightforward implementation. If a profiler or
 production metric later shows this hot path is expensive, the right optimization will be
@@ -210,6 +238,8 @@ informed by real data. Performance-tune by measurement, not by anticipation."
   preferring `StringBuilder` for repeated concatenation in a hot loop).
 - Following a documented pattern the codebase has already established (every endpoint caches
   for 30s — the new endpoint should too).
+- A simple algorithmic improvement justified by known input bounds or a stated capacity
+  requirement, even when a production trace is not yet available.
 
 ---
 
@@ -234,9 +264,9 @@ The PR delivers functionality that wasn't asked for in the task description.
 - They circumvent product/design review — the team didn't approve the feature, but it ships
   anyway.
 
-**Severity:** HIGH or BLOCKER for new public API surface (endpoints, exported functions,
-schema changes, CLI flags). MEDIUM for internal features. LOW only when the addition is
-genuinely tiny and the reviewer is confident it won't matter.
+**Severity:** MEDIUM for an evidenced scope overrun with material maintenance cost.
+HIGH requires a demonstrated compatibility, exposure, or release-contract risk.
+Public API additions explicitly required by the task are not overruns.
 
 **Recommendation pattern:** "Move the [unrequested feature] to its own PR linked to its own
 ticket. The current PR should ship only the work the task asked for. If the feature is
@@ -271,9 +301,9 @@ task didn't request observability work and the surrounding code is sparingly log
 - Inconsistent logging density across the codebase makes log-based debugging unpredictable.
 - Logging often duplicates EUII/PII (user IDs, emails) — more logs means more leakage risk.
 
-**Severity:** MEDIUM by default. HIGH when the new logs include EUII (handed to the
-`euii-leak-detector` agent for that aspect; you flag the *volume* aspect). LOW when the new
-logs are at the right level and just slightly redundant.
+**Severity:** MEDIUM for demonstrated excessive volume or diagnostic noise.
+Privacy leakage belongs to `euii-leak-detector`; do not borrow its severity for
+an otherwise minor volume finding.
 
 **Recommendation pattern:** "Pare back to just the entry/exit log of the public boundary, or
 to the specific failure paths that need tracing. Verbose logging is a debugging tool, not a
@@ -306,11 +336,11 @@ doesn't know the language.
   comment because it actively misleads.
 - Tutorial comments dilute the signal of *useful* comments (the ones explaining *why* a
   non-obvious choice was made). Readers learn to skim past comment blocks.
-- They are a hallmark of LLM-generated code and a giveaway that the code wasn't reviewed by a
-  human afterward.
+- Redundant prose can bury a non-obvious invariant or conflict with a changed contract;
+  demonstrate that consequence rather than guessing how the comments were written.
 
-**Severity:** LOW by default — these don't change behavior. MEDIUM only when comments are
-dense enough to actually obscure the code (40%+ of the lines are comments saying nothing).
+**Severity:** Usually omit harmless restatements. LOW for a specific readability issue;
+materially false guarantees use the Misleading Documentation check below.
 
 **Recommendation pattern:** "Delete these comments. Well-named identifiers and small functions
 are the documentation. Reserve comments for the *why* of non-obvious choices: a workaround
@@ -374,6 +404,8 @@ nothing in the codebase reads.
 - A new environment variable mentioned only in `appsettings.json` and the options class — no
   code path actually consumes it.
 - A new constructor parameter, with a default value, that the constructor never uses.
+- A value accepted by parsing or stored in options but never reaching the behavior
+  it claims to control; trace registration, binding, and the consuming branch.
 
 **Why it's a problem:**
 - The hook implies extensibility that doesn't exist — readers waste time looking for the code
@@ -411,17 +443,19 @@ instead of extending the existing one.
   both flows share substantial implementation.
 - Comments like "added new flow because the old one didn't quite fit" without an explanation
   of why the old one couldn't be extended.
+- A custom utility or new dependency reimplementing an existing suitable repository
+  helper or standard-library capability; compare semantics and supported versions,
+  not just names or line counts.
 
 **Why it's a problem:**
 - Two paths that should be one will diverge over time. Bug fixes get applied to one and not
   the other. Behavior drifts.
 - Doubles the maintenance surface and the test surface.
-- Often signals an LLM that didn't fully read or understand the existing code and chose to
-  build alongside instead of integrating with it.
+- Can bypass an existing suitable integration path; establish the missed reuse
+  opportunity from the code rather than attributing it to the author.
 
-**Severity:** HIGH by default — duplicate paths create lasting bifurcation. MEDIUM when the
-duplication is purely additive and the original path has no callers being modified (the new
-path is genuinely a new feature with coincidental similarity).
+**Severity:** MEDIUM for demonstrated unnecessary policy duplication. HIGH requires
+a concrete divergence or compatibility risk. Coincidental similarity is not a finding.
 
 **Recommendation pattern:** "Extend the existing method/class instead of adding a parallel
 one. If the existing implementation can't accommodate the new requirement cleanly, refactor
@@ -435,13 +469,44 @@ version."
   contract compatibility).
 - Cases where the existing code is explicitly being deprecated and the new path will replace
   it once consumers migrate (verify by checking for deprecation comments or work item context).
+- A dependency needed for protocol correctness, security, accessibility, licensing,
+  or platform support that the existing helper cannot provide.
 
 ---
 
+## Implementation-Fit Checks
+
+Apply these alongside the ten scope categories in the same scoped pass. Check
+whether the implementation delivers the claimed outcome, not merely whether it
+contains plausible scaffolding. Do not turn this lane into a second general
+correctness, security, or test audit.
+
+| Pattern | Detection signal | Required evidence | Do NOT flag | Primary defect owner |
+| --- | --- | --- | --- | --- |
+| Superficial Completion | A new handler, option, UI control, adapter, or service is present but disconnected, no-op, or backed by a fixed sample response. | Trace the promised acceptance outcome from its real entry point through registration and configuration to the observable effect; identify the broken link. | Approved scaffolding, explicit non-goals, test fixtures, or a documented staged rollout that makes no premature completion claim. | `correctness-review` for broken behavior; `agent-contract-review` for agent/tool handoffs; `temp-code-review` for accidental stubs. |
+| Fabricated Integration | A call, dependency option, payload field, or comment assumes an API or library behavior that is not supported. | Verify the actual dependency version, local definitions or authoritative documentation, and the caller/consumer; distinguish invented behavior from an unrequested but real API. | Generated APIs, reflection or runtime registration, external SDK contracts verified from their sources, or failures already reported by the compiler/type checker. | `correctness-review` for API misuse; `agent-contract-review` for host/tool mismatches. |
+| Success-Shaped Fallback | An error becomes fabricated data, an empty result, or a success status that downstream code treats as completed work. | Trace a reachable failure into the fallback and its consumer; show the lost failure signal and the requirement it violates. | Contracted degraded operation, explicit partial/unknown states, best-effort optional work, or intentionally empty results that consumers handle correctly. | `exception-handling-review` for local failure propagation; `reliability-review` for end-to-end recovery. |
+| Hollow Tests | Assertions only restate constants, reproduce production logic, snapshot scaffolding, weaken prior checks, or confirm mocked calls while the claimed outcome is untested. | Name the incorrect implementation that would still pass, relate it to the changed acceptance criterion, and inspect existing behavioral coverage. | Interaction tests where the interaction is the contract, meaningful snapshots, established test seams, or unchanged regression tests protecting existing behavior. | `test-coverage-review` for test validity and lost regression protection. |
+| Misleading Documentation | Comments, reports, names, or README text promise validation, atomicity, retries, safety, or integration the implementation does not provide. | Cite the exact claim and contradictory code path, configuration, or observed result; explain which caller or operator could rely on the claim. | Rationale, accurate limitations, clearly marked future work, mandated API documentation, or harmless restated comments. | This lane owns claim-to-implementation drift; coordinate any underlying behavioral defect with `correctness-review`. |
+| Workaround Accumulation | New special cases, duplicated guards, casts, validation bypasses, or fallback branches patch symptoms around an unchanged faulty invariant. | Trace the recurring failure to its shared cause and demonstrate a smaller correction that handles the stated cases without breaking compatibility. | Protocol quirks, compatibility shims, validated third-party workarounds, intentional feature gates, or branches representing genuinely different business rules. | This lane owns unnecessary compensating complexity; `correctness-review` owns remaining wrong behavior. |
+
+Assign one primary owner per mechanism. When that specialist is already planned,
+pass the trace and candidate location through `coverageNote` for the orchestrator
+to route or consolidate; do not emit a duplicate finding. If no owning specialist
+is planned, report the evidenced issue in the shared schema with the appropriate
+category; do not silently omit it or launch another agent.
+
+Do not remove existing tests merely because they do not fail before this PR;
+that counterfactual applies to tests claimed to prove the new fix. Preserve
+useful regression coverage and behavior while correcting hollow new tests.
+Never claim a runtime check or mutation test was executed when only a static
+counterexample was traced.
+
 ## How to Use This Catalog
 
-When reviewing, walk the diff once for each of the ten categories — most reviews touch only
-two or three categories per PR.
+Walk the assigned diff once, mapping relevant scope categories and implementation-fit
+checks to concrete changes. Trace only candidates that survive the Evidence Gate;
+do not perform sixteen independent scans or invent findings to fill categories.
 
 This catalog does not define an output layout. Findings are emitted in the JSON contract at
 `../pr-review/reference/finding-schema.md`: one JSON object per agent, **at most 5
@@ -453,11 +518,12 @@ not omission.
 
 Map this catalog onto that contract:
 
-- **Stated task** (from the anchor source) and **delivered beyond that** (the specific code
-  introducing the over-engineering) together make up `issue`, with the anchor quote and the
-  read or search that found the extra code in `evidence`.
+- **Stated task or claimed contract** and **implementation mismatch** make up `issue`,
+  with the anchor quote and the traced code, read, or search in `evidence`.
 - **Category** (from above) — name it in `issue` or `underlyingProblem`. The schema's own
-  `category` field is `Scope` for scope overrun and `Architecture` for speculative structure.
+  `category` field is `Scope` for scope overrun, `Architecture` for speculative structure,
+  or the matching `Correctness`, `Testing`, or `Compatibility` category for an
+  implementation-fit defect.
 - **Why it matters** (use the "Why it's a problem" notes for the chosen category) goes in
   `whyItMatters`.
 - **Recommendation** (use the recommendation pattern, then specialize to the actual code)
@@ -468,7 +534,7 @@ If you find yourself unable to pick a category, you may be looking at a differen
 Double-check it isn't owned by `code-simplifier` (block-level complexity), `class-design-simplifier`
 (class-level abstract complexity), `architecture-review` (system-level structure), or
 `duplicate-code-detector` (duplicate code). The over-engineering lens is specifically about
-**delivered scope vs. stated scope**.
+**delivered behavior and complexity vs. stated scope and claims**.
 
 ## Anchor Confidence — Self-Assessment Before Reporting
 
@@ -480,11 +546,12 @@ Before publishing your findings, sanity-check the anchor:
 | Work item title only             | MEDIUM      | Flag obvious overruns; put borderline cases in `questions` |
 | PR title + description           | MEDIUM      | Same as above |
 | Commit messages only             | LOW         | Flag only egregious overruns; lean on YAGNI lens |
-| No anchor                        | LOW         | YAGNI-only review; explicitly note the missing anchor |
+| No anchor                        | LOW         | Check evidenced unnecessary complexity and explicit implementation claims; do not invent acceptance criteria |
 
-Always state the anchor you used and your confidence in it in `coverageNote`, and set each
-finding's `confidence` accordingly. Downstream verification needs this metadata to decide
-how seriously to weight the findings.
+State the anchor and its confidence in `coverageNote`. Finding confidence uses the
+separate schema vocabulary `CONFIRMED`, `PROBABLE`, or `UNVERIFIED`, based on the
+finding's evidence, not the anchor label. Record checks performed, exclusions,
+unresolved gaps, and specialist handoffs; a missing trace is not a clean result.
 
 ## Final Reminders
 

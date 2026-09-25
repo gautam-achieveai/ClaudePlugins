@@ -31,6 +31,7 @@ function extractPowerShellHereString(content, key) {
 const prReview = [
   readRepoFile("code-reviewer/skills/pr-review/SKILL.md"),
   readRepoFile("code-reviewer/skills/pr-review/reference/agent-guidance.md"),
+  readRepoFile("code-reviewer/skills/pr-review/reference/grading-rubric.md"),
   readRepoFile("code-reviewer/skills/pr-review/reference/publish-and-track.md"),
 ].join("\n");
 const reviewGrader = readRepoFile("code-reviewer/agents/review-grader.md");
@@ -105,6 +106,16 @@ const closedThreadArchiveFields = [
 ];
 
 test("review decisions stay anchored to problem and solution fit", () => {
+  const skillSpine = readRepoFile("code-reviewer/skills/pr-review/SKILL.md");
+  assert.match(skillSpine, /## Rigorous Reviews That Converge/);
+  assert.match(skillSpine, /Guardian of engineering excellence and the codebase/);
+  assert.match(skillSpine, /Mentor to other developers/);
+  assert.match(skillSpine, /Balance both roles without sacrificing either/);
+  assert.match(skillSpine, /Does the code solve the stated problem\?/);
+  assert.match(skillSpine, /Is the solution in the right ballpark\?/);
+  assert.match(skillSpine, /What must change before merge\?/);
+  assert.match(skillSpine, /How can each blocker close\?/);
+
   for (const content of [prReview, reviewGrader]) {
     assert.match(content, /Does the (?:code|PR) solve (?:the|its) stated problem\?/i);
     assert.match(content, /right ballpark/i);

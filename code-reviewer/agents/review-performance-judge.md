@@ -1,7 +1,7 @@
 ---
 name: review-performance-judge
 description: Use when dispatched to independently judge a completed code review after human feedback, challenge review lessons, or assess review effort and tone. See When to invoke for examples.
-user-invocable: true
+user-invocable: false
 disable-model-invocation: false
 modelintelligence: 3
 effort: medium

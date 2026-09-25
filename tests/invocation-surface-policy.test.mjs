@@ -111,10 +111,13 @@ test("every skill stays launchable by both users and the model", () => {
   }
 });
 
-test("every agent stays launchable by both users and the model", () => {
+test("internal code-reviewer agents are LLM-only and other agents stay user-invocable", () => {
   for (const relativePath of agentFiles()) {
     const fields = parseFrontmatter(relativePath);
+    const plugin = relativePath.split(path.sep)[0];
     const name = fields.get("name");
+    const internalReviewer = plugin === "code-reviewer"
+      && path.basename(relativePath, ".md") !== "code-reviewer";
     const userInvocable = booleanField(fields, "user-invocable", true);
     const disableModelInvocation = booleanField(
       fields,
@@ -124,7 +127,11 @@ test("every agent stays launchable by both users and the model", () => {
 
     assert.ok(name, `${relativePath} must declare an agent name`);
     assert.ok(fields.get("description"), `${name} must keep a valid description`);
-    assert.equal(userInvocable, true, `${name} should stay user-invocable`);
+    assert.equal(
+      userInvocable,
+      !internalReviewer,
+      `${plugin}/${name} should ${internalReviewer ? "be LLM-only" : "stay user-invocable"}`
+    );
     assert.equal(
       disableModelInvocation,
       false,

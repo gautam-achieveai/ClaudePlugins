@@ -12,6 +12,48 @@ the blocker test in the agent prompt.
 
 ---
 
+## Severity Model — Two Axes, Two Lanes
+
+Grade **impact** (CRITICAL / HIGH / MEDIUM / LOW) independently from the
+smallest real **remediation** (TRIVIAL / SMALL / SUBSTANTIAL / REDESIGN).
+The resulting lane is the blocker flag: merge-blocking is `blocker: true`,
+follow-up is `blocker: false`.
+
+**Blocks merge:** demonstrated CRITICAL or HIGH impact regardless of fix size;
+violations of documented or enforced convention contracts (including release
+metadata and public API); persisted schema, migration, or wire compatibility
+risks; and MEDIUM defects with a TRIVIAL or SMALL correction. A claimed blocker
+must explain why shipping now is unsafe or incomplete, not merely invoke a
+category.
+
+**Follow-up:** MEDIUM issues requiring SUBSTANTIAL or REDESIGN work, LOW issues,
+pre-existing problems not worsened by the PR, and preferences without a
+demonstrated merge risk. These never gate the verdict. A finding not placed
+explicitly in the blocking lane is follow-up by default.
+
+Every review ends with two lists: the shortest path to approval (required
+outcome and done-when for each blocker) and follow-up issues. A one-cell HIGH
+and a redesign HIGH require different author responses; include both axes.
+
+## Grader Handoff (Step 11)
+
+Dispatch `code-reviewer:review-grader` only when the review plan's `when`
+condition is true. Start its input with the unchanged Review Intent and pass
+verified finding records with their `verification` objects. Send folded Step
+10c clusters as findings, never raw synthesizer output. Keep stable IDs;
+cluster any remaining shared mechanisms instead of posting repeated findings.
+
+The grader returns the same records with `id`, `severity`, `remediation`,
+`blocker`, `category`, `file`, `line`, `instances`, `issue`,
+`underlyingProblem`, `whyItMatters`, `requiredOutcome`, `suggestedPath`, and
+`doneWhen`. It may change severity, remediation, and blocker status but must
+preserve `id`, `file`, `line`, `instances`, `diffAnchor`, `issue`, and `evidence`
+byte-exact. Merge by stable `id`; never reconstruct locations from grader prose.
+Use both graded severity and blocker status for the verdict. For a clean TINY
+review without a grader, apply the same written severity and verdict rules.
+
+---
+
 ## The 11 Scoring Dimensions — Detail
 
 For each surviving finding, evaluate these 11 dimensions. Score each 0-3:

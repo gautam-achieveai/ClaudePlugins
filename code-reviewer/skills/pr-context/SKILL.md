@@ -69,7 +69,9 @@ Agent:
     Provider: <github | ado>. Gather the full linked-item hierarchy for
     PR #<number> in repository <repo>. Walk the parent chain to the top
     (ADO: up to Epic; GitHub: parent sub-issue / tracking issue) and collect
-    siblings at each level. Output the structured context tree.
+    siblings at each level. Determine the evidenced product stage, classify every
+    changed file's deployment status and proportional scrutiny, and output the
+    structured context tree.
 ```
 
 **When the caller already has compact navigation data** (e.g. a review host that already fetched
@@ -92,8 +94,9 @@ Agent:
     Provider: <github | ado>. Gather the full linked-item hierarchy for
     PR #<number> in repository <repo>. Walk the parent chain to the top
     (ADO: up to Epic; GitHub: parent sub-issue / tracking issue), collect
-    siblings at each level, and output the structured context tree with its
-    Context Summary.
+    siblings at each level, determine the evidenced product stage, classify every
+    changed file's deployment status and proportional scrutiny, and output the
+    structured context tree with its Context Summary.
 
     ## Daemon-Supplied Context
     - Linkage state: Linked | NoneLinked | Failed | Unavailable
@@ -130,6 +133,12 @@ output unless the hierarchy walk independently identifies them as related items.
 
 The agent handles:
 - Fetching PR details and linked work items (ADO) / linked issues (GitHub)
+- Establishing product stage as PoC, Development (not released), Alpha,
+  Production, or Unknown from cited evidence
+- Accounting for every changed file and distinguishing deployed/runtime,
+  deployment-affecting, and non-deployed scope
+- Calibrating scrutiny so verified samples, tests, docs, tooling, and generated
+  files receive bounded checks instead of production-depth analysis
 - Walking the parent chain (ADO Task → User Story → Feature → Epic; GitHub
   sub-issue → parent / tracking issue)
 - Collecting sibling items at each level
@@ -142,6 +151,12 @@ The agent returns a structured context document. Present it to the caller (or
 include it in the review context if used by pr-review).
 
 **Key sections to highlight:**
+- **Product Stage and Exposure** — states maturity, confidence, evidence, and any
+  focused question that must be answered
+- **Changed-File Deployment Map** — accounts for each changed file and the justified
+  scrutiny level
+- **Knowledge Base Candidates** — identifies stable context worth persisting by an
+  authorized workflow; the gatherer itself remains read-only
 - **Hierarchy tree** — shows the full ancestry path
 - **Sibling items** — reveals scope and completeness
 - **Context Summary** — natural language explanation of where this PR fits
@@ -151,9 +166,11 @@ include it in the review context if used by pr-review).
 When used by the `pr-review` skill, the context output should inform:
 
 - **Step 3 (Understand the changes)** — compare the PR's changes against the
-  work item's acceptance criteria and description
+  work item's acceptance criteria and description; resolve an `Unknown` product
+  stage before applying stage-sensitive standards
 - **Step 4 (Code alignment)** — verify the implementation matches the feature's
-  intent, not just the task title
+  intent, not just the task title, and use the deployment map to focus specialist
+  depth without dropping any changed file
 - **Step 11 (Feedback)** — reference work item context in review comments where
   it adds value (e.g., "This task is part of #1234 Bulk Upload — the sibling
   task #5678 handles validation, so this PR correctly skips it")

@@ -13,7 +13,7 @@ The review is a funnel. Each stage is cheaper than the one it protects.
 | Stage | What runs | Purpose |
 |---|---|---|
 | **Eligibility gate** | one haiku call | Stop on closed, draft, generated-only, empty, or already-reviewed PRs before any fan-out. |
-| **Review tier** | `classify-review.mjs` | Deterministic: picks TINY, SMALL, MEDIUM, or LARGE and the exact lanes from file count, changed lines, structure, and code-only risk flags. |
+| **Review tier** | `classify-review.mjs` | Deterministic: picks TINY, SMALL, MEDIUM, or LARGE and the exact lanes from file count, changed lines, structure, and code or executable-agent-definition signals. |
 | **Context pack** | one fetch | The diff is fetched once and written to disk. Every agent reads the same bytes; no agent fetches its own. |
 | **Core lanes** | `correctness-review`, `history-context-review`, `temp-code-review` | Logic defects, what the repo's history and past review comments already say, and debugging leftovers. |
 | **Domain + external agents** | the lanes in `review-plan.json` | Only the agents the plan selected for this tier and its risk flags. |
@@ -30,6 +30,43 @@ wrong finding costs more credibility than a missed one.
 
 Every agent emits the same JSON record, capped at five findings, defined once in
 `skills/pr-review/reference/finding-schema.md`.
+
+### Focused Specialists
+
+The top-level `code-reviewer` agent remains user-invokable for independent
+feature and merge-readiness reviews. All bundled specialist and supporting
+agents are LLM-only: `user-invocable: false` hides them from the agent picker,
+while `disable-model-invocation: false` keeps them available for dispatch.
+The `pr-review` skill remains user-invokable. It does not dispatch the
+top-level agent, which invokes the skill itself.
+
+The review team targets 3-7 specialists with distinct ownership, not every
+available agent. Required risk coverage can exceed that target with an explicit
+reason. These lanes run only when the classifier detects applicable changes:
+
+| Agent | Focus |
+| --- | --- |
+| `accessibility-review` | UI semantics, keyboard/focus behavior, and visual-access barriers. |
+| `css-consistency-review` | Existing tokens and component-style reuse, stylesheet ownership, cascade conflicts, and theme/responsive consistency. |
+| `agent-contract-review` | Agent/skill/prompt definitions, MCP/tool contracts, context availability, and handoff failures. |
+| `security-review` | Trust boundaries, authorization, attacker-controlled input, and evidenced abuse paths. |
+| `reliability-review` | Partial failures, retries, duplicate side effects, recovery, and operational checks. |
+
+Ordinary documentation mentions do not select these lanes. Executable agent
+and skill Markdown is intentionally routed to agent-contract review. UI changes
+select accessibility; stylesheet and styling-API changes also select CSS review.
+Style modules include bare names such as `theme.ts` and `tokens.json`, as well
+as suffixed and nested modules. Reliability settings are recognized with
+unquoted keys or quoted JSON/YAML keys, including removed settings.
+Each specialist follows the guardian-and-mentor philosophy, uses the shared
+finding schema, and distinguishes static evidence from unperformed runtime tests.
+
+The existing `over-engineering-review` lane also checks implementation fit:
+superficial completion, fabricated integrations, success-shaped fallbacks,
+hollow tests, misleading documentation, and accumulated workarounds. Its
+[methodology](skills/over-engineering-review/SKILL.md) requires a concrete trace,
+false-positive exclusions, and one owner per mechanism. It does not infer AI
+authorship or add another parallel reviewer; intelligence and routing are unchanged.
 
 ## Skill Structure
 

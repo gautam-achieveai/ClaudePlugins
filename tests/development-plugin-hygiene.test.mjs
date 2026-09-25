@@ -32,9 +32,16 @@ test("worktree guide prefers native tools and has no global superpowers path", (
 });
 
 test("role agents carry the Agile manual-test, regression, and scope rules", () => {
-  assert.match(read("development/agents/manual-tester.md"), /aftermath/i);
-  assert.match(read("development/agents/manual-tester.md"), /could not run.*fail/i);
-  assert.match(read("development/agents/developer.md"), /fails when the fix is reverted/i);
+  const manualTester = read("development/agents/manual-tester.md");
+  const developer = read("development/agents/developer.md");
+
+  assert.match(manualTester, /trace acceptance criteria.*observable scenarios/i);
+  assert.match(manualTester, /aftermath/i);
+  assert.match(manualTester, /could not run.*fail/i);
+  assert.match(manualTester, /inspect coverage of changed code/i);
+  assert.match(developer, /observe it fail, fix the defect/i);
+  assert.match(developer, /material acceptance contract.*automated behavioral test/i);
+  assert.match(developer, /fewest tests for risky uncovered behavior/i);
   assert.match(read("development/agents/critic.md"), /more than 8 files/i);
 });
 

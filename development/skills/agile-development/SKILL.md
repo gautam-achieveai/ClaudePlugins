@@ -28,10 +28,9 @@ Use Agile team mode when the user requests it or the feature has at least two in
 | Role | Agent | Required outcome |
 |---|---|---|
 | Architect | `development:architect` | Smallest viable architecture and thin end-to-end slice |
-| Test Planner | `development:test-planner` | Criterion-to-evidence strategy with the fastest useful checks |
-| Manual Tester | `development:manual-tester` | Hands-on evidence, defects, thumbs-up, and final critical retrospective |
-| Developer | `development:developer` | Observable implementation, then automated tests after manual approval |
-| Critic | `development:critic` | Adversarial design and test-plan verdict |
+| Manual Tester | `development:manual-tester` | First runnable scenario, continuous hands-on evidence, defect reproductions, final coverage review and retrospective |
+| Developer | `development:developer` | Observable slices, failing regression tests for observed defects, behavioral contract tests, then coverage-gap tests |
+| Critic | `development:critic` | Adversarial design and first-scenario verdict |
 | Code Reviewer | `code-reviewer:code-reviewer` | Independent final review and readiness verdict |
 
 Build every dispatch brief and read every handoff with `reference/worker-contract.md`. It defines the brief, the report file, the four worker statuses, the Ruling log, and the retry rules. Tell each agent that other workers share the repository and that unrelated edits must be preserved.
@@ -45,18 +44,19 @@ The lead must continue other safe, independent work while agents run. Wait only 
 Start with one thin end-to-end slice so manual testing and dog-fooding begin before the design hardens.
 
 1. Dispatch the Architect. Send the result to the Critic. Resolve every BLOCKER or MATERIAL finding.
-2. Dispatch the Test Planner against the accepted architecture. Send the result to the Critic. Resolve every BLOCKER or MATERIAL finding.
-3. Dispatch the Developer to expose a runnable slice with enough observability for hands-on testing.
-4. Dispatch the Manual Tester. When behavior is unclear, pair the Manual Tester and Developer using `debugging:debug-with-logs`, structured JSONL file logs, and DuckDB queries.
-5. Loop Developer fixes and Manual Tester re-tests until the Manual Tester records a thumbs-up.
-6. Only after that thumbs-up, have the Developer author focused automated tests. Follow Stages 2 and 3 of `development:scenario-driven-development`: regression tests at the cheapest layer for each passing scenario, then coverage-guided tests for the riskiest uncovered changed lines, including cases manual testing missed.
-7. Run the narrowest meaningful build, lint, type, and test checks. Record exact commands and observed results.
+2. Dispatch the Manual Tester to choose the tiniest observable scenario and its entry point with the Developer. Send that first-scenario choice to the Critic when it carries a material assumption; resolve BLOCKER or MATERIAL findings without delaying routine implementation.
+3. Dispatch the Developer to expose that runnable slice with enough observability for hands-on testing. The Manual Tester starts as soon as it runs, while the Developer builds the next slice.
+4. For each observed defect, have the Manual Tester supply a minimal reproduction. The Developer writes a focused failing regression test, fixes the bug, and returns it for manual re-test. When behavior is unclear, pair them using `debugging:debug-with-logs`, structured JSONL file logs, and DuckDB queries.
+5. As behavior stabilizes, have the Manual Tester identify each material acceptance contract and the Developer add at least one automated behavioral test at the cheapest useful layer. One test may protect several contracts; do not mirror every scenario.
+6. Loop new slices, Developer fixes, contract tests, and Manual Tester re-tests until the Manual Tester records a thumbs-up for every scenario and material corner case.
+7. Only after all manual scenarios pass, have the Manual Tester and Developer inspect changed-code coverage. The Developer adds the fewest tests for risky uncovered behavior following Stage 3 of `development:scenario-driven-development`.
+8. Run the narrowest meaningful build, lint, type, and test checks. Record exact commands and observed results.
 
-The Manual Tester gate is deliberate: usability and observability failures must surface before automated tests encode the current design.
+The Manual Tester starts at the first tiny slice so usability and observability failures surface while the design can still change. Observed-defect regression tests start immediately; stable material acceptance contracts receive behavioral protection; coverage-guided tests wait for the complete manual pass.
 
-- **Critic passes.** When the slice touches one component and adds no new interface (route, public API, schema, event, or cross-component call), send the architecture and the test plan to the Critic together in one pass. Otherwise keep two passes.
-- **Manual testing.** Each path is walked as entry → action → result → destination → aftermath, plus empty, boundary, error, and re-entry states. A path the tester could not run is never a pass: fail when the product is at fault, blocked when the environment is.
-- **Tests after approval.** Automated tests written after the thumbs-up are regression and characterization tests. Every defect fixed during manual testing gets a test that fails when the fix is reverted; the Developer shows that failure once. Each test runs under 1 second and the focused suite under 30 seconds. Use `development:test-driven-development` only when the user explicitly asks for TDD; that request lifts the tests-after-thumbs-up rule, but the thumbs-up is still required before done.
+- **Critic passes.** When the slice touches one component and adds no new interface (route, public API, schema, event, or cross-component call), send the architecture and first runnable scenario to the Critic together in one pass. Otherwise review the architecture first and ask for a focused scenario review only if material assumptions remain.
+- **Manual testing.** The Manual Tester uses the smallest consumer-facing driver that proves the scenario: page interaction through an app browser or Playwright, an HTTP script for a web API, or a disposable public-API driver for a library. Use an existing UI or API to exercise backend behavior when practical. Each path is walked as entry → action → result → destination → aftermath, plus empty, boundary, error, and re-entry states. A path the tester could not run is never a pass: fail when the product is at fault, blocked when the environment is.
+- **Tests from evidence.** Every defect fixed during manual testing gets a test seen failing before the fix and passing afterward; when authored later, demonstrate it fails when the fix is reverted. Every material acceptance contract gets automated behavioral protection after it stabilizes, but interaction variants do not each need a separate test. After all manual checks, add only tests for risky uncovered behavior. Each test runs under 1 second and the focused suite under 30 seconds. Use `development:test-driven-development` only when the user explicitly asks for TDD; the manual thumbs-up is still required before done.
 - **Scope smell.** The Critic treats a slice that touches more than 8 files, adds more than 2 new abstractions, or puts a single implementation behind an interface as MATERIAL until the goal justifies it.
 
 ### 2. Expand by independent workstream
