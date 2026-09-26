@@ -75,7 +75,7 @@ the `post-pr-review` skill (`skill: "code-reviewer:post-pr-review"`). Pass:
 | `closedThreadArchive[]` | Compact terminal records recovered from the canonical summary plus newly closed records |
 | `closedThreadArchiveOmittedCount` | Cumulative omitted archive count; `0` on initial review |
 | `preExisting[]` | `preExisting` findings from the Step 10a mechanical filter, unchanged — `diffAnchor = PRE_EXISTING`, no `id`, no grader fields. Empty when step 10a did not run |
-| `questions[]` | Consolidated context questions from Step 10 |
+| `questions[]` | Consolidated questions anchored to changed lines from Step 10; source-only activation questions remain in `outputFormatMarkdown` |
 | `isSmallDelta` | `true` when a re-review delta qualifies for small-delta mode per [re-review-workflow.md](re-review-workflow.md); otherwise `false` |
 | `smallDeltaSummary` | A 1-3 sentence delta-only reply used when `isSmallDelta` is `true` |
 | `verdict` | Determined from Review Intent + graded blocker status — see verdict rules in SKILL.md Step 12 |

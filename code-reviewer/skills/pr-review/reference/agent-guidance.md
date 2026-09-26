@@ -152,11 +152,18 @@ uncertainty and request author clarification. They are always non-blocking.
 
 **Consolidation workflow:**
 
-1. Collect all `[QUESTION]` items from agent outputs in steps 4-9
+1. Collect the sourced open activation questions retained by the parent from
+   context gathering in Step 2, plus `[QUESTION]` items from agent outputs in
+   steps 4-9. Use the same question shape for both; retain the source reference and
+   activation condition in `codeContext` / `uncertainty` when no changed line
+   can anchor the question.
 2. De-duplicate: if two agents ask about the same code area, merge into one question
    that captures both angles
-3. Filter out questions that are already answered by the PR description, work item
-   context (from `pr-context`), or inline code comments
+3. Mark context questions answered only with a cited answer in code, PR
+   description, work item or discussion; otherwise keep them open. Drop those
+   proved out of scope. A pricing note does not answer a separate geo-routing
+   prerequisite. Do not promote an open pre-enablement question to a present
+   leak or automatic blocker.
 4. Rank by review impact: questions that would affect severity grading or verdict
    determination rank higher
 5. Cap at **10 questions per review** — if more exist, keep the highest-impact ones
@@ -164,5 +171,7 @@ uncertainty and request author clarification. They are always non-blocking.
 
 **What flows forward:**
 - Questions do NOT go to the review-grader (Step 11) — they are separate from findings
-- Questions go directly to the `post-pr-review` skill (Step 12) for posting as
-  inline comments with `[QUESTION]` tag
+- Questions tied to changed lines go to `post-pr-review` (Step 12) for inline
+   `[QUESTION]` comments. Source-only questions without a relevant changed line
+   go to the review summary with source reference and activation condition, not a comment
+   on unrelated code.

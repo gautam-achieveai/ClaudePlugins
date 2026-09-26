@@ -48,7 +48,7 @@ Development methodology toolkit — Agile team delivery for large features, thin
 
 **Agents**: `architect`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
 
-### code-reviewer (v1.25.0)
+### code-reviewer (v1.26.0)
 
 Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility), severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 

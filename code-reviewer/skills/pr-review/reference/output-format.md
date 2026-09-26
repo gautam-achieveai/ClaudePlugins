@@ -77,8 +77,10 @@ non-empty, and keep it to one line each.
 ## Context Questions (non-blocking)
 
 Areas where the reviewer needs clarification to make a confident assessment.
-These do NOT affect the verdict — they are posted as separate `[QUESTION]`
-inline comments for the PR author to answer.
+These do NOT affect the verdict. Questions tied to a changed line are posted
+as separate `[QUESTION]` inline comments; sourced activation questions without
+a relevant changed line stay in this summary with source reference and activation
+condition. An open pre-enablement question is not a claim of a current leak.
 
 | # | File | Line | Question | What Answering Unlocks |
 |---|------|------|----------|------------------------|

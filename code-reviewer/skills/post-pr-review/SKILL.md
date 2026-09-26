@@ -492,7 +492,10 @@ the file and line.
 
 ### Step 5: Post Context Question Comments
 
-Post each question as an inline comment anchored to the relevant code line.
+Post each question in `questions[]` as an inline comment anchored to the
+relevant changed code line. Source-only activation questions belong in
+`outputFormatMarkdown`, not `questions[]`; do not attach them to unrelated
+code or create a separate general comment for them.
 Questions use the `[QUESTION]` tag — distinct from findings.
 
 <question_deduplication>

@@ -55,7 +55,7 @@ configuration drift instead of pretending the requested tier ran.
 | **1** | L2 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
 | **2** | L3 — narrow judgement inside a fixed rulebook | `euii-leak-detector`, `feature-flag-reviewer`, `history-context-review`, `class-design-simplifier`, `accessibility-review`, `css-consistency-review` | Recognizable shapes with a little reasoning at the edges. |
 | **3** | L4 — reasoning with domain expertise | `nscript-review`, `orleans-review`, `test-coverage-review`, `performance-review`, `agent-contract-review`, `review-performance-judge` | Real domain judgement, bounded by a written rulebook. |
-| **4** | L5 — the heavy scanning lanes | `correctness-review`, `exception-handling-review`, `schema-compatibility-review`, `architecture-review`, `over-engineering-review`, `security-review`, `reliability-review` | Subtle defects where a weaker model's miss is the expensive outcome. Still grunt work: they read the diff. |
+| **4** | L5 — the heavy scanning lanes | `correctness-review`, `exception-handling-review`, `schema-compatibility-review`, `architecture-review`, `over-engineering-review`, `security-review`, `invariant-deletion-review`, `compliance-review`, `reliability-review` | Subtle defects where a weaker model's miss is the expensive outcome. Still grunt work: they read the diff. |
 | **5** | L6 — reasons over other agents' findings, never scans | `review-grader`, `root-cause-synthesizer`, `remediation-planner` | Synthesis, calibration, and sequencing across the whole review. |
 | **6** | L7 — decomposes a stuck disagreement into a decidable question | `review-adjudicator` only | Dispatched only on a contested review. Most reviews never call it. |
 
@@ -63,8 +63,8 @@ The employee-level analogy is `0 = L1` (new graduate) through `6 = L7`
 (top engineer with deep domain knowledge): employee level is intelligence + 1.
 No bundled reviewer currently uses intelligence 0.
 
-Distribution across the 28 tiered agents: tiers 1-2 = 11, tier 3 = 6,
-tier 4 = 7, tier 5 = 3, and tier 6 = 1. The orchestrator remains untiered
+Distribution across the 30 tiered agents: tiers 1-2 = 11, tier 3 = 6,
+tier 4 = 9, tier 5 = 3, and tier 6 = 1. The orchestrator remains untiered
 and inherits.
 
 Two rules hold this together:
@@ -130,6 +130,10 @@ can support a finding. File extensions are examples, not a language allowlist.
 - **`agent-contract-review`** (`AGENT_CONTRACT`): executable agent/skill/prompt definitions, MCP configuration, and recognized tool APIs. Agent Markdown is an executable surface for this lane, unlike ordinary prose. Owns declared capabilities, available context/tools, producer-consumer schemas, failure handling, and harness assumptions. Do not demand agent integration for products that do not declare it.
 
 - **`security-review`** (`SECURITY`): changed authentication, authorization, permissions, cryptography, and other detected trust-boundary signals. Owns concrete abuse paths and the `security-checklist` guide. Correctness remains responsible for functional behavior; EUII owns leakage scanning. Never inflate uncertain severity to bypass filtering.
+
+- **`invariant-deletion-review`** (`INVARIANT_DELETION`): changed destructive calls, deletion SQL/cascades, or removed guard/validation/freshness/concurrency constructs. Owns the destructive path's safeguards, data-loss scope, and bypassed correctness invariants. Confirm reachability and repository conventions; a signal is not itself a defect. Security owns general abuse paths, compatibility owns cross-deploy shapes, and feature flags own rollout containment. Return the shared finding schema, not a separate report format.
+
+- **`compliance-review`** (`COMPLIANCE`): changed residency, region, regulated-data, retention, consent, or audit controls. Use the context gatherer's sourced product stage and per-file deployment map to establish which laws, contracts, and project policies apply before alleging a breach. Unknown stage or applicability produces a focused question, not a presumed violation. A PoC using regulated data is not exempt simply because it is unreleased. Return the shared finding schema.
 
 - **`reliability-review`** (`RELIABILITY`): changed retry/timeout/idempotency settings, resilience APIs, message acknowledgments, and health/shutdown configuration. Owns end-to-end partial failure, duplicate side effects, cancellation, recovery, and false-green operational checks. Performance owns resource costs, exception handling owns local propagation, and compatibility owns data-shape rollout safety.
 

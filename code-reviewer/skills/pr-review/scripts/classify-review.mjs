@@ -18,6 +18,8 @@ export const REVIEW_TIERS = ["TINY", "SMALL", "MEDIUM", "LARGE"];
 
 const RISK_ORDER = [
   "SECURITY",
+  "INVARIANT_DELETION",
+  "COMPLIANCE",
   "ACCESSIBILITY",
   "CSS_CONSISTENCY",
   "AGENT_CONTRACT",
@@ -49,6 +51,8 @@ const LANE_DEFAULTS = {
   "css-consistency-review": [2, "medium"],
   "agent-contract-review": [3, "high"],
   "security-review": [4, "high"],
+  "invariant-deletion-review": [4, "high"],
+  "compliance-review": [4, "high"],
   "reliability-review": [4, "high"],
   "correctness-review": [4, "high"],
   "exception-handling-review": [4, "high"],
@@ -208,6 +212,7 @@ export function detectDiffFeatures(input) {
   const codeChanges = parsed.changes.filter((change) => change.path === null || !isProse(change.path));
   const joinedPaths = paths.filter((filePath) => !isProse(filePath)).join("\n");
   const addedText = codeChanges.filter((change) => change.sign === "+").map((change) => change.text).join("\n");
+  const removedText = codeChanges.filter((change) => change.sign === "-").map((change) => change.text).join("\n");
   const changedText = codeChanges.map((change) => change.text).join("\n");
   const searchText = `${joinedPaths}\n${changedText}`;
 
@@ -226,6 +231,23 @@ export function detectDiffFeatures(input) {
 
   const riskFlags = [];
   if (hasAny(searchText, [/(?:^|[/_.-])(auth|authorization|authentication|permission|crypto|payment)(?:[/_.-]|$)/i, /\b(?:authorize|authorization|authenticate|permission|forbid|cryptograph|encrypt|decrypt|payment)\w*\b/i])) riskFlags.push("SECURITY");
+  const removedGuard = hasAny(removedText, [
+    /\b(?:ThrowIf\w*|Ensure\w*|Validate\w*|Guard\.\w+)\s*\(/,
+    /\bif\s*\([^\n]*\)\s*(?:throw\b|return\s+(?:Forbid|Unauthorized|BadRequest)\b)/i,
+    /\bif\s*\((?:[^()]|\([^()]*\))*\)\s*\{?\s*(?:throw|return)\b/i,
+    /\bif\s*\([^\n]*\b(?:IsValid|IsExpired|HasPermission|IsAuthorized|CanDelete)\b/i,
+    /\[(?:Required|Range|StringLength|RegularExpression|MaxLength|MinLength)(?:\s*\(|\s*\])/,
+    /\b(?:RowVersion|ConcurrencyToken|UniqueConstraint|ExpiresAt|ExpiryDate|ThrowIfCancellationRequested)\b/,
+  ]);
+  const destructiveOperation = hasAny(changedText, [
+    /\.(?:ExecuteDelete(?:Async)?|(?:Delete|Remove|Drop|Purge|Truncate)(?:One|All|Range|Many)?(?:Async)?)\s*\(/i,
+    /\b(?:DROP\s+(?:TABLE|COLUMN|INDEX)|TRUNCATE\s+TABLE|DELETE\s+FROM|ON\s+DELETE\s+CASCADE)\b/i,
+    /\bDeleteBehavior\.Cascade\b/,
+  ]);
+  if (removedGuard || destructiveOperation) riskFlags.push("INVARIANT_DELETION");
+  if (hasAny(joinedPaths, [/(?:^|[/_.-])(?:privacy|compliance|residency|regionality|sovereignty|retention|consent)(?:[/_.-]|$)/i])
+    || hasAny(changedText, [/\b(?:dataResiden\w*|dataSovereign\w*|allowedRegions?|crossBorder\w*|GoLocal\w*|ePHI|HIPAA|GDPR|BusinessAssociateAgreement|retention(?:Days|Period|Policy)|auditTrail|consent(?:Granted|Status))\b/i, /\b(?:region|dataRegion)\s*[:=]/i])
+    || (hasAny(joinedPaths, [/(?:^|\/)(?:deploy|infra|terraform)(?:\/|$)/i]) && /\blocation\s*[:=]/i.test(changedText))) riskFlags.push("COMPLIANCE");
   const stylingChange = hasAny(joinedPaths, [/\.(?:css|scss|sass|less|styl)$/im, /(?:^|\/)(?:styles|themes?|tokens)(?:[/.][^\n]*)?\.(?:js|ts|json)$/im])
     || hasAny(changedText, [/\b(?:className|class|style)\s*=/, /\bstyled\s*(?:\.|\()/, /\b(?:createStyles|makeStyles|createTheme)\s*\(/]);
   const uiChange = hasAny(joinedPaths, [/\.(?:jsx|tsx|vue|svelte|html|htm|razor|cshtml|xaml)$/im])
@@ -300,6 +322,8 @@ function riskLanes(features) {
   const ids = [];
   const add = (id) => { if (!ids.includes(id)) ids.push(id); };
   if (features.riskFlags.includes("SECURITY")) add("security-review");
+  if (features.riskFlags.includes("INVARIANT_DELETION")) add("invariant-deletion-review");
+  if (features.riskFlags.includes("COMPLIANCE")) add("compliance-review");
   if (features.riskFlags.includes("ACCESSIBILITY")) add("accessibility-review");
   if (features.riskFlags.includes("CSS_CONSISTENCY")) add("css-consistency-review");
   if (features.riskFlags.includes("AGENT_CONTRACT")) add("agent-contract-review");

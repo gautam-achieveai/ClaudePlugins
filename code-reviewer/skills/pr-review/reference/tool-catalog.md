@@ -52,6 +52,9 @@ otherwise the `gh` CLI (run via `Bash`, authenticated with `gh auth`).
 
 ## Specialized Review Agents (dispatched in step 7)
 
+- `security-review` - Concrete abuse paths across changed trust boundaries
+- `invariant-deletion-review` - Unsafe deletion, destructive scope, and removed or bypassed correctness safeguards
+- `compliance-review` - Applicable obligations for changed data handling and regional deployment, calibrated to sourced release stage
 - `nscript-review` - NScript C#-to-JS transpiler compliance, MVVM, template/skin patterns
 - `orleans-review` - Orleans grain architecture, reentrancy, state management, streams
 - `debugging:logging-review` - Structured logging compliance, log levels, queryability, EUII policy enforcement, client-side log forwarding checks

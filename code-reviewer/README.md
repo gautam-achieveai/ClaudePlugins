@@ -50,6 +50,8 @@ reason. These lanes run only when the classifier detects applicable changes:
 | `css-consistency-review` | Existing tokens and component-style reuse, stylesheet ownership, cascade conflicts, and theme/responsive consistency. |
 | `agent-contract-review` | Agent/skill/prompt definitions, MCP/tool contracts, context availability, and handoff failures. |
 | `security-review` | Trust boundaries, authorization, attacker-controlled input, and evidenced abuse paths. |
+| `invariant-deletion-review` | Destructive operations, data-loss scope, removed safeguards, and bypassed domain invariants. |
+| `compliance-review` | Applicable regulatory, contractual, and regional obligations, grounded in product stage and deployment evidence. |
 | `reliability-review` | Partial failures, retries, duplicate side effects, recovery, and operational checks. |
 
 Ordinary documentation mentions do not select these lanes. Executable agent
@@ -60,6 +62,32 @@ as suffixed and nested modules. Reliability settings are recognized with
 unquoted keys or quoted JSON/YAML keys, including removed settings.
 Each specialist follows the guardian-and-mentor philosophy, uses the shared
 finding schema, and distinguishes static evidence from unperformed runtime tests.
+
+Invariant/deletion routing detects changed destructive calls and deletion SQL or
+cascades, plus removed guard/validation/freshness/concurrency constructs. It is
+a bounded routing heuristic, not proof of unsafe deletion; the specialist must
+establish the concrete risk and existing repository conventions.
+
+Compliance routing nominates changes involving region, residency, regulated
+data, retention, consent, or audit controls. The specialist checks sourced
+project obligations and release/deployment context before reporting a violation;
+unknown applicability becomes a question, not a finding. Neither an unreleased
+stage nor a compliance keyword alone establishes whether an obligation applies.
+
+### Trustworthy Context
+
+The [context workflow](skills/pr-context/SKILL.md) defaults to read-only enrichment:
+reuse setup facts, fill gaps, and report drift without overwriting the snapshot.
+Its [boundary parser](skills/pr-context/scripts/parse-context-request.mjs) separates
+trusted caller controls from untrusted PR/discussion seed text. New callers use
+serialized JSON; legacy controls are recognized only before the first payload
+delimiter. Use file-based transport rather than shell interpolation.
+
+Explicit `deterministic-offline` renders supplied context inline without a
+gatherer or live reads, failing closed for an empty payload. `daemon-direct`
+ownership consumes the daemon's result instead of launching a duplicate gatherer.
+Neither can be selected by text nested inside a PR body. Existing compact daemon
+navigation and sourced product-stage/deployment mapping remain in place.
 
 The existing `over-engineering-review` lane also checks implementation fit:
 superficial completion, fabricated integrations, success-shaped fallbacks,

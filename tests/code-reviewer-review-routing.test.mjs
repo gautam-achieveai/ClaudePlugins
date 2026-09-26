@@ -89,6 +89,92 @@ test("UI, styling, agent, and recovery changes select their specialist lanes", (
   }
 });
 
+test("destructive operations and removed guards select the invariant lane", () => {
+  for (const [before, after] of [
+    ["Guard.NotNull(value);", "Save(value);"],
+    ["if (!IsValid(value)) {", "{"],
+    ["if (expired) return BadRequest();", "Save(value);"],
+    ["[Range(1, 10)]", ""],
+    ["var version = item.RowVersion;", "Save(item);"],
+    ["return;", "await collection.DeleteManyAsync(filter);"],
+    ["return;", "await db.Users.Where(predicate).ExecuteDeleteAsync();"],
+    ["return;", "await collection.deleteOne(filter);"],
+    ["return;", "DELETE FROM records;"],
+    ["return;", "DROP TABLE records;"],
+    ["return;", "ON DELETE CASCADE"],
+    ["await collection.DeleteManyAsync(tenantFilter);", "await collection.DeleteManyAsync(all);"],
+    ["collection.Remove(item);", "Save(item);"],
+  ]) {
+    const input = singleLineChange("src/Store.cs", before, after);
+    assert.equal(validateDiffCoverage(input).complete, true);
+    const result = classifyReview(input);
+    assert.equal(result.tier, "SMALL", before);
+    assert.ok(result.signals.riskFlags.includes("INVARIANT_DELETION"), `${before} -> ${after}`);
+    const lane = result.plan.lanes.find(({ id }) => id === "invariant-deletion-review");
+    assert.equal(lane.modelIntelligence, 4);
+    assert.equal(lane.effort, "high");
+    assert.equal(result.plan.lanes.filter(({ id }) => id === lane.id).length, 1);
+  }
+});
+
+test("removing a multi-line guard selects the invariant lane", () => {
+  const filePath = "src/Store.cs";
+  const diffText = [
+    `diff --git a/${filePath} b/${filePath}`,
+    `--- a/${filePath}`,
+    `+++ b/${filePath}`,
+    "@@ -1,3 +1 @@",
+    "-if (amount <= 0) {",
+    "-  throw new ArgumentOutOfRangeException();",
+    "-}",
+    "+Save(amount);",
+  ].join("\n");
+  const result = classifyReview(context(changedFiles(1, {
+    path: () => filePath, removedLines: 3,
+  }), diffText));
+  assert.ok(result.signals.riskFlags.includes("INVARIANT_DELETION"));
+  assert.ok(result.plan.lanes.some(({ id }) => id === "invariant-deletion-review"));
+});
+
+test("invariant routing ignores ordinary deleted statements and prose", () => {
+  for (const file of ["docs/safety.md", "notes.txt"]) {
+    const result = classifyReview(singleLineChange(file, "Guard.NotNull(value);", "collection.DeleteManyAsync(all);"));
+    assert.deepEqual(result.signals.riskFlags, []);
+  }
+  const result = classifyReview(singleLineChange("src/Counter.cs", "count += 1;", "count += 2;"));
+  assert.ok(!result.signals.riskFlags.includes("INVARIANT_DELETION"));
+  assert.ok(!result.plan.lanes.some(({ id }) => id === "invariant-deletion-review"));
+});
+
+test("compliance signals nominate a reviewer without declaring applicability", () => {
+  for (const [filePath, before, after] of [
+    ["deploy/cluster.yaml", "region: us-east", "region: eu-west"],
+    ["src/HealthData.cs", "return record;", "Store(ePHI);"],
+    ["src/Retention.cs", "retentionDays = 30;", "retentionDays = 7;"],
+    ["src/TenantPolicy.cs", "GoLocalEnabled = false;", "GoLocalEnabled = true;"],
+    ["infra/main.bicep", "location: westus", "location: westeurope"],
+    ["src/residency/policy.ts", "export const allowed = old;", "export const allowed = next;"],
+  ]) {
+    const result = classifyReview(singleLineChange(filePath, before, after));
+    assert.ok(result.signals.riskFlags.includes("COMPLIANCE"), filePath);
+    assert.ok(result.plan.lanes.some(({ id }) => id === "compliance-review"), filePath);
+  }
+  const prose = classifyReview(singleLineChange("docs/policies.md", "old policy", "HIPAA region: eu-west"));
+  assert.ok(!prose.signals.riskFlags.includes("COMPLIANCE"));
+  const unrelated = classifyReview(singleLineChange("src/Counter.cs", "return count;", "return count + 1;"));
+  assert.ok(!unrelated.plan.lanes.some(({ id }) => id === "compliance-review"));
+});
+
+test("compliance specialist requires project-specific stage and obligation evidence", () => {
+  const agent = readFileSync(path.join(root, "code-reviewer/agents/compliance-review.md"), "utf8");
+  assert.match(agent, /PoC.*Development \(not released\).*Alpha.*Production.*Unknown/s);
+  assert.match(agent, /Go Local/);
+  assert.match(agent, /question when applicability is unresolved/);
+  assert.match(agent, /PoC using real[\s\S]{0,50}regulated data/);
+  assert.match(agent, /not legal advice/);
+  assert.match(agent, /finding-schema\.md/);
+});
+
 test("bare, suffixed, and nested style modules select accessibility and CSS review", () => {
   for (const filePath of [
     "src/theme.ts", "src/themes.js", "src/styles.ts", "src/tokens.json",
@@ -380,6 +466,8 @@ test("agent frontmatter keeps the approved intelligence distribution", () => {
     "css-consistency-review": 2,
     "agent-contract-review": 3,
     "security-review": 4,
+    "invariant-deletion-review": 4,
+    "compliance-review": 4,
     "reliability-review": 4,
     "review-performance-judge": 3,
     "correctness-review": 4,
@@ -500,7 +588,10 @@ test("context gathering precedes file grouping and supplies specialist scope", (
   assert.match(step, /First establish the PR's intent and repository context\. Then group/);
   assert.match(step, /Account for every changed file/);
   assert.match(step, /supporting evidence, relevant specialist perspectives/);
-  assert.match(step, /Wait for the gatherer's result before accepting the file groups/);
+  assert.match(step, /Wait for the selected context path's result before accepting the file groups/);
+  assert.match(step, /For `daemon-direct`/);
+  assert.match(step, /For `deterministic-offline`/);
+  assert.match(step, /In default enrichment, read/);
   assert.match(step, /does not replace the classifier/);
 });
 

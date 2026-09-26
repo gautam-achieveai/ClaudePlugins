@@ -36,6 +36,33 @@ const DIFF = [
 
 const envelope = (agent, findings) => ({ agent, findings, questions: [], omittedSimilarCount: 0 });
 
+test("invariant lane findings use the shared filter and unchanged-code control", () => {
+  const diffText = "--- a/src/Store.cs\n+++ b/src/Store.cs\n@@ -1 +1 @@\n-Guard.Valid(item);\n+Save(item);\n";
+  const finding = {
+    id: null, severity: "HIGH", remediation: "SMALL", category: "Correctness",
+    file: "src/Store.cs", line: 1, instances: [], diffAnchor: "IN_DIFF",
+    issue: "Invalid items now reach Save",
+    underlyingProblem: "The domain guard was removed from the write path",
+    whyItMatters: "The store accepts invalid state",
+    requiredOutcome: "Invalid items cannot be saved",
+    suggestedPath: "Floor: restore the established guard",
+    doneWhen: "Invalid input is rejected in a regression test",
+    evidence: "src/Store.cs:1 replaces Guard.Valid with Save",
+    confidence: "CONFIRMED",
+  };
+  const result = runFilter({
+    diffText,
+    findings: [envelope("invariant-deletion-review", [
+      finding,
+      { ...finding, file: "src/Unchanged.cs", issue: "Existing guard gap" },
+    ])],
+  });
+  assert.equal(result.toVerify.length, 1);
+  assert.equal(result.toVerify[0].agent, "invariant-deletion-review");
+  assert.equal(result.toVerify[0].diffAnchor, "IN_DIFF");
+  assert.equal(result.preExisting.length, 1);
+});
+
 test("parseDiff records post-image line numbers of added lines", () => {
   const files = parseDiff(DIFF);
   assert.equal(files.size, 1);
