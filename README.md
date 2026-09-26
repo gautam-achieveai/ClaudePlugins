@@ -40,7 +40,7 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v2.0.0)
+### development (v2.1.0)
 
 Development methodology toolkit — Agile team delivery for large features, thin end-to-end slices, durable long-horizon progress, design-first brainstorming, autonomous design, scenario-driven development as the default testing flow (manual testing from the first runnable slice → regression tests for observed bugs → behavioral tests for material acceptance contracts → coverage-guided tests after all scenarios pass; TDD as an explicit opt-in), manual and automated verification, parallel subagent execution, review gates, course-correction when fixes stack, compound-learning lessons read back at plan time, and provider-agnostic work-item implementation. Ships two hooks: a PreToolUse guard that blocks git hook and signing bypasses, and a Stop gate that blocks ending a turn when code changed after the last test run (`DEVELOPMENT_HOOKS=off` disables it).
 
@@ -48,7 +48,7 @@ Development methodology toolkit — Agile team delivery for large features, thin
 
 **Agents**: `architect`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
 
-### code-reviewer (v1.26.0)
+### code-reviewer (v1.27.0)
 
 Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility), severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 
@@ -74,7 +74,7 @@ Zero-warning builds through systematic warning elimination, code formatting (ReS
 
 **Skills**: `clean-builds`
 
-### debugging (v1.5.0)
+### debugging (v1.6.0)
 
 Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.
 

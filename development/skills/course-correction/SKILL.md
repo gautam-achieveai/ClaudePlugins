@@ -7,6 +7,9 @@ disable-model-invocation: false
 
 # Course Correction
 
+**Primary objective:** Reassess work when evidence shows the current approach no longer fits the goal.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Stop, save, snapshot, revert, re-plan. Used by `development:agile-development`, `development:subagent-driven-development`, `development:implement`, and `development:work-on` when any tripwire below fires. Standalone use is fine.
 
 ## Tripwires

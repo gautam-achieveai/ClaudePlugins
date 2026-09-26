@@ -9,6 +9,9 @@ allowed-tools: Read, Bash, Skill, mcp__azure-devops__*
 
 # Post PR Review — Publish Results to GitHub or Azure DevOps
 
+**Primary objective:** Publish verified review results accurately and without duplicate or misplaced feedback.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Publish structured review results (findings, context questions, and summary) to a
 **GitHub or Azure DevOps** pull request. This skill owns the full "write to the PR
 provider" workflow — the caller provides the data, this skill resolves the provider

@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Implement
 
+**Primary objective:** Implement the approved outcome with focused changes and observable proof.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 The engine that turns an **approved plan** into **working, reviewed, verified
 code**. It sits between planning and publishing:
 

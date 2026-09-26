@@ -9,6 +9,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, Task, TodoW
 
 # Pull Request Code Reviewer
 
+**Primary objective:** Help a PR reach its stated goal through evidence-based, actionable review.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Review individual PRs for code quality, security (OWASP Top 10), performance, and testing adequacy.
 
 **Progressive loading:** this file is the workflow spine. Each step names the

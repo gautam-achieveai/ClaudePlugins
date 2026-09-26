@@ -12,6 +12,9 @@ allowed-tools:
 
 # Schema Compatibility Review — Methodology
 
+**Primary objective:** Detect compatibility breaks across persisted, public, and wire-level data shapes.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 This skill is the working methodology for any reviewer (human or agent) checking that schema and
 wire-contract changes are safe to deploy. It applies to every place where data crosses a version
 boundary: a write today must be readable by code deployed yesterday and by code deployed tomorrow.

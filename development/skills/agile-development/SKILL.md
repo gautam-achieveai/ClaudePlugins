@@ -7,6 +7,9 @@ disable-model-invocation: false
 
 # Agile Development
 
+**Primary objective:** Deliver usable changes in small, verified slices with timely team feedback.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Deliver a large feature through thin, manually testable slices while preserving enough durable state to continue autonomously until the whole acceptance contract is complete.
 
 Keep this workflow model-neutral. Modern long-horizon models, including Claude Fable 5.1 and GPT-6 Astra, need clear completion boundaries and persistent project state more than detailed handholding.

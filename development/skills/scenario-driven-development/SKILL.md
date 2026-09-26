@@ -7,6 +7,9 @@ disable-model-invocation: false
 
 # Scenario-Driven Development
 
+**Primary objective:** Prove the user workflow by hand before locking behavior into regression tests.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 The default way to prove a change works. Three activities, with manual testing starting as soon as the first tiny slice runs:
 
 1. **Scenario manual testing** — keep testing each runnable slice the way a user uses it.

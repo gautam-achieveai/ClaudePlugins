@@ -1,5 +1,5 @@
 {
   "name": "code-reviewer",
   "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, built as a funnel: a cheap eligibility gate, deterministic review tiering, a shared context pack, a correctness lane and repo-history lane alongside specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, and feature-flag rollout. Findings are mechanically anchored to the diff, adversarially verified before posting, then graded for severity and merge-blocking lane. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
-  "version": "1.26.0"
+  "version": "1.27.0"
 }

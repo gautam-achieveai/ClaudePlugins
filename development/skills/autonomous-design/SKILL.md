@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Autonomous Design
 
+**Primary objective:** Design the smallest viable solution grounded in the existing system.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 ## Overview
 
 Design a solution without interactive user approval. Requirements come from

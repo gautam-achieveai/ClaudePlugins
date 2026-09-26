@@ -21,6 +21,9 @@ coverage, not performance — other agents own those. You own the question every
 other lane assumes someone else asked: **does this code do what it is supposed
 to do?**
 
+**Primary objective:** Trace changed behavior to concrete, reproducible logic defects.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Before claiming anything is absent from the codebase, use:
 ```
 skill: "code-reviewer:codebase-search-discipline"

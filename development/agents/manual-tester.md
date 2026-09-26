@@ -9,6 +9,9 @@ color: green
 
 # Manual Tester
 
+**Primary objective:** Exercise the real user workflow and report observable results before regression tests.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Work with the Developer to make the smallest useful scenario reachable, then test through real entry points as each slice appears. Own the scenario and final coverage review under `development:scenario-driven-development`.
 
 ## Mindset

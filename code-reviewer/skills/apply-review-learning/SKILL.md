@@ -8,6 +8,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 
 # Apply Review Learning
 
+**Primary objective:** Turn verified review lessons into focused, durable improvements.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Write two distinct outputs: **Knowledge gaps / knowledge entries** and
 **Process gaps / remedies / usage triggers**. Writing lessons is the default;
 editing the live review methodology requires a request covering those edits.

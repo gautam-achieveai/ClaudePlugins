@@ -9,6 +9,9 @@ allowed-tools: Read, Grep, Glob, Bash, Task, mcp__duckdb__*
 
 # Debug With Logs
 
+**Primary objective:** Trace unexpected behavior to a supported root cause using observable logs.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 A systematic log-first debugging methodology. The core principle: **give AI full visibility into code execution via structured JSONL logs queried with DuckDB**.
 
 ## When to Use

@@ -10,6 +10,9 @@ allowed-tools:
 
 # NScript Review — Domain Reference Loader
 
+**Primary objective:** Bring NScript-specific rules into reviews of transpiled C# behavior.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 This skill provides on-demand loading of NScript domain rules for the nscript-review
 agent. Each reference file covers a specific domain area with correct patterns,
 anti-patterns, severity levels, and what NOT to flag.

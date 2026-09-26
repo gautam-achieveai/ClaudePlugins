@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Subagent-Driven Development
 
+**Primary objective:** Delegate bounded development work while retaining clear ownership and verification.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Adapted from obra/superpowers `subagent-driven-development` (MIT).
 
 Execute a plan by dispatching a fresh implementer subagent per task, one task review (spec compliance + code quality) after each, and one broad whole-branch review at the end.

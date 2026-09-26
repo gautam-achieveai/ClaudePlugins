@@ -29,6 +29,9 @@ skill: "code-reviewer:over-engineering-review"
 
 # Over-Engineering Review Agent
 
+**Primary objective:** Distinguish justified implementation from unnecessary complexity or hollow completion.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 You compare what the PR was *asked* to do against what it *actually* delivered.
 Own unnecessary complexity and mismatches between implementation claims and
 delivered behavior. A plausible-looking implementation can both overbuild the

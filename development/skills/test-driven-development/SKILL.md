@@ -9,6 +9,9 @@ disable-model-invocation: false
 
 # Test-Driven Development (TDD)
 
+**Primary objective:** Drive behavior through a failing test, a minimal change, and a verified pass.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Adapted from obra/superpowers `test-driven-development` (MIT).
 
 **Opt-in.** The default mode is `development:scenario-driven-development` (scenario manual testing → regression tests → coverage-guided tests). Use TDD only when the user asks for it. When they do, the rules below apply in full.

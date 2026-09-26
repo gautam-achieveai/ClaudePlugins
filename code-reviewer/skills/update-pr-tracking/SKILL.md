@@ -9,6 +9,9 @@ allowed-tools: Read, Write, Edit, Bash, Glob
 
 # Update PR Tracking
 
+**Primary objective:** Keep PR review tracking accurate and tied to observed review outcomes.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Persist review results to local tracking files so future reviews know what was
 already reviewed and when. This skill is the single source of truth for all
 tracking file operations — other skills use it rather than writing tracking

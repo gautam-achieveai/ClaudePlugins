@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Verification Before Completion
 
+**Primary objective:** Make completion claims match checks that were actually run and observed.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 ## Overview
 
 Claiming work is complete without verification is dishonesty, not efficiency.

@@ -9,6 +9,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure
 
 # Review Pending PRs — Batch Orchestrator
 
+**Primary objective:** Coordinate pending PR reviews without losing per-PR evidence or review quality.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Discover active PRs from the repository provider (GitHub or Azure DevOps), compare against local tracking state, and review PRs that have updates older than 15 minutes since the last review. Delegates each individual review to the `code-reviewer:pr-review` skill.
 
 > **Provider note:** This workflow runs on **GitHub or Azure DevOps** — resolve the

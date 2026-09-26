@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Acting on Code Review Feedback
 
+**Primary objective:** Resolve review feedback from technical evidence rather than reflexive agreement.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 ## Overview
 
 Code review feedback is a list of **suggestions to evaluate, not orders to follow.**

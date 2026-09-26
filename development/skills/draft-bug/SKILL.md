@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Draft Bug
 
+**Primary objective:** Turn a reported defect into an actionable, evidence-based bug description.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 You produce a **root-caused, reproducible bug write-up** from a defect report.
 You do NOT create the work item and you do NOT detect the provider — the
 `development:draft-work-item` router resolved the provider and will handle

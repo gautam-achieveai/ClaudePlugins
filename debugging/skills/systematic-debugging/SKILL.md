@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Systematic Debugging
 
+**Primary objective:** Find and verify a defect's root cause before changing its behavior.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 ## Overview
 
 Random fixes waste time and create new bugs. Quick patches mask underlying issues.

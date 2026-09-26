@@ -10,6 +10,9 @@ allowed-tools:
 
 # Codebase Search Discipline
 
+**Primary objective:** Ground codebase claims in bounded searches whose evidence supports their scope.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Before making any claim about what exists or doesn't exist in a codebase — or
 making `only`, `all`, `always`, `never`, or `every` claims from search results
 — you MUST follow the search discipline rules.

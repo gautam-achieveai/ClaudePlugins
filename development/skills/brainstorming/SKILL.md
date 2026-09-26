@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Brainstorming Ideas Into Designs
 
+**Primary objective:** Explore a problem with the user until a small, coherent design emerges.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Adapted from obra/superpowers `brainstorming` (MIT).
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.

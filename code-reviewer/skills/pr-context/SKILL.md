@@ -9,6 +9,9 @@ allowed-tools: Read, Write, Bash, Skill, Agent, mcp__azure-devops__*
 
 # PR Context — Work Item / Issue Hierarchy Gatherer
 
+**Primary objective:** Establish sourced PR intent, dependencies, and deployment context for reviewers.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Build a complete picture of a PR's business context by traversing the work item /
 issue graph on **GitHub or Azure DevOps**. This helps reviewers understand not just
 WHAT the code changes, but WHY it exists and WHERE it fits in the larger initiative.

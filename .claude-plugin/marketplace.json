@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.18.0"
+    "version": "1.19.0"
   },
   "plugins": [
     {
@@ -93,7 +93,7 @@
       "name": "development",
       "source": "./development",
       "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, early and continuous manual testing, observed-defect regression tests, behavioral tests for material acceptance contracts, final coverage review, verification, and final review. Includes Architect, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (manual testing from the first runnable slice, defect regressions, behavioral contract tests, then coverage-guided tests after all scenarios pass), with TDD as an explicit opt-in; subagent-driven execution; course-correction when fixes stack; compound-learning lessons read back at plan time; hooks that block git bypasses and untested completion; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "category": "development",
       "tags": [
         "methodology",
@@ -156,7 +156,7 @@
       "name": "code-reviewer",
       "source": "./code-reviewer",
       "description": "Code review toolkit with a general Code Reviewer agent for independent feature and merge-readiness review, built as a funnel: a cheap eligibility gate, deterministic review tiering, a shared context pack, a correctness lane and repo-history lane alongside specialized agents for duplicate detection, EUII leak scanning, exception handling, test coverage, design and code simplification, over-engineering and scope creep, architecture, performance, schema and wire compatibility, and feature-flag rollout. Findings are mechanically anchored to the diff, adversarially verified before posting, then synthesized into root causes, graded for severity and merge-blocking lane, and sequenced into an ordered fix plan, with each agent declaring the model-intelligence tier its work actually needs. Includes provider-aware review automation, structured comment publishing, and batch PR review orchestration.",
-      "version": "1.26.0",
+      "version": "1.27.0",
       "category": "development",
       "tags": [
         "review",
@@ -248,7 +248,7 @@
       "name": "debugging",
       "source": "./debugging",
       "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "category": "development",
       "tags": [
         "debugging",

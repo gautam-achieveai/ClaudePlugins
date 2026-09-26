@@ -11,6 +11,9 @@ allowed-tools:
 
 # Orleans Review — Delegating Domain Loader
 
+**Primary objective:** Equip Orleans reviews with the domain rules needed to catch real actor-model defects.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 This skill loads Orleans domain knowledge from the `orleans-dev` plugin and adds
 review-specific context on top. It does NOT maintain its own copy of Orleans rules.
 

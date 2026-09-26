@@ -11,6 +11,9 @@ skills:
 
 # PR Context Gatherer Agent
 
+**Primary objective:** Supply reviewers with sourced PR goals, dependencies, and deployment context.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Use the bundled `pr-context` skill as this agent's governing workflow. Because that
 skill dispatches this agent, do not dispatch another `pr-context-gatherer` from
 inside this agent. Consume its parsed controls when supplied; for a direct legacy

@@ -9,6 +9,9 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 
 # Logging Enablement
 
+**Primary objective:** Enable structured, queryable logs that make production and test behavior diagnosable.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Set up structured JSONL logging in a codebase so it's ready for log-first debugging.
 
 ## When to Use

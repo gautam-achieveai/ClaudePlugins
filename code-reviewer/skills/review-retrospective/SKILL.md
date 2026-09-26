@@ -8,6 +8,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Task
 
 # Review Retrospective
 
+**Primary objective:** Learn from review outcomes and human feedback without rewriting the original verdict.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 Explain what the reviewer missed, why the human could answer, and what should
 improve next time. Assess the review, not the developer. A posted review alone
 does not trigger a retrospective; use new human feedback or an explicit request.

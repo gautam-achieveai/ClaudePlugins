@@ -7,6 +7,9 @@ disable-model-invocation: false
 
 # Compound Learning
 
+**Primary objective:** Capture verified lessons that help future work without turning speculation into policy.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 One durable lesson per finished task, stored where the next plan will find it. Two operations: **Write** at the end of a task, **Read-back** at plan time.
 
 ## The counterfactual gate

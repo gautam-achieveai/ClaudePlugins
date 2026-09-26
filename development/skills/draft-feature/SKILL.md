@@ -8,6 +8,9 @@ disable-model-invocation: false
 
 # Draft Feature
 
+**Primary objective:** Describe a feature's user value and acceptance boundaries before implementation.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 You derive **high-quality feature requirements** from a rough idea. You do NOT
 create the work item and you do NOT detect the provider — the
 `development:draft-work-item` router already resolved the provider and will

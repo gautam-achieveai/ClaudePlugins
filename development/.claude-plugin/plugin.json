@@ -1,5 +1,5 @@
 {
   "name": "development",
   "description": "Development methodology toolkit with Agile team delivery for large, long-horizon features. The agile-development skill coordinates thin end-to-end slices, durable progress state, early and continuous manual testing, observed-defect regression tests, behavioral tests for material acceptance contracts, final coverage review, verification, and final review. Includes Architect, Manual Tester, Developer, Critic, and blind-spot agents; design-first brainstorming; autonomous design; scenario-driven development as the default testing flow (manual testing from the first runnable slice, defect regressions, behavioral contract tests, then coverage-guided tests after all scenarios pass), with TDD as an explicit opt-in; subagent-driven execution; course-correction when fixes stack; compound-learning lessons read back at plan time; hooks that block git bypasses and untested completion; completion verification; code-review triage; work-item drafting; and provider-agnostic work-on and implement workflows.",
-  "version": "2.0.0"
+  "version": "2.1.0"
 }

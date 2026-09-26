@@ -12,6 +12,9 @@ allowed-tools:
 
 # Over-Engineering Review — Methodology
 
+**Primary objective:** Compare the requested outcome with the delivered solution and its complexity.
+**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+
 This skill is the working methodology used by the `over-engineering-review` agent and any
 other reviewer that needs to compare *delivered* code to *requested* scope. It catalogues
 ten excess-scope patterns and six implementation-fit checks, with evidence requirements,
