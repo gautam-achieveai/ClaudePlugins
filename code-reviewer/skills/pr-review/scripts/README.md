@@ -2,6 +2,22 @@
 
 Automation scripts for conducting comprehensive pull request code reviews.
 
+## review-artifacts.mjs
+
+Capture and validate immutable review-stage results using the
+[shared handoff contract](../../../references/review-handoffs.md). It computes
+snapshot identity from captured diff bytes and repository/head/base metadata,
+preserves native JSON or Markdown payloads, and rejects stale assignments,
+corrupt artifacts, output collisions and incomplete candidate accounting.
+Read-only workers return their result; host/controller owns persistence.
+Validation is not proof of agent execution or semantic correctness.
+
+```text
+node review-artifacts.mjs snapshot --context <context.json>
+node review-artifacts.mjs capture --assignment <assignment.json> --input <raw-result> --out <artifact.json>
+node review-artifacts.mjs read --assignment <assignment.json> --input <artifact.json>
+```
+
 ## classify-review.mjs
 
 Deterministic cost/quality router. Run it immediately after creating the
@@ -30,6 +46,12 @@ model names. When both are available, the classifier verifies that the diff
 covers the context pack's exact changed-file list. A mismatch fails closed; the
 skill workflow reports it and uses the documented LARGE fallback.
 
+Every tier offers conditional adjudication for contested findings. Size alone
+does not add overlapping design lanes or split correctness (`splitCorrectnessByArea`
+is false). A new project or module still selects architecture review as a
+structural signal. The orchestrator records bounded independent investigation
+requests and evidenced design questions as plan amendments before dispatch.
+
 ## filter-findings.mjs
 
 Deterministic pre-verification filter. Run it at step 10a, after collecting
@@ -57,9 +79,12 @@ It does three things no model should be asked to do:
    it moves to `preExisting`, which never blocks and never gets an inline
    comment. An exactly-cited line is marked `anchorMatch: "EXACT"`; one inside
    the slack window is marked `NEAR` so the verifier re-checks it.
-2. **Merges** duplicates across agents — same file, nearby line, overlapping
-   description — keeping the richer record, the higher severity, and the union
-   of `instances`.
+2. **Merges** only exact candidates at the same location with matching claim,
+   mechanism, trigger, disconfirmation, status, exposure, enabling change,
+   consequence, required outcome, and closure check.
+   Preserve every original in `candidateSources`, the highest proposed severity,
+   and the union of `instances`. Similar wording or nearby lines is insufficient;
+   causal equivalence belongs to verification/synthesis.
 3. **Caps** each agent at `--max-per-agent`, highest severity first.
 
 Output: `{ stats, toVerify, preExisting, dropped, merges }`. Exit code `2` means

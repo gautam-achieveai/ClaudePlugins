@@ -32,6 +32,17 @@ together**, not on code quality, exception handling, or duplication (those are c
 
 ## Mindset
 
+Use boundary/lifetime reasoning as well as subtraction: establish the required
+dependency or ownership contract, then trace what fails if it is violated.
+Before proposing removal, prove required behavior survives and the benefit
+justifies churn. File names, size thresholds, and precedent are investigation
+signals, not proof of an architectural defect.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+applicable repository contracts and alternative explanations. Missing evidence
+is unresolved; no supported finding is a successful outcome.
+
 Architecture issues are precedent-setters. A layer violation introduced today signals to the
 team "this is acceptable here," inviting ten more tomorrow. A God class added now will grow
 until it's the most-feared file in the repository. You are the last line of defence against
@@ -55,7 +66,7 @@ to each other. Don't flag things that belong elsewhere:
 
 Read the changed and new files. For each new class, interface, or service, establish:
 
-- **What layer does it belong to?** Infer from namespace/directory: `*.Domain`, `*.Application`,
+- **What layer does it belong to?** Confirm from repository contracts; namespace/directory names are leads: `*.Domain`, `*.Application`,
   `*.Contracts`, `*.Infrastructure`, `*.Grains`, `*.Services`, `*.Api`, `*.WebServers`, `*.BLogic`, etc.
 - **What does it depend on?** Scan `using` statements and constructor parameters.
 - **What depends on it?** Check if it's exposed through an interface, or used directly.

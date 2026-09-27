@@ -36,8 +36,12 @@ Once data is written in the new shape, the old shape is gone. You cannot roll ba
 without losing the writes that happened after the migration. That makes schema changes one of
 the few categories where "we'll fix it forward" is genuinely a one-way door.
 
-Hold a high bar here. **Default backward-incompatible schema changes to CRITICAL** until an
-explicit migration plan is in place.
+Hold a high bar for both confirmation and refutation. Establish affected
+producers, consumers, stored data, and reachable version/deployment windows
+before grading. An unknown migration plan is missing evidence, not CRITICAL
+impact. Distinguish unsafe merge behavior from deployment/activation prerequisites.
+Verify platform/version claims against authoritative documentation or a safe
+minimal reproduction; otherwise preserve the exact unresolved premise.
 
 ## When to Use This Skill
 
@@ -113,10 +117,9 @@ compatibility (old code may still try to write this field).
 - Renaming the wire identifier (the field number, the JSON key, the `[Id]` number) is the same
   as deleting and re-adding — the old data is unreadable under the new name.
 
-**Severity:** **CRITICAL** by default for any shape that is persisted, sent over a network, or
-written to a queue. HIGH if the type is purely in-process but crosses a deployable boundary.
-LOW only when you can prove no instance of the old shape exists anywhere — typically a brand-new
-type added and removed in the same PR.
+**Severity:** Grade traced reader/writer failures and their actual exposure.
+Persistence or transport alone assigns no severity. If no affected old shape
+or consumer exists, do not report a compatibility break.
 
 **Recommendation:** Don't remove or rename. Instead:
 1. Mark the field obsolete/deprecated and keep it readable.
@@ -159,9 +162,9 @@ payload).
 - Database NOT-NULL constraints without a default cause the migration itself to fail on
   any non-empty table.
 
-**Severity:** **CRITICAL** when persisted data or in-flight messages may lack the field. HIGH
-for new wire contracts where old clients exist. MEDIUM when the field is added to a brand-new
-type only created by the new code.
+**Severity:** Establish which existing data/messages lack the field and how
+readers handle it. Grade the demonstrated consequence; unknown data or consumer
+behavior remains unresolved. A safe new type is not a defect.
 
 **Recommendation:** Make the field optional (`?`, `Option<T>`, proto3 `optional`, nullable
 column) with a sensible default. If the value is genuinely required for new logic, treat
@@ -205,8 +208,8 @@ that crosses the boundary.
   both sides individually look correct.
 - Enum encoding flips break every previously-persisted value.
 
-**Severity:** **CRITICAL** when the change crosses a persistence or network boundary. HIGH for
-purely in-process changes if the type is shared across deployables.
+**Severity:** Grade the actual parse or semantic failure for reachable consumers,
+not the mere existence of a persistence/network boundary.
 
 **Recommendation:** Don't change types in place. Add a new field with the new type, populate
 both during the transition, switch readers to the new field, then deprecate the old. For unit
@@ -244,8 +247,9 @@ code either rejects them or silently maps them to a different value.
 - For string-encoded enums, renaming a value breaks JSON deserialization and any downstream
   filter/query that referenced the old name.
 
-**Severity:** **CRITICAL** for any enum that is persisted or transmitted. HIGH for purely
-in-process enums that cross a deployable boundary.
+**Severity:** Grade the actual handling of old and new values by reachable
+consumers. Verified tolerant readers refute a claimed break; unknown handling
+leaves it unresolved.
 
 **Recommendation:** Don't remove enum values. Mark them `[Obsolete]` and stop *producing* them
 in a release after all consumers have updated their handling. Don't renumber — for protobuf,
@@ -281,9 +285,9 @@ a min/max range narrowed, a regex pattern got tighter, a unique index was added.
   failing for no apparent reason.
 - Unique constraints can fail on legitimate historical duplicates that were valid at the time.
 
-**Severity:** **CRITICAL** if the constraint applies to persisted data and existing rows might
-violate it. HIGH for API request validation tightening (old clients silently break). LOW when
-the constraint is on a brand-new field added in the same PR.
+**Severity:** Trace affected rows or existing callers to rejection/corruption
+and grade that consequence. Rows that merely might violate an unknown constraint
+are an unresolved premise, not confirmed catastrophic impact.
 
 **Recommendation:** Audit existing data first. Either:
 - Backfill / clean the data to satisfy the new constraint before tightening, or
@@ -325,10 +329,9 @@ the new behavior until the server is ready.
 - Even in service-to-service contexts with rolling deploys, the same service has old and new
   pods running simultaneously during the rollout.
 
-**Severity:** **CRITICAL** when the rollout would produce a user-visible failure (client errors,
-500s, broken pages). HIGH when there is a graceful degradation but no flag (the new behavior
-quietly doesn't work for a window). MEDIUM if both sides are internal services with coordinated
-deploy and the window is short.
+**Severity:** Grade the reachable failure's scope, duration, and recovery.
+A user-visible error is not automatically catastrophic. Separate an activation
+prerequisite from current merge/deployment exposure and check existing guards.
 
 **Recommendation:** One of:
 - **Flag-gate the client behavior.** Wrap the new request/response shape in `if (featureEnabled)`
@@ -374,9 +377,9 @@ a customer integration, a third-party webhook, persisted data with a long retent
   `userId: string`, you cannot change it to `userId: int` without breaking them, period.
 - Even strictly-additive changes can break consumers running strict-mode schema validation.
 
-**Severity:** **CRITICAL** for any back-incompat change to a public/external surface, unless the
-PR explicitly documents a versioning strategy (`/v2/users`, breaking change in a major SDK
-version with announcement).
+**Severity:** Establish supported client versions and the applicable public
+contract, then grade the actual break. Verify whether versioning/deprecation
+prevents exposure rather than inferring impact from a public-surface label.
 
 **Recommendation:** Treat public surface as append-only or versioned:
 - Add new endpoints / new fields rather than changing old ones.
@@ -423,9 +426,9 @@ other.
 - The fix is usually obvious in retrospect (share the type, generate from a schema, add a
   contract test) but the bug can sit dormant for months until a field is touched.
 
-**Severity:** HIGH when the mismatch is on a critical path or a frequently-changed type;
-MEDIUM otherwise. CRITICAL when the PR is *introducing* the duplication (now is the cheapest
-moment to fix it).
+**Severity:** Grade demonstrated serializer mismatch or concrete maintenance
+risk, not duplicate declarations or cheap remediation. Matching types are not
+a runtime break merely because separate declarations were introduced now.
 
 **Recommendation:** Use one of:
 - **Share the type.** Move the DTO to a shared library/project that both producer and consumer
@@ -477,9 +480,9 @@ migrations hit all three because the database outlives every individual deploy.
 - Reverting code is cheap; reverting migrations after data has been written under the new
   shape is expensive or impossible.
 
-**Severity:** **CRITICAL** by default. The blast radius of a bad migration is the whole product;
-even a working migration that hasn't been thought through for rolling deploys can break
-production.
+**Severity:** Establish affected data, actual lock/runtime behavior, rollback
+constraints, and deployment exposure. Reserve CRITICAL for demonstrated
+catastrophic consequences; an unknown migration prerequisite remains unresolved.
 
 **Recommendation:** Apply the **expand–migrate–contract** pattern:
 1. **Expand:** add new shape alongside the old. New column is nullable; new table coexists
@@ -576,10 +579,10 @@ finding's `confidence` accordingly.
   which deserialize into their own copies of the type and read `OrderId`. After this deploy, in-
   flight messages written by the old producer will deserialize into a `null` `OrderId` on the
   consumer side and silently fail." is useful.
-- **Compatibility is asymmetric in cost.** A false-negative (you miss a real break) is much
-  worse than a false-positive (you flag something safe). When uncertain, flag the finding with
-  `confidence: "UNVERIFIED"` and add the clarification you need to `questions`, rather than
-  waving the change through.
+- **Preserve uncertainty.** False positives and missed breaks both matter.
+  Retain a material concrete hypothesis with `evidenceStatus: "UNRESOLVED"` and
+  its exact missing evidence; do not promote it to a confirmed defect or blocker.
+  Check the strongest applicable guard or compatible-reader explanation.
 - **Acknowledge safe schema changes.** Strictly-additive changes with sensible defaults, proper
   reserved markers, and a documented rollout plan are exactly what you want to see. Say so
   explicitly in `coverageNote`. Reviewers who only surface negatives lose credibility.

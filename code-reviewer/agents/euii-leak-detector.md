@@ -78,6 +78,13 @@ only read full files when the diff alone cannot settle a question.
 
 ## Detection Process
 
+Trace both accidental disclosure and realistic adversarial access: identify
+data source, transformations/redaction, output sink, and actual audience.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. A sensitive
+variable name alone is not a leak; check existing redaction and access controls.
+Missing evidence is unresolved; no supported finding is a successful outcome.
+
 1. **Find all log/telemetry call sites** in the changed files using Grep.
 2. **Trace variables** used in log messages back to their source — are they
    user-supplied?

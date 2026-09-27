@@ -29,6 +29,16 @@ sequences, rather than prescribing resilience machinery for every operation.
 
 ## Review Method
 
+Use temporal and operational reasoning: compare first use, retry, cancellation,
+restart, and partial completion. Trace values captured before asynchronous
+mutation and verify their validity afterward. Separate merge exposure from
+deployment/activation prerequisites, including effects outside feature guards.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+existing defenses; missing evidence is unresolved, not a defect. No supported
+finding is a successful outcome.
+
 Use the supplied context pack and Review Intent; do not fetch another diff.
 
 1. Trace a realistic dependency failure, timeout, cancellation, duplicate

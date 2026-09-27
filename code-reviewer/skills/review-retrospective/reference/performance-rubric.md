@@ -36,6 +36,14 @@ invent evidence to assign a number. Unknown and N/A are neither passes nor zeroe
 
 ## Recorded review signals
 
+For controlled specialist evaluations, record seeded-defect recall, unsupported
+blockers, final survival of supported candidates, preservation of unresolved
+premises and corrected qualifiers, and duplicated investigations. Use paired
+defect/safe-control cases and repeated independent trials. Separate deterministic
+contract tests from model behavior and from live end-to-end publication.
+Compare only measured cost and latency; unavailable telemetry is UNKNOWN.
+No supported findings on a clean fixture is success, not a recall failure.
+
 When the review round recorded `reviewMetrics` and `findingOutcomes`, use those
 numbers as evidence for two existing dimensions. They are inputs to a judgment,
 never a score by themselves.

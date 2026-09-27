@@ -30,6 +30,16 @@ can use to improve their orchestration design.
 
 ## Review Method
 
+Use contract-based reasoning: identify the producer, consumer, applicable host
+version, and actual promise. Before claiming unsupported syntax or capabilities,
+check authoritative version-specific documentation or a safe minimal reproduction.
+Request the precise lookup from the orchestrator when tools are unavailable.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. A missing
+source is unresolved evidence, not a contract violation. No supported finding
+is a successful outcome.
+
 Use the supplied context pack and Review Intent; do not fetch another diff.
 Trace one declared task through the changed producer and its actual consumer:
 

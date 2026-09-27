@@ -3,10 +3,9 @@
 Load this file at **Step 10a**, after every dispatched agent has returned its
 JSON envelope and before anything is graded.
 
-These two stages exist because of one asymmetry: **generating a plausible
-finding is cheap, and checking one is cheaper still.** A review that ships a
-confident, wrong finding costs more credibility than one that misses something,
-so everything between "an agent said it" and "we posted it" is filtering.
+These stages test candidate claims before publication. False positives waste
+author effort; false negatives ship defects. Require evidence for both support
+and refutation, and preserve material unresolved claims rather than voting them away.
 
 ## Step 10a: Mechanical filter
 
@@ -20,11 +19,15 @@ node "${CLAUDE_SKILL_DIR}/scripts/filter-findings.mjs" \
   --out <scratch>/pr-<number>/filtered.json
 ```
 
-The script anchors each finding to the diff, merges duplicates across agents,
+The script anchors each finding to the diff, merges exact candidates across agents,
 and applies the per-agent cap. It outputs `toVerify`, `preExisting`, `dropped`,
 and `merges`, plus a `stats` block that feeds `reviewMetrics` at step 13.
 
 - `toVerify` continues to step 10b.
+- Preserve `candidateSources` on every record. Exact duplicates retain all
+  source evidence; nearby or similarly worded claims remain separate until a
+  reviewer verifies causal equivalence. Never discard lifecycle distinctions,
+  guards, or exposure qualifiers to shorten the list.
 - `preExisting` never blocks and never goes to the grader. Report it in its own
   summary section so the author sees it without it gating merge.
 - A finding whose `anchorMatch` is `NEAR` had its line cited close to, but not
@@ -39,23 +42,32 @@ with unanchored findings.
 
 ## Step 10b: Verification
 
-Dispatch one `finding-verifier` (haiku) per finding in `toVerify`, each with:
+Dispatch one `finding-verifier` per finding in `toVerify` using the plan's tier, each with:
 the single finding, the context pack paths, and one lens (`REACHABILITY`,
-`CORRECTNESS`, or `DEFENSES` — pick the lens most likely to kill this
-particular finding).
+`CORRECTNESS`, or `DEFENSES` — pick the lens that checks its decisive premise),
+and every `candidateSources` record.
 
 - Verifiers run in parallel and never see each other's verdicts.
-- Attach each verdict to its finding as the `verification` object.
-- `FALSE_POSITIVE` findings are dropped before grading. Keep them in the review
-  artifacts with their reason so the retrospective can measure the filter.
-- `UNPROVEN` findings continue, but can never block and never exceed MEDIUM
-  severity.
+- Preserve every result in `verification.checks[]`; aggregate using the
+  [finding schema](finding-schema.md), not a vote or a last-writer-wins verdict.
 - For a `CRITICAL` or `HIGH` finding, run a **second verifier on a different
-  lens**. Both must avoid `FALSE_POSITIVE` for it to stay at that severity.
+  lens**, even if the first refutes it. Both must establish the causal chain
+  for it to remain supported. Use the plan's stronger second-lens tier.
+- If checks disagree, retain the candidate and both results as contested,
+  with aggregate `UNPROVEN`. Dispatch the planned adjudicator now, before
+  dropping or grading, at any review size. Preserve original severity as a
+  proposal in the audit record, not a confirmed blocker.
+- Apply only evidence-backed rulings to the aggregate. If the crux remains
+  unknown, keep `UNPROVEN`, the exact missing evidence, and the author question.
+- Drop only a finally refuted `FALSE_POSITIVE` candidate. Keep its sources,
+  decisive counterevidence, and disposition in artifacts. `UNPROVEN` continues
+  separately, never blocks, and has a reporting ceiling of MEDIUM; describe
+  any conditional consequence without presenting it as established impact.
 
-**The vote is counted here, in the workflow.** Never ask one model to
-adjudicate its own confidence: self-scored confidence has been measured as
-close to random, so it selects a lens and nothing more.
+Agreement is not verification. Check the deciding code path, guard, or
+version-specific contract independently. The grader calibrates only after
+this factual disposition; it can request targeted re-verification when new
+counterevidence appears, but cannot silently discard a supported chain.
 
 ## Lens selection
 

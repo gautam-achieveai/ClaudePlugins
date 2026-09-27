@@ -33,6 +33,11 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
 - For a legacy summary without these objects, reconstruct them once from the
   original work item/PR and provider threads, mark unknown fields explicitly,
   and persist the canonical objects in this re-review summary.
+- Recover `unresolvedClaims[]` from the latest full canonical summary (on ADO,
+  look past delta-only replies). Preserve claims until new evidence changes
+  their disposition. An explicit empty array means none remain; a missing
+  legacy collection is unknown, not empty. Persist the updated collection even
+  when all claims are resolved.
 - **Extract previous `[QUESTION]` threads** — identify which questions were answered
   and which remain unanswered. Read the answers to build additional review context.
 
@@ -81,6 +86,12 @@ Status values: `ANSWERED`, `UNANSWERED`
 - Leave unanswered questions open — they are non-blocking and carry forward
 
 ## Step 3.5: Satisfaction Check
+
+Delegate substantive closure checks to the planned correctness reviewer (or
+the already-planned domain owner for its finding), with prior records and delta
+paths. The controller routes disputed evidence to verification/adjudication;
+the publisher applies the returned transitions. Do not repeat the code analysis
+in the controller or reset historical closure criteria.
 
 For each thread in the tracker, verify the resolution using the delta diff and
 the [Review Thread State Machine](../../../references/review-thread-state-machine.md):
@@ -318,8 +329,12 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
   error handling, or security-relevant code, do a full re-review regardless of
   size.
 - **Disable small-delta mode when state changes** — any Review Intent, verdict,
-  thread status, attempt count, or pending-action change requires the full
-  structured summary so durable state is not lost.
+  thread status, attempt count, pending-action, or `unresolvedClaims[]` change
+  requires the full structured summary so durable state is not lost. Compare
+  the current collection with recovered state, including additions, evidence
+  changes, and resolutions to empty. If prior claim state is unknown or cannot
+  be compared, use the full summary. Apply the posting skill's comparison rules;
+  unchanged claim state may retain small-delta mode when other checks pass.
 - **DO NOT POST** anything if nothing changed in the PR since last review.
 - **Incorporate answered questions** — read answers to previous `[QUESTION]`
   threads. Use the context they provide to inform the re-review. Close answered
@@ -332,7 +347,7 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
 
 ## Retrospective handoff
 
-After completing this round, invoke `code-reviewer:review-retrospective` when
+After completing this round, dispatch the `code-reviewer:review-retrospective` agent when
 new or edited human comments/answers exist, or a pending retrospective stage can
 now complete, even if no source code changed.
 Pass the original reviewed commit/round for each item, the current delta,

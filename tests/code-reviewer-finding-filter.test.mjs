@@ -193,20 +193,86 @@ test("parseRef reads file and line out of a reference with prose", () => {
   }
 });
 
-test("dedupe merges the same defect found by two agents and keeps the higher severity", () => {
+test("dedupe merges exact candidates without losing either agent's evidence", () => {
+  const claim = {
+    file: "src/Foo.cs", line: 14,
+    issue: "Index out of range when input is empty",
+    underlyingProblem: "idx equals Length",
+    trigger: "Caller passes an empty array",
+    disconfirmation: "Caller has no empty-input guard",
+    exposure: "Active request path",
+    evidenceStatus: "SUPPORTED",
+  };
+  const originals = [
+    { ...claim, agent: "correctness-review", severity: "HIGH", evidence: "Caller passes empty input at Foo.cs:10" },
+    { ...claim, agent: "performance-review", severity: "CRITICAL", evidence: "Index equals Length at Foo.cs:14", instances: ["src/Foo.cs:15"] },
+  ];
+  const before = structuredClone(originals);
   const { kept, merges } = dedupe(
-    [
-      { agent: "correctness-review", file: "src/Foo.cs", line: 14, severity: "HIGH", issue: "Index out of range when input is empty", underlyingProblem: "idx equals Length" },
-      { agent: "performance-review", file: "src/Foo.cs", line: 15, severity: "CRITICAL", issue: "Index out of range on empty input array", underlyingProblem: "idx equals Length so indexing overflows", instances: ["src/Foo.cs:15"] },
-    ],
+    originals,
     2
   );
   assert.equal(kept.length, 1);
   assert.equal(kept[0].severity, "CRITICAL");
   assert.equal(merges.length, 1);
   assert.deepEqual(kept[0].instances, ["src/Foo.cs:15"]);
+  assert.deepEqual(kept[0].candidateSources, before);
+  assert.deepEqual(originals, before, "deduplication must not mutate specialist output");
 });
 
+test("similar lifecycle claims remain separate until causal equivalence is verified", () => {
+  const candidate = {
+    agent: "correctness-review", file: "src/Export.ts", line: 14, severity: "HIGH",
+    issue: "Export captures the scope identifier before initialization",
+    underlyingProblem: "The identifier is captured before the operation creates the scope",
+    trigger: "First invocation with no scope",
+    disconfirmation: "No initialized scope exists",
+    exposure: "Enabled export action",
+    evidenceStatus: "SUPPORTED",
+  };
+  for (const delta of [
+    { trigger: "Retry after a context switch" },
+    { disconfirmation: "Shared caller initializes scope before export" },
+    { exposure: "Development-only disabled action" },
+    { evidenceStatus: "UNRESOLVED" },
+    { line: 15 },
+    { underlyingProblem: "The identifier is captured before the operation switches the scope" },
+  ]) {
+    const { kept } = dedupe([candidate, { ...candidate, agent: "reliability-review", ...delta }]);
+    assert.equal(kept.length, 2, JSON.stringify(delta));
+  }
+});
+
+test("dedupe leaves differing impact and closure guidance for verification", () => {
+  const candidate = {
+    agent: "correctness-review", file: "src/Foo.cs", line: 14,
+    issue: "Wrong result", underlyingProblem: "Wrong index",
+    trigger: "First use", disconfirmation: "No guard", exposure: "Active",
+    evidenceStatus: "SUPPORTED", severity: "LOW",
+    whyItMatters: "Limited impact", requiredOutcome: "", doneWhen: "",
+  };
+  for (const difference of [
+    { whyItMatters: "Data is lost" },
+    { requiredOutcome: "First use returns the right result" },
+    { doneWhen: "First-use regression passes" },
+  ]) {
+    const { kept } = dedupe([candidate, { ...candidate, agent: "agent-contract-review", severity: "HIGH", ...difference }]);
+    assert.equal(kept.length, 2, JSON.stringify(difference));
+    assert.equal(kept[0].severity, "LOW");
+  }
+});
+
+test("dedupe retains sources through repeated merging and JSON transport", () => {
+  const candidate = {
+    file: "src/Foo.cs", line: 14, issue: "Wrong result", underlyingProblem: "Wrong index", severity: "HIGH",
+    trigger: "First use", disconfirmation: "No guard", exposure: "Active",
+  };
+  const originals = ["a", "b", "c"].map((agent) => ({ ...candidate, agent, evidence: agent.toUpperCase() }));
+  const first = dedupe(originals.slice(0, 2));
+  const second = dedupe([...JSON.parse(JSON.stringify(first.kept)), originals[2]]);
+  assert.deepEqual(second.kept[0].candidateSources, originals);
+  assert.ok(second.kept[0].candidateSources.every((source) => !("candidateSources" in source)));
+});
 test("dedupe keeps genuinely different defects at the same location", () => {
   const { kept } = dedupe(
     [
@@ -225,8 +291,7 @@ test("loadFindings accepts envelopes, a single envelope, and a bare finding arra
 });
 
 test("the per-agent cap keeps the most severe findings", () => {
-  // Deliberately unrelated wording: findings that share vocabulary at the same
-  // line are treated as one defect by dedupe, which is tested separately.
+  // Distinct defects must remain distinct even at the same location.
   const subjects = [
     { issue: "logger writes the raw password", underlyingProblem: "credential reaches telemetry" },
     { issue: "timer never disposed", underlyingProblem: "handle leaks per request" },
@@ -257,7 +322,7 @@ test("runFilter reports a stat line that accounts for every received finding", (
         { file: "src/Baz.cs", line: 3, severity: "LOW", issue: "unrelated old issue", underlyingProblem: "none" },
       ]),
       envelope("performance-review", [
-        { file: "src/Foo.cs", line: 15, severity: "CRITICAL", issue: "Index out of range on empty input array", underlyingProblem: "idx equals Length so indexing overflows" },
+        { file: "src/Foo.cs", line: 14, severity: "CRITICAL", issue: "Index out of range when input is empty", underlyingProblem: "idx equals Length" },
       ]),
     ],
   });

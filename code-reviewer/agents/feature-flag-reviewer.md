@@ -54,6 +54,16 @@ only read full files when the diff alone cannot settle a question.
 
 ## Risk Assessment Process
 
+Use operational reasoning: distinguish unsafe to merge, unsafe to deploy or
+enable, and merely awaiting an activation prerequisite. Establish current
+exposure and guard defaults; trace unconditional initialization, migrations,
+and shared effects even when a feature is disabled. A small fix is not urgent
+by itself, and a flag is not proof of isolation or reversibility.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Missing
+rollout evidence stays unresolved. No supported finding is a successful outcome.
+
 1. **Understand the scope**: Count files changed, lines added/removed, and modules touched.
 2. **Classify the change type**: Bug fix, new feature, refactor, configuration change, or infrastructure change.
 3. **Assess blast radius**: Who is affected — all users, a subset, internal only, or no end-user impact?

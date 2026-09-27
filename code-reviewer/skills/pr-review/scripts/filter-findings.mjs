@@ -130,58 +130,36 @@ export const loadFindings = (parsed) => inspectFindings(parsed).findings;
 
 // ------------------------------------------------------------------ dedupe
 
-const STOP = new Set(["the", "a", "an", "is", "are", "to", "of", "in", "on", "and", "or", "for", "this", "that", "it", "be", "not", "with", "when", "if"]);
-
-export const tokens = (s) =>
-  new Set(
-    String(s || "")
-      .toLowerCase()
-      .split(/[^a-z0-9_]+/)
-      .filter((t) => t.length > 2 && !STOP.has(t))
-  );
-
-export function jaccard(a, b) {
-  if (a.size === 0 || b.size === 0) return 0;
-  let inter = 0;
-  for (const t of a) if (b.has(t)) inter += 1;
-  return inter / (a.size + b.size - inter);
-}
-
 const SEV_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
 export const sevRank = (s) => SEV_RANK[String(s || "").toUpperCase()] || 0;
-const filled = (f) => Object.values(f).filter((v) => v !== null && v !== undefined && v !== "").length;
+const CLAIM_FIELDS = [
+  "issue", "underlyingProblem", "trigger", "disconfirmation", "exposure",
+  "evidenceStatus", "enablingChange", "whyItMatters", "requiredOutcome", "doneWhen",
+];
+const sameClaim = (a, b) => a.issue && a.underlyingProblem
+  && a.line === b.line
+  && CLAIM_FIELDS.every((field) => a[field] === b[field]);
+const sourcesOf = ({ candidateSources, mergedFrom, ...finding }) =>
+  candidateSources?.length ? candidateSources : [finding];
 
-/** Merge findings that describe the same defect at the same place. */
-export function dedupe(findings, tolerance = DEFAULT_TOLERANCE) {
+/** Merge exact candidates only; causal equivalence requires a verifier, not text similarity. */
+export function dedupe(findings) {
   const kept = [];
   const merges = [];
 
   for (const f of findings) {
-    const fTok = tokens(`${f.issue} ${f.underlyingProblem}`);
     const fFile = normalizePath(f.file);
-    let target = null;
-
-    for (const k of kept) {
-      if (normalizePath(k.file) !== fFile) continue;
-      const near =
-        k.line === null || f.line === null || k.line === undefined || f.line === undefined
-          ? true
-          : Math.abs(Number(k.line) - Number(f.line)) <= tolerance;
-      if (!near) continue;
-      if (jaccard(tokens(`${k.issue} ${k.underlyingProblem}`), fTok) >= 0.5) { target = k; break; }
+    const target = kept.find((k) => normalizePath(k.file) === fFile && sameClaim(k, f));
+    if (!target) {
+      kept.push({ ...f, candidateSources: structuredClone(sourcesOf(f)), mergedFrom: [...(f.mergedFrom || [])] });
+      continue;
     }
 
-    if (!target) { kept.push({ ...f, mergedFrom: [] }); continue; }
-
-    // Keep the richer record; fold the other one's agent and instances in.
-    const winner = filled(f) > filled(target) ? { ...f, mergedFrom: target.mergedFrom } : target;
-    const loser = winner === target ? f : target;
-    if (winner !== target) kept[kept.indexOf(target)] = winner;
-
-    winner.severity = sevRank(winner.severity) >= sevRank(loser.severity) ? winner.severity : loser.severity;
-    winner.instances = [...new Set([...(winner.instances || []), ...(loser.instances || [])])];
-    winner.mergedFrom = [...new Set([...(winner.mergedFrom || []), loser.agent].filter(Boolean))];
-    merges.push({ agent: loser.agent, file: loser.file, line: loser.line ?? null, intoAgent: winner.agent });
+    target.candidateSources.push(...structuredClone(sourcesOf(f)));
+    target.severity = sevRank(target.severity) >= sevRank(f.severity) ? target.severity : f.severity;
+    target.instances = [...new Set([...(target.instances || []), ...(f.instances || [])])];
+    target.mergedFrom = [...new Set([...(target.mergedFrom || []), ...(f.mergedFrom || []), f.agent].filter(Boolean))];
+    merges.push({ agent: f.agent, file: f.file, line: f.line ?? null, intoAgent: target.agent });
   }
   return { kept, merges };
 }
@@ -227,7 +205,7 @@ export function runFilter({ diffText, findings, tolerance = DEFAULT_TOLERANCE, m
   const files = parseDiff(diffText);
   const { findings: all, rejected } = inspectFindings(findings);
   const { anchored, preExisting } = anchorFindings(all, files, tolerance);
-  const { kept, merges } = dedupe(anchored, tolerance);
+  const { kept, merges } = dedupe(anchored);
 
   const byAgent = new Map();
   for (const f of kept) {

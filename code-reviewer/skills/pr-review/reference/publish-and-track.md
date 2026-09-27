@@ -4,7 +4,18 @@ Load this file at **Steps 11-13** — when assembling durable thread state,
 handing findings to `post-pr-review`, and recording the review in tracking
 state.
 
+The `code-reviewer:post-pr-review` agent owns the assembly below. The controller
+passes validated artifacts and checks receipts; it does not repeat review or
+rewrite findings. Use the shared [handoff contract](../../../references/review-handoffs.md).
+
 ## Step 11: Review Thread State Contract
+
+Before building thread state, partition graded records: supported candidates
+become `findings[]`; material unresolved candidates become `unresolvedClaims[]`
+for the summary only. Keep stable IDs and all provenance in both collections.
+Only supported final findings require new thread records. Existing historical
+threads remain governed by the state machine; an unresolved premise alone
+does not authorize closing a historical blocker.
 
 Build `reviewThreads[]` from existing bot-owned finding threads plus new final
 findings. Each record:
@@ -43,6 +54,15 @@ Full lifecycle rules:
 
 ## Step 12: post-pr-review Input Contract
 
+Preserve `candidateSources`, all verifier checks, adjudication, `trigger`,
+`disconfirmation`, `exposure`, and final `evidenceStatus` through assembly.
+Render guards, limited exposure, and uncertainty in the summary and each
+affected inline comment. Put material unresolved claims in their own labeled
+section with the exact missing evidence, never among confirmed blockers.
+Do not discard a supported causal chain because similar code exists elsewhere.
+Corrections require recorded evidence and targeted re-verification, not silent
+prose edits or retaining an original claim known to be wrong.
+
 Determine the verdict from Review Intent and the **merge-blocking lane**, not
 severity alone. `APPROVE` means solved, substantially sound, no blockers or
 substantive follow-up. `APPROVE_WITH_COMMENTS` means solved and sound with
@@ -61,8 +81,9 @@ Close the summary with **Blocks merge / shortest path to approval** (each
 required outcome and done-when) and **Follow-up issues** (non-blocking items
 offered as work items, never as a required review cycle).
 
-Delegate all comment posting, question posting, and summary thread management to
-the `post-pr-review` skill (`skill: "code-reviewer:post-pr-review"`). Pass:
+Delegate assembly, comment posting, questions, and summary thread management to
+the `code-reviewer:post-pr-review` agent, which executes the posting skill. Pass
+these fields or validated artifacts containing their exact source records:
 
 | Field | Source |
 |-------|--------|
@@ -71,12 +92,13 @@ the `post-pr-review` skill (`skill: "code-reviewer:post-pr-review"`). Pass:
 | `botPrefix` | `[<dev name>'s bot]` — the standard bot prefix for all comments |
 | `reviewIntent` | Stable Review Intent record from Step 3 |
 | `findings[]` | Posting-ready final findings from Step 11 (exact schema: graded severity, remediation, blocker/lane, instances, underlyingProblem, whyItMatters, requiredOutcome, suggestedPath, doneWhen) |
+| `unresolvedClaims[]` | Summary-only material unresolved records with exact missing evidence, conditional consequence, exposure, and provenance; non-blocking |
 | `reviewThreads[]` | Full durable state for non-terminal and new finding threads (contract above) |
 | `closedThreadArchive[]` | Compact terminal records recovered from the canonical summary plus newly closed records |
 | `closedThreadArchiveOmittedCount` | Cumulative omitted archive count; `0` on initial review |
 | `preExisting[]` | `preExisting` findings from the Step 10a mechanical filter, unchanged — `diffAnchor = PRE_EXISTING`, no `id`, no grader fields. Empty when step 10a did not run |
 | `questions[]` | Consolidated questions anchored to changed lines from Step 10; source-only activation questions remain in `outputFormatMarkdown` |
-| `isSmallDelta` | `true` when a re-review delta qualifies for small-delta mode per [re-review-workflow.md](re-review-workflow.md); otherwise `false` |
+| `isSmallDelta` | `true` only when a re-review delta qualifies per [re-review-workflow.md](re-review-workflow.md), including unchanged, recoverable `unresolvedClaims[]` state; otherwise `false` |
 | `smallDeltaSummary` | A 1-3 sentence delta-only reply used when `isSmallDelta` is `true` |
 | `verdict` | Determined from Review Intent + graded blocker status — see verdict rules in SKILL.md Step 12 |
 | `reviewType` | `initial` or `re-review` |
@@ -116,7 +138,7 @@ On GitHub, both issues and PRs use `#` (e.g. `#123`); there is no `!` syntax.
 **Skip for Local Branch Reviews** (no PR number) — tracking only applies to
 remote pull requests.
 
-Persist the review via `skill: "code-reviewer:update-pr-tracking"` so
+Persist the review via the `code-reviewer:update-pr-tracking` agent so
 `code-reviewer:review-pending-prs` (and future runs) know this PR was reviewed.
 Pass:
 

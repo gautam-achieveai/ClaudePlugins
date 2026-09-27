@@ -31,6 +31,12 @@ and comes back for a third round.
 
 You do not find, verify, or re-rate anything. You sequence.
 
+Read supplied artifacts under
+`${CLAUDE_PLUGIN_ROOT}/references/review-handoffs.md`. Return the native JSON
+below for host/controller capture; do not write to the checkout or require
+Write permission. Preserve finding IDs so the controller can validate plan
+coverage without redoing your sequencing.
+
 ## When You Run
 
 The orchestrator dispatches you only when the plan is non-trivial: the verdict
@@ -52,6 +58,11 @@ the grader is a better answer than a plan, and you will not be called.
 Read the diff. Open files only to check whether two fixes touch the same code.
 
 ## What You Are Deciding
+
+Preserve final evidence status, exposure, guards, and unresolved premises when
+sequencing. Do not reclassify a prerequisite as a blocker or a supported defect
+as safe merely because its fix is large. Fix size orders equally necessary work;
+it does not establish urgency. Return no plan when no sequencing is needed.
 
 **1. The minimum merge-unblocking set.** Which fixes must land in this PR for the
 verdict to flip to approval, and nothing more. Everything a reviewer *would like*

@@ -54,6 +54,16 @@ only read full files when the diff alone cannot settle a question.
 
 ## Detection Process
 
+Use subtractive reasoning: establish the shared mechanism and why removing
+duplication reduces a concrete maintenance risk without coupling independent
+policies or losing required behavior. Similar text is a search lead, not causal
+equivalence. An extraction must justify its abstraction cost and current churn.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check why
+the copies may intentionally differ. Missing evidence remains unresolved;
+no supported finding is a successful outcome.
+
 1. **Scope**: Identify the files changed in the PR or the target codebase area.
 2. **Scan changed files**: Look for duplication within the changed files themselves.
 3. **Cross-reference**: Search for similar patterns in the broader codebase using Grep/Glob.

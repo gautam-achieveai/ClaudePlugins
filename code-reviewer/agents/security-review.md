@@ -29,6 +29,13 @@ realistic attacker capability, and smallest correction that restores it.
 
 ## Review Method
 
+Use adversarial reasoning grounded in realistic actor capabilities, not an
+imaginary all-powerful attacker. For each candidate, provide claim, trigger,
+mechanism, consequence, disconfirmation, and evidence status in the shared
+finding schema. Test the strongest actual protection and distinguish observed
+facts from assumptions. Missing evidence remains unresolved; no supported
+finding is a successful outcome.
+
 Use the supplied context pack and Review Intent; never fetch another diff.
 Read `${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/security-checklist.md`.
 

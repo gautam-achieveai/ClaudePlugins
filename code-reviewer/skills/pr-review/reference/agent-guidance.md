@@ -2,8 +2,37 @@
 
 Load this file **before forming Review Intent (Step 3)**, before dispatching any
 review agent (Steps 4-8), and again at
-**Step 10** (question consolidation). The five discipline blocks below MUST be
+**Step 10** (question consolidation). The discipline blocks below MUST be
 included (verbatim or faithfully summarized) in every dispatched agent's prompt.
+Also include the absolute path to
+`${CLAUDE_PLUGIN_ROOT}/references/review-handoffs.md`, the assigned stage identity,
+input artifact paths and native output format. Host/controller captures results;
+workers do not need implementation-write access.
+
+<evidence_contract>
+**Evidence Contract — applies to every specialist:**
+
+Propose and test failure hypotheses; finding a defect is not a quota. For each
+candidate, provide a concise claim, realistic trigger, causal mechanism,
+consequence, checked disconfirmation, and evidence status using
+[finding-schema.md](finding-schema.md). Separate facts from assumptions.
+Return no findings when none survive; a clean result with honest coverage is
+successful. Preserve material unresolved candidates with the exact missing
+premise, separate from supported findings; do not turn missing evidence into a defect.
+
+Check the decisive premise, not another reviewer's confidence or agreement.
+Before declaring a language, platform, or framework construct unsupported,
+establish its applicable version and check authoritative documentation or a
+safe minimal reproduction. If the evidence/tool is unavailable, request the
+specific lookup from the orchestrator or return unresolved; do not guess.
+Do not run deployments or side-effecting experiments to verify a claim.
+
+An existing pattern is neither proof of safety nor proof of a defect. Refute
+with a located guard, contract, or alternate execution path that actually
+breaks the claimed causal chain. Keep confidence, consequence severity, and
+merge-blocking decisions separate. State current exposure and activation
+dependencies; a prerequisite or a small correction is not automatically a blocker.
+</evidence_contract>
 
 ## Review Intent (Step 3)
 
@@ -54,7 +83,9 @@ revision explicitly; review comments themselves never redefine it.
 6. **Use the supplied context pack.** Read the diff from `diffPath`; do not
    fetch your own. Open full files only when the diff cannot settle a question.
 7. **Do not report what a compiler, linter, type checker, or formatter would
-   catch.** Assume CI runs them. Do not build or typecheck yourself.
+   catch.** Assume CI runs them. Do not build or typecheck the reviewed project.
+   A disposable, isolated minimal reproduction is allowed only to settle a
+   disputed version-specific semantic premise, without external side effects.
 </output_contract>
 
 <agent_question_guidance>
@@ -82,10 +113,20 @@ envelope, using the shape in [finding-schema.md](finding-schema.md):
 `file`, `line`, `codeContext`, `uncertainty`, `whatAnsweringUnlocks`, and an
 optional `suggestedAnswers`.
 
-Never file uncertainty as a finding. Questions are collected in Step 10 and
+Never file uncertainty as a confirmed defect. Retain a material candidate with
+a concrete mechanism as `UNRESOLVED`; use a question for its exact missing fact.
+Questions are collected in Step 10 and
 posted as `[QUESTION]` inline comments; they never reach the grader and never
 affect the verdict.
 </agent_question_guidance>
+
+For Step 10, the context owner compares all supplied questions with changed code
+and sourced discussion, marks each answered/open/out-of-scope with citations,
+deduplicates, ranks by review relevance, and caps the visible list at ten.
+Retain a disposition for every source question, including capped duplicates.
+Only genuinely changed-line questions are inline candidates; source-only
+activation questions stay in the summary with their activation condition.
+Respect the context mode; unavailable evidence leaves questions open.
 
 <claim_strength_discipline>
 **Claim-Strength Discipline — applies to ALL agents dispatched in steps 4-8:**
@@ -134,6 +175,27 @@ Critical, High, and Medium findings, ask agents for a required outcome and an
 objective closure check ("done when"); suggestions should describe a minimal
 path, not impose one exact design.
 </convergence_guidance>
+
+## Bounded Correctness Investigations
+
+Keep one correctness reviewer by default. Use causal, temporal, and contract
+reasoning together on a single execution path. Split independent investigations,
+never one causal chain merely to assign different reasoning labels.
+
+A correctness reviewer may return optional `investigationRequests[]` in its
+envelope. Each request contains `question`, `scope` (behavior and relevant
+files), `reasonToSplit`, `existingOwner` (a planned lane or null), and
+`stopCondition` (supported, refuted, or unresolved with exact missing evidence).
+Uncertainty alone, file count, or a request to "review more" is insufficient.
+
+The orchestrator checks whether the question needs substantial independent
+context, reuses an already-planned owner when possible, and records accepted
+requests in `review-plan.json` with owner, scope, expected result, and budget.
+Dispatch only that bounded investigation; retain one owner for each complete
+causal trace. Reviewers do not spawn reviewers, and delegated investigations
+do not recursively request another team. Reject redundant requests with a
+reason; preserve any unresolved material evidence. Account for extra work in
+coverage and cost metrics. A split does not reset the per-lane finding cap.
 
 ## Question Consolidation (Step 10)
 

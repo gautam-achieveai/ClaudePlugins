@@ -1,0 +1,71 @@
+{
+  "description": "Offline synthetic evidence; no provider actions or live PR data.",
+  "cases": [
+    {
+      "id": "export-first-use",
+      "task": "Decide whether the candidate is supported and blocks merge.",
+      "evidence": "Acceptance criterion: first export works. JavaScript: let scope; async function createScope() { scope = { id: 'new-id' }; } async function exportData() { const id = scope?.id; await createScope(); return send(id); } send rejects undefined. First user invocation starts with scope undefined. No upstream initialization. An older initialized-only action uses the same pattern.",
+      "candidate": "The first export sends an undefined ID because the identifier was captured before creation."
+    },
+    {
+      "id": "export-safe-order",
+      "task": "Decide whether the candidate is supported and blocks merge.",
+      "evidence": "Same contract as first export, but code is async function exportData() { await createScope(); const id = scope.id; return send(id); }. createScope always completes with a valid scope, no concurrent writes, send accepts that id.",
+      "candidate": "The first export captures the ID before creation."
+    },
+    {
+      "id": "platform-supported",
+      "task": "Decide whether the candidate is supported and blocks merge.",
+      "evidence": "Azure DevOps Services pipeline uses correctly placed template ${{ elseif eq(variables.foo, 'contoso') }}. The applicable Microsoft expressions documentation explicitly documents if, elseif, else for template insertion and supplies this exact form. A successful pipeline validation for the reviewed commit is supplied.",
+      "candidate": "Azure Pipelines does not support elseif; replace it before merge."
+    },
+    {
+      "id": "platform-unknown",
+      "task": "Decide whether the candidate is supported and blocks merge.",
+      "evidence": "A self-hosted pipeline uses elseif. Its server version and applicable syntax documentation cannot be accessed, no validation result or reproduction is available. Syntax support is the only disputed premise.",
+      "candidate": "The deployment platform cannot parse elseif."
+    },
+    {
+      "id": "shared-tests",
+      "task": "Decide whether the candidate is supported and blocks merge.",
+      "evidence": "A new public discount method has no dedicated test file and no test changes. Existing inherited parameterized tests call the method through the public service and assert premium and non-premium, threshold boundary, and invalid input behavior. Each asserted expectation matches the stated acceptance criteria.",
+      "candidate": "Missing dedicated tests for a new public method is HIGH severity."
+    },
+    {
+      "id": "test-escaped-regression",
+      "task": "Decide whether the test-gap candidate is supported; do not assume blocking from the category.",
+      "evidence": "Changed premium discount must be 10%. Only existing test calls the service and asserts result >= 0. Replacing the implementation with return 0 still passes. No shared, inherited, parameterized, or integration assertions cover the amount; a scoped test search confirms this. Current implementation computes 10% correctly. No policy requires this test before merge.",
+      "candidate": "A zero-discount regression would escape; assert the expected premium amount."
+    },
+    {
+      "id": "development-token",
+      "task": "Decide whether the concern blocks merge, assuming it is a valid low-impact consistency improvement.",
+      "evidence": "A development-only card uses an existing literal instead of a theme token. Build configuration excludes the module and its imports from production. No migrations, shared side effects, accessibility impact, or applicable mandatory merge policy. The fix is one line. Activation is planned separately.",
+      "candidate": "A small theme-token fix should block this PR."
+    },
+    {
+      "id": "disabled-unconditional-effect",
+      "task": "Decide whether the candidate is supported and blocks merge.",
+      "evidence": "A feature UI is disabled, but its unconditional module initialization deletes existing local user drafts before checking the flag. Module is imported in the normal production startup path. Draft retention is an acceptance requirement; no backup or recovery path. Static trace establishes all these steps.",
+      "candidate": "Merging enables draft loss despite the disabled UI flag."
+    },
+    {
+      "id": "split-verification",
+      "task": "Decide final evidence disposition, merge blocking, and whether targeted adjudication is needed.",
+      "evidence": "A HIGH candidate has one verifier tracing a plausible trigger and claiming TRUE_POSITIVE, and another returning UNPROVEN because a shared dependency that might initialize the value is inaccessible. Neither has counterevidence. The missing initialization behavior cannot be established from available evidence. PR is SMALL.",
+      "candidate": "Captured identifier may be invalid at first use."
+    },
+    {
+      "id": "single-causal-trace",
+      "task": "Decide whether the correctness reviewer should spawn or request additional correctness workers. Return disposition CLEAN, blocker false, and delegate true only if additional workers are justified.",
+      "evidence": "An export ID crosses caller.ts, initializer.ts, and exporter.ts. Each file is short. One reviewer can follow read, initialization, and use as a single uninterrupted trace. It proposes causal, temporal, and contract agents solely to cover three thinking models.",
+      "candidate": "Create a correctness team for the three reasoning models."
+    },
+    {
+      "id": "independent-investigations",
+      "task": "Decide whether a bounded orchestrator-owned delegation request is justified. Return disposition CLEAN, blocker false, and delegate true only if justified.",
+      "evidence": "One correctness reviewer owns an export lifecycle. A large separate cache-eviction state machine has a distinct substantial context, no shared state or causal dependencies with export, and no already-planned owner. It can name the cache transition question, files, independent-context reason, budget, and stop condition.",
+      "candidate": "Request a bounded cache correctness investigation from the orchestrator, without spawning recursively."
+    }
+  ]
+}

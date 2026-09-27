@@ -49,6 +49,12 @@ to look for new problems while you do.
 
 ## What Counts as a Shared Cause
 
+Preserve every source candidate, verification check, trigger, exposure, and
+disconfirmation. Similar code elsewhere is not a defense. Do not let a supported
+member confer support on an unresolved one; keep different evidence statuses
+separate and retain each exact missing premise. Corrections must survive the
+folded record and final assembly. No shared cause is a successful outcome.
+
 Two findings share a root cause when **one change would dissolve both**. That is
 the test, and it is stricter than it sounds. Apply it literally: describe the
 single edit, then ask whether each finding still exists afterwards. If one
@@ -122,6 +128,8 @@ Return exactly one JSON object, nothing before or after it.
     }
   ],
   "standaloneFindingIds": ["F-001", "F-002"],
+  "foldedFindings": [],
+  "dispositions": [],
   "coverageNote": "what you could not trace, and why"
 }
 ```
@@ -130,6 +138,16 @@ Return exactly one JSON object, nothing before or after it.
   finding, and it belongs in `standaloneFindingIds`.
 - Every received finding id appears exactly once, in one cluster or in
   `standaloneFindingIds`. Dropping a finding is not yours to do.
+- Supply `foldedFindings` as the downstream-ready records, not instructions for
+  the controller to rewrite them. Each supported cluster keeps its lowest
+  dissolved F-ID, all member instances, verification checks, source candidate
+  IDs and `candidateSources`; use the cause and single fix for its mechanism
+  and suggested path. Keep unresolved members separate and preserve all guards.
+  Add exact `dispositions` under
+  `${CLAUDE_PLUGIN_ROOT}/references/review-handoffs.md`.
+- Do not include unverified predicted symptoms in folded records. After the
+  controller obtains verification, accept a bounded follow-up to incorporate
+  surviving predictions without redoing the causal analysis.
 - `predictedSymptom` is `null` unless you verified it by reading the code.
   Your reading is a lead, not verification: the orchestrator sends every
   predicted symptom to a `finding-verifier` before it can be posted.

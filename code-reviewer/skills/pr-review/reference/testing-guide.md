@@ -2,6 +2,13 @@
 
 ## Test Coverage
 
+Use these examples as investigation leads, not mandatory test inventories.
+Before reporting a gap, name a plausible broken implementation that existing
+assertions would miss and its realistic consequence. Inspect shared/inherited,
+parameterized, and integration coverage, not only changed test files. Explain
+what the proposed assertion protects. Missing access is unresolved evidence,
+not absent coverage; return no findings when existing protection is adequate.
+
 ### What Should Be Tested
 
 **New Features:**

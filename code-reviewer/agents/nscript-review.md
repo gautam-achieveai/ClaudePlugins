@@ -57,6 +57,14 @@ only read full files when the diff alone cannot settle a question.
 
 ## Analysis Process
 
+Use contract and temporal reasoning: establish the applicable transpiler/host
+version and trace binding initialization, first use, Promise completion, and
+context switches. Verify unsupported-construct claims against authoritative
+documentation or a safe minimal reproduction; catalog memory is not enough.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Missing
+evidence stays unresolved; no supported finding is a successful outcome.
+
 1. **Identify NScript code** - Look for files using `Mcqdb.NScript.Sdk`, `ObservableObject`, `Promise<T>`, `[AutoFire]`, or NScript-specific types
 2. **Check language restrictions** - Flag unsupported C# features (see `csharp-restrictions` reference)
 3. **Trace property dependencies** - Map `[AutoFire]`, `AddLinkedProperty`, and `FirePropertyChanged` usage (see `autofire-properties` reference)

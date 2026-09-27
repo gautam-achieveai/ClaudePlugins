@@ -43,6 +43,23 @@ test("ordered numeric thresholds classify Tiny, Small, Medium, and Large", () =>
   assert.equal(classifyReview(context(changedFiles(26, { addedLines: 1 }))).tier, "LARGE");
 });
 
+test("contested findings have an adjudication route at every review size", () => {
+  for (const count of [1, 6, 14, 26]) {
+    const result = classifyReview(context(changedFiles(count)));
+    assert.ok(result.plan.reasoningAgents.some(({ id, when }) =>
+      id === "review-adjudicator" && when === "CONTESTED_FINDING"), result.tier);
+    assert.equal(result.plan.splitCorrectnessByArea, false, "size alone must not split a causal trace");
+  }
+});
+
+test("size alone does not add overlapping design and simplification lanes", () => {
+  const result = classifyReview(context(changedFiles(26)));
+  for (const id of ["architecture-review", "over-engineering-review", "class-design-simplifier", "code-simplifier", "duplicate-code-detector"]) {
+    assert.ok(!result.plan.lanes.some((lane) => lane.id === id), id);
+  }
+  const structural = classifyReview(singleLineChange("src/Startup.cs", "", "services.AddSingleton<Store>();"));
+  assert.ok(structural.plan.lanes.some(({ id }) => id === "architecture-review"));
+});
 test("a risk flag raises a numerically Tiny review to Small and adds its named lane", () => {
   const result = classifyReview(
     context(
@@ -316,6 +333,8 @@ test("new project or module and three top-level areas route to Large", () => {
   );
   assert.equal(newProject.tier, "LARGE");
   assert.equal(newProject.plan.workspaceMode, "DEEP");
+  assert.equal(newProject.signals.architectureChange, false);
+  assert.ok(newProject.plan.lanes.some(({ id }) => id === "architecture-review"));
 
   const broad = classifyReview(
     context([
@@ -420,6 +439,7 @@ test("Tiny omits the grader unless a High finding survives; larger tiers have fi
   const tiny = classifyReview(context(changedFiles(1, { addedLines: 8 })));
   assert.deepEqual(tiny.plan.reasoningAgents, [
     { id: "review-grader", when: "HIGH_OR_CRITICAL_SURVIVES", modelIntelligence: 5, effort: "high" },
+    { id: "review-adjudicator", when: "CONTESTED_FINDING", modelIntelligence: 6, effort: "xhigh" },
   ]);
 
   const small = classifyReview(context(changedFiles(3, { addedLines: 20 })));
@@ -428,7 +448,7 @@ test("Tiny omits the grader unless a High finding survives; larger tiers have fi
   const large = classifyReview(context(changedFiles(26, { addedLines: 50 })));
   assert.ok(large.plan.reasoningAgents.some((agent) => agent.id === "root-cause-synthesizer"));
   assert.ok(large.plan.reasoningAgents.some((agent) => agent.id === "review-adjudicator"));
-  assert.equal(large.plan.splitCorrectnessByArea, true);
+  assert.equal(large.plan.splitCorrectnessByArea, false);
   assert.equal(
     tiny.escalation.action,
     "APPLY_NEXT_TIER_PLAN_AND_RUN_NEWLY_REQUIRED_WORK",

@@ -1,0 +1,24 @@
+{
+  "skill_name": "pr-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review cases.json using the selected version of the review policies, without reading expected answers. Return concise evidence dispositions, blocking decisions, missing premises, and delegation decisions. No provider actions. Use independent repeated trials for comparisons.",
+      "expected_output": "Supported lifecycle failures survive; safe controls and documented syntax claims are refuted; unknown platform and split-verification claims remain unresolved and non-blocking; tests are judged by escaped regressions; activation exposure and bounded delegation are respected.",
+      "files": ["evals/cases.json"],
+      "expectations": [
+        "export-first-use: SUPPORTED and blocking",
+        "export-safe-order: REFUTED and non-blocking",
+        "platform-supported: REFUTED and non-blocking",
+        "platform-unknown: UNRESOLVED, non-blocking, exact missing evidence",
+        "shared-tests: REFUTED and non-blocking",
+        "test-escaped-regression: SUPPORTED; name zero-discount regression",
+        "development-token: non-blocking",
+        "disabled-unconditional-effect: SUPPORTED and blocking",
+        "split-verification: UNRESOLVED, non-blocking, exact missing evidence, targeted adjudication",
+        "single-causal-trace: no additional workers",
+        "independent-investigations: bounded delegation through orchestrator"
+      ]
+    }
+  ]
+}

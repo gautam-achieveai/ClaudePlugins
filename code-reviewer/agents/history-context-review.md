@@ -32,6 +32,14 @@ Do not re-fetch the diff.
 
 ## Three evidence sources
 
+Use contextual reasoning: identify which sourced constraint or unresolved
+decision changes how this code should be judged today. A past objection or
+similar implementation is not proof of a present defect or safety.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+whether the old constraint still applies. Missing evidence stays unresolved;
+no supported finding is a successful outcome.
+
 Work all three. Keep each bounded — this lane is cheap only if you resist
 reading whole histories.
 

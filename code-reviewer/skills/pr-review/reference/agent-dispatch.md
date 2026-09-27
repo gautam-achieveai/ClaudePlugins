@@ -8,6 +8,15 @@ discipline blocks from [agent-guidance.md](agent-guidance.md).
 ownership and file scope; it does not choose the review tier, add lanes beyond
 the plan, or apply another size heuristic.
 
+Permit explicit orchestrator-owned plan amendments for bounded correctness
+investigations and evidenced design questions under
+[agent-guidance.md](agent-guidance.md). Record the question, scope, owner,
+expected result, and cost before dispatch. Reuse a planned specialist; do not
+create recursive teams or split one causal chain by reasoning label.
+Large size alone does not select architecture, duplication, class/code
+simplification, or over-engineering. Architecture remains selected for actual
+structural signals; add other design lanes only for distinct evidenced questions.
+
 ## File Classification (Step 2)
 
 Classify files using evidence from the repository being reviewed:
@@ -94,7 +103,9 @@ These three consume findings and never generate them.
 - **`review-adjudicator`** (step 11a, tier 6): rules when the review disagrees
   with itself — split verifier lenses, contradictory guidance, a `REDESIGN` ask
   on a narrow PR, an author's technical dispute, or a lane challenging the PR's
-  intent. Dispatched only on those triggers.
+  intent. Available at every review size; resolve verifier splits at step 10b
+  before dropping candidates. Step 11a handles remaining grading/author disputes.
+  Dispatched only on those triggers, never merely to fill the team.
 
 ## Core Lane Ownership (Step 4)
 
@@ -157,33 +168,34 @@ owner and share the evidence rather than returning duplicate findings.
 
 - **`class-design-simplifier`**: Dispatch when PR introduces NEW classes, interfaces, or architectural layers. Analyzes what the PR is trying to accomplish, then flags over-engineering: single-implementation interfaces, pass-through layers, premature generalization, deep inheritance hierarchies. Proposes merging, inlining, or flattening.
 
-- **`code-simplifier`**: Dispatch when PR introduces complex control flow (deep nesting, long method chains, verbose conditional logic) or when changed methods exceed ~30 lines. Finds code blocks and method chains that are more complex than they need to be — unnecessary method chains, overly verbose patterns, expressions with simpler equivalents, and control flow that can be flattened. Complements `class-design-simplifier` (which focuses on class/layer-level complexity) by focusing on **expression and block-level** simplification. **Do NOT dispatch** for PRs that are purely mechanical (renames, formatting, bulk attribute changes) or documentation-only.
+- **`code-simplifier`**: Add only for an evidenced question about expression or block-level complexity, with a named behavior-preserving simplification to investigate. Method length or nesting alone is not a reason to dispatch. Keep ordering, side effects, exceptions, and laziness intact; require benefit that justifies churn. Skip mechanical or documentation-only changes.
 
 - **`over-engineering-review`**: For the planned scope lane, compare delivered complexity and behavior with stated intent and implementation claims. Load the existing `over-engineering-review` methodology's ten scope categories, Evidence Gate, and Implementation-Fit Checks. Cover superficial completion, fabricated integration assumptions, success-shaped fallbacks, hollow tests, misleading documentation, and workaround accumulation alongside excess scope. Require concrete evidence and check exclusions; never infer AI authorship or flag style alone. Share overlapping evidence with the planned defect owner instead of adding a second AI-slop agent or duplicate findings. Scope judgments need a sourced task anchor; without one, limit claims to demonstrated unnecessary complexity or contradictions of explicit contracts. This catalog does not change the classifier's dispatch plan.
 
-- **`exception-handling-review`**: Dispatch when changed files contain `try`/`catch` blocks, `throw` statements, custom exception classes, or error-handling middleware. Reviews exception handling for swallowed exceptions, overly broad catches, incorrect re-throws (`throw ex` vs `throw`), missing logging in catch blocks, exceptions used for flow control, catch-log-rethrow duplication across layers, async exception pitfalls (`async void`, fire-and-forget), finally block issues, and missing guard clauses. Findings are HIGH-MEDIUM severity.
+- **`exception-handling-review`**: Changed error paths, handlers, propagation, or cleanup. Trace the error to the caller-visible result, including global/shared handlers and cancellation. Catalog shapes are leads; grade demonstrated consequences, not the presence of a catch or absence of a local log.
 
-- **`test-coverage-review`**: Dispatch when the PR modifies production code (any non-test `.cs`, `.js`, `.ts` file). Maps production changes to test changes, verifies tests cover the actual behavior being modified (not just adjacent code), checks for over-mocking, test-driven production pollution, fragile tests, and missing edge cases. For bug fixes, applies the litmus test: "Would this test have FAILED before the fix?" Focuses on behavioral coverage over line coverage, with a 1-10 criticality rating. Findings are HIGH-MEDIUM severity.
+- **`test-coverage-review`**: Changed behavior. Identify the plausible broken implementation that existing assertions would miss; check shared/inherited and integration coverage. Explain the regression and added protection. No dedicated or changed test file is not itself a finding. For fixes, ask whether the assertion would fail before the correction. Grade actual regression risk, not missing-test counts.
 
 - **`architecture-review`**: Dispatch when PR introduces new services, classes, or projects; modifies `.csproj` project references; changes DI registrations; adds cross-layer dependencies; or restructures module/project boundaries. Reviews layer boundary violations (controller accessing DB directly), dependency direction in project references, god class/service detection, circular dependencies, DI anti-patterns (service locator, captive dependencies), cross-cutting concern mismanagement, and bounded context violations. **Do NOT dispatch** when PR only modifies method bodies, configuration values, or styling with no structural changes. Complements `class-design-simplifier` (which focuses on class-level complexity) by analyzing system-level architectural health.
 
 - **`performance-review`**: Dispatch when changed files contain async/await patterns, `HttpClient` usage, database access (EF Core, MongoDB, SQL queries), large collection operations (`.ToList()`, `.ToArray()` on queries), caching logic (`IMemoryCache`, `IDistributedCache`), serialization/deserialization, React components with hooks (`useState`, `useEffect`, `useMemo`, `useCallback`), `fetch`/`axios` calls, state management (Redux, Context), or bundle configuration. Also dispatch when the PR description or linked work item mentions performance, optimization, scaling, latency, memory, or throughput. Auto-detects backend (.NET/C#) vs frontend (React/JS/TS) domains from changed files and applies only relevant patterns. Covers: sync-over-async/thread pool starvation, OOM patterns (unbounded collections, LOH, missing dispose), N+1 HTTP/DB calls, HttpClient misuse, connection pool exhaustion, request waterfalls, bundle size anti-patterns, React re-render cascades, DOM performance, and frontend memory leaks. Findings range from CRITICAL (socket exhaustion, unbounded queries) to MEDIUM (missing memoization, over-serialization). **Do NOT dispatch** when the PR only modifies documentation, test-only files, configuration values, or CSS/LESS styling with no production logic changes.
 
-- **`schema-compatibility-review`**: Dispatch when changed files include a `.proto` / `.thrift` / `.avsc` / `.fbs` / `.bond` schema file, a database migration (EF Core `Migrations/`, Flyway, Liquibase, raw SQL DDL), a type annotated for serialization (`[GenerateSerializer]`, `[Id]`, `[DataContract]`, `[DataMember]`, `[JsonPropertyName]`, `[ProtoMember]`, `[BondMember]`, `@JsonProperty`), a request/response DTO, a queue or event payload, a public-API or SDK-exported type, an enum used in persisted/transmitted data, or any code on either side of a serialize/deserialize boundary. Also dispatch when the PR description, work item, or commit message mentions rollout order, deploy window, rolling deploy, feature flag gating a wire change, capability negotiation, schema versioning, or forward/backward compatibility. Walks the five compatibility lenses (backward, forward, rollout sequencing, public-surface stickiness, serialize/deserialize symmetry) and nine change patterns (removed/renamed field, added required field, type/semantic change, enum value change, tightened constraint, rollout sequence violation, public-surface break, serializer-asymmetry, migration footgun). Findings default to BLOCKER for any backward-incompatible change to persisted or public-surface shapes; HIGH for rollout-sequence violations without a flag; HIGH/MEDIUM for serializer asymmetry being introduced or extended. Distinct from `architecture-review` (system structure), `performance-review` (runtime characteristics), and `over-engineering-review` (scope) — this agent specifically owns *wire-level and persisted compatibility across the deploy window*. **Do NOT dispatch** when the PR only touches in-process types that are never serialized, persisted, or sent over a network, and there is no migration file in the diff.
+- **`schema-compatibility-review`**: Changed persisted, wire, public, or independently deployed contracts, including migrations and serialization boundaries. Trace actual producers, consumers, stored data, and deployment windows through the five compatibility lenses. Verify applicable platform/version semantics with authoritative documentation or a safe reproduction. Unknown deployment order is unresolved evidence, not a default blocker; grade demonstrated consequence and let the grader assess deferral. Skip purely in-process types without a cross-version boundary.
 
-- **`feature-flag-reviewer`**: Dispatch when the PR introduces changes large or risky enough that a bad rollout would be expensive to reverse — and recommend whether the change should ship behind a feature flag. Specific triggers: new or modified business logic on a critical path, changed default values or validation rules, new/changed API contracts (request/response shapes, status codes), database schema migrations, new external service dependencies, changed retry/timeout/circuit-breaker configurations, new background jobs or async workflows, large refactors of code with broad fan-out, or work items tagged "risky" / "high-blast-radius" / "behind-flag". Assesses **blast radius** (how many users/requests the change touches), **reversibility** (can it be rolled back cleanly, or has it written persisted state), and **change type** (behavior change, data change, infra change) to recommend a flag strategy: full kill-switch, percentage rollout, ring-based rollout, or no flag needed. Findings are advisory MEDIUM by default; escalate to HIGH when the change is irreversible (e.g., persisted-data shape change with no rollback) and ships without a flag. Distinct from `schema-compatibility-review` (which owns *whether the change breaks compat*) — this agent owns *whether the change should be flag-gated regardless of compat*. **Do NOT dispatch** when the PR is purely additive in a low-risk area (new internal helper, documentation, test additions), purely cosmetic (renames, formatting), or already explicitly behind a flag named in the diff.
+- **`feature-flag-reviewer`**: Risky uncontained behavior changes where a flag may provide meaningful containment or reversal. Establish blast radius, effective guards, unconditional effects, and deployment/activation prerequisites. Distinguish unsafe merge from unsafe enablement; no flag or cheap remediation alone establishes neither impact nor blocking. Recommend justified gating or no flag, not a default flag for every change. Reuse the planned correctness/reliability/schema owner to inspect existing guard effectiveness.
 
 <plan_dispatch>
 **Dispatch rules:**
 - Dispatch every lane in `review-plan.json` and no unplanned lane.
 - `correctness-review` and `temp-code-review` appear in every tier.
 - `history-context-review` starts at SMALL; skip it for an all-new-file change.
-- LARGE splits `correctness-review` by top-level area. Each instance receives
-  only its slice plus shared contracts needed to reason across the boundary.
+- Keep one `correctness-review` by default. Split only substantial independent
+  behavior questions under the orchestrator-owned delegation contract; give
+  each owner the complete trace and shared contracts needed to settle it.
 - Risk-triggered lanes retain the frontmatter intelligence tier shown above.
 - **Every agent prompt carries the context pack** (diff path, changed-file list, convention-file paths, Review Intent) and the instruction not to fetch its own diff
 - **Every agent returns the JSON finding schema**, at most 5 findings, `id: null`, no `blocker` field
-- Run all applicable agents in parallel — they are independent
+- Run independent investigations in parallel; keep dependent causal traces together.
 - Collect envelopes from all agents into one array, then run the mechanical filter (step 10a) before any verification or grading
 </plan_dispatch>
 

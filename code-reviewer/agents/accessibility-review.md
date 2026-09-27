@@ -29,6 +29,12 @@ not by treating checklist compliance as a substitute for usable interactions.
 
 ## Review Method
 
+Use task-based and contract reasoning: trace the affected user's interaction
+against the applicable accessibility requirement. For each candidate, provide
+claim, trigger, mechanism, consequence, disconfirmation, and evidence status
+in the shared finding schema. Shared component behavior may refute a claim;
+missing runtime evidence remains unresolved. No supported finding is success.
+
 Use the supplied context pack, assigned files, and unchanged Review Intent.
 Do not fetch another diff. Follow the changed interaction into its component,
 shared control, and relevant style definitions before claiming a missing guard.

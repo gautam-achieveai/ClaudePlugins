@@ -12,7 +12,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, Task, TodoW
 **Primary objective:** Help a PR reach its stated goal through evidence-based, actionable review.
 **Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
 
-Review individual PRs for code quality, security (OWASP Top 10), performance, and testing adequacy.
+Route review work; do not run a duplicate parent-side code review. Read
+`${CLAUDE_PLUGIN_ROOT}/references/review-handoffs.md` before dispatch for role
+ownership, skill wrappers, immutable artifact capture, and completion validation.
 
 **Progressive loading:** this file is the workflow spine. Each step names the
 reference file to load WHEN you reach it. Load references at their step, not
@@ -20,20 +22,9 @@ up front — the load instructions are mandatory, not optional.
 
 ## Rigorous Reviews That Converge
 
-The reviewer holds two equally important roles:
-
-- **Guardian of engineering excellence and the codebase.** Protect correctness,
-  security, maintainability, and long-term code health. Uphold evidence-based
-  engineering standards, not personal preferences.
-- **Mentor to other developers.** Explain the underlying problem, why it
-  matters, and the tradeoffs behind a correction. Help developers build their
-  judgment and ownership, not merely comply with instructions. Challenge the
-  work respectfully, never the person's ability or worth.
-
-Balance both roles without sacrificing either. Do not lower engineering
-standards to be encouraging, or use harshness as a substitute for rigor.
-Make necessary corrections clear and actionable; make teaching constructive
-and proportionate, without turning optional lessons into merge blockers.
+Require specialists to be both guardians of engineering quality and constructive
+mentors: evidence over preference, actionable corrections over harshness. The
+controller owns scope and handoff integrity; agents own substantive judgments.
 
 Apply this decision order:
 
@@ -115,6 +106,11 @@ this skill.
 | `review-adjudicator` | Contested findings: resolve the deciding factual question and return an evidence-based ruling. |
 | `remediation-planner` | Multiple blockers: return the minimum ordered correction plan and conflicting fix dependencies. |
 | `review-performance-judge` | Retrospective after feedback: assess review quality, tone, cost, and lessons, not PR merge readiness. |
+| `post-pr-review` | Assemble final records and publish under the posting gates. |
+| `update-pr-tracking` | Persist measured review outcomes locally. |
+| `review-pending-prs` | Coordinate batch selection, not individual scanning. |
+| `review-retrospective` | Coordinate feedback analysis and independent judgment. |
+| `apply-review-learning` | Write only source-validated lessons at the authorized destination. |
 
 ## Step 0a: Resolve the Provider & Repo
 
@@ -177,7 +173,8 @@ workspace modes live only in the classifier and the Step 0 reference.
        --context <scratch>/pr-<number>/context.json \
        --out <scratch>/pr-<number>/review-plan.json
      ```
-   - Add the absolute `reviewPlanPath` to `context.json`. Echo the result as:
+   - Add the absolute `reviewPlanPath` to `context.json`; initialize snapshot-bound
+     stage assignments and artifact receipts per `review-handoffs.md`. Echo:
      `Review route: <tier> / <triggeringRule> / <workspaceMode>; <N> lanes; risk flags: <flags|none>.`
    - Follow `review-plan.json` exactly. Do not reclassify from prose or add a
      second size heuristic. If it selects DEEP, use the worktree setup in
@@ -247,28 +244,14 @@ workspace modes live only in the classifier and the Step 0 reference.
   set. Keep the cited source reference and activation condition; do not turn a question
   into a finding or mistake a source-read `gaps[]` entry for a design question.
 
-3. **Understand the changes**: use the gatherer's sourced context and file
-  groups to establish Review Intent from the PR and diff.
-   - Analyze what was modified, the intent, and how it fits the project.
-   - Cross-check the linked work item, if any.
-   - Verify branch/target conventions from the repo's actual policy (repo
-     conventions) — never from a skill-level default. Emit a `[QUESTION]` only
-     if the branch name looks generated but the policy is unclear.
-   - If PR title/description scope does not match the diff, emit a `[QUESTION]`
-     on the first pass only.
-
-   **Read `${CLAUDE_SKILL_DIR}/reference/agent-guidance.md` now.** Create its
-   Review Intent record before judging findings; pass it unchanged to every
-   bundled agent, the grader, and re-review. Do not silently revise the goal.
-
-   **Use relevant prior learning:** run the read-back of
-   `development:compound-learning` on `docs/superpowers/learnings/` in the target
-   repo, matching this PR's components and risk words; at most 5 lessons. Without
-   that plugin, grep the same frontmatter directly. Use a caller-supplied single
-   learning report instead when that is the recorded home. Revalidate
-   stale/contradicted facts; `proposed` lessons are leads, not policy.
-   Do not read all historical retrospectives. Record maturity and actual exposure
-   alongside the review artifacts without changing the Review Intent schema.
+3. **Accept sourced intent**: read
+   `${CLAUDE_SKILL_DIR}/reference/agent-guidance.md`. Have the context gatherer
+   supply Review Intent, linked-requirement and convention checks, and at most
+   five relevant prior lessons via `development:compound-learning` read-back.
+   Validate required fields and citations, not the
+   code again; pass intent unchanged to every owner. Route gaps back to context.
+   Offline/daemon paths retain their mode and schema: mechanically map supplied
+   facts, keep unknowns explicit, and never launch a second live gatherer.
 
 4. **Run the planned scanning lanes** — `<parallel agents>`:
 
@@ -278,8 +261,9 @@ workspace modes live only in the classifier and the Step 0 reference.
   `code-reviewer:<agent-id>` through the host's Agent tool. These are bundled
   agents in this plugin, not agents to rediscover in the reviewed repository.
    `correctness-review` and `temp-code-review` appear at every tier.
-   `history-context-review` starts at SMALL. LARGE reviews split correctness by
-   top-level area so one scanner never absorbs the whole diff. Each lane owns
+   `history-context-review` starts at SMALL. Keep one correctness reviewer by
+   default, including LARGE reviews; size or top-level folders alone do not
+   define independent behavior. Each lane owns
    only its assigned files and focus. Risk lanes keep their base intelligence
    even when the review is otherwise TINY or SMALL.
   Pass each relevant open activation question, its citation and affected
@@ -287,9 +271,15 @@ workspace modes live only in the classifier and the Step 0 reference.
   investigate. Do not launch an extra lane solely for the question; retain
   the parent copy even if a specialist returns no question or no findings.
 
+   Accept bounded `investigationRequests[]` from correctness only under the
+   delegation contract in `reference/agent-guidance.md`. The orchestrator owns
+   dispatch, budget, and evidence aggregation. Record accepted independent
+   questions and owners in the plan; reuse a planned specialist before adding
+   a worker. Keep a single causal trace intact and prohibit recursive teams.
+
     **Before dispatching ANY agent in steps 4-8, read
     `${CLAUDE_SKILL_DIR}/reference/agent-guidance.md` and include its
-   discipline blocks in every agent prompt**: Context Question Emission,
+   discipline blocks in every agent prompt**: Evidence Contract, Context Question Emission,
    Claim-Strength Discipline, Defect-Statement Discipline (smallest-fix
    floors, quoted searches for absence claims, mandatory `underlyingProblem`),
    Convergence Guidance (include the Review Intent), and the Output Contract
@@ -324,13 +314,20 @@ workspace modes live only in the classifier and the Step 0 reference.
 
 6. **Design and duplication**: dispatched as part of step 7 via
    `class-design-simplifier`, `code-simplifier`, and `duplicate-code-detector`
-   on their triggers. Do not run an additional design pass here.
+   on evidenced questions, not PR size alone. The classifier selects architecture
+   for structural signals; for other design lanes, record a plan amendment with
+   a concrete question, scope, expected benefit, and non-overlapping owner before
+   dispatch. Include over-engineering only for a demonstrated scope/claims
+   question. A suspicious shape nominates investigation, not a finding.
+   Do not run an additional design pass here.
 
 7. **Domain-specific review**: `<parallel agents>` — use the already loaded
   `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md`. Dispatch
    only domain agents present in the plan. Use the catalog to scope their files
    and checks, not to choose review breadth. If a new risk signal is found,
-   escalate one tier and record the evidence; never append an unplanned lane
+   escalate one tier and record the evidence; bounded correctness requests and
+   question-driven design amendments use their explicit contracts instead.
+   Never append an unplanned lane
    silently. Run planned lanes in parallel and collect their
    JSON envelopes into one array for step 10a.
 
@@ -344,44 +341,42 @@ workspace modes live only in the classifier and the Step 0 reference.
 9. **Cross-reference test coverage** when the plan includes
    `test-coverage-review`: use `test_project_map` from repo
    conventions when defined; otherwise infer `<Project>.Tests`-style mappings
-   and note uncertainty. Flag new public methods without tests, and modified
-   tests that don't cover the new behavior. Only enforce repo-specific CI test
+   and note uncertainty. Identify a plausible broken implementation that existing
+   assertions would miss, including shared/inherited and integration coverage.
+   No changed or dedicated test file is not itself a finding. Explain the
+   regression and protection added by the proposed assertion. Only enforce repo-specific CI test
    markers when conventions define them.
 
-10. **Consolidate context questions**: collect `[QUESTION]` items from all
-  agent outputs **and** the parent question set from Step 2. Check each
-  gatherer question against the changed code and sourced discussion: mark
-  answered with its citation, still open, or out of scope, without treating
-  silence in a plan as an answer. De-duplicate, rank by review impact, and
-  cap at 10. Anchor a still-open question to a changed line only when it
-  genuinely concerns that line; otherwise keep it in the review summary
-  with its source reference and activation condition. Pass only changed-line
-  questions in `questions[]` to the posting skill; keep source-only questions
-  in `outputFormatMarkdown` so no unrelated inline thread is created.
-  Full workflow and philosophy in
-    [reference/agent-guidance.md](reference/agent-guidance.md). Questions are
-    always non-blocking and never affect the verdict.
+10. **Route context questions**: give the context owner all `[QUESTION]` items
+  and the parent question set from Step 2 for a bounded consolidation using
+  [reference/agent-guidance.md](reference/agent-guidance.md). Preserve its answered,
+  open, and out-of-scope dispositions and citations. Do not investigate them in
+  the router. Offline/daemon mode uses supplied evidence only; keep gaps open.
+  The publisher receives changed-line questions separately from source-only
+  summary questions. Questions are always non-blocking and never affect verdict.
 
 10a-b. **Filter, then verify** — **Read
   `${CLAUDE_SKILL_DIR}/reference/filter-and-verify.md` now.**
 
     1. Run `${CLAUDE_SKILL_DIR}/scripts/filter-findings.mjs` over the collected agent envelopes and
        the context-pack diff. It anchors every finding to the diff, merges
-       cross-agent duplicates, and applies the per-agent cap, deterministically
+       exact cross-agent candidates without losing `candidateSources`, and applies the per-agent cap, deterministically
        and for free. `preExisting` findings never block and never reach the
        grader.
     2. Apply `review-plan.json.plan.verification`. TINY verifies only MEDIUM or
        higher findings; LOW findings are not posted. Other tiers verify every
-       surviving finding. `FALSE_POSITIVE` is dropped; `UNPROVEN` can never
-       block and never exceeds MEDIUM. HIGH and CRITICAL findings get the
-       configured stronger second lens.
+       surviving finding. HIGH and CRITICAL candidates get the configured stronger
+       second lens even if the first refutes them. Preserve every check, and
+       adjudicate splits before dropping or grading at any review size.
+       Only finally refuted `FALSE_POSITIVE` is dropped; `UNPROVEN` remains
+       explicit with its missing premise, never blocks, and never exceeds MEDIUM.
     3. Assign each surviving finding a stable ID (`F-001`, `F-002`, ...) now,
        before synthesis and grading. Reuse the same ID on re-review; IDs never
        change when severity or wording changes.
 
     Disproving a finding is cheaper than generating one. Never post a finding
     that no verifier tried to disprove, and never let a model grade its own
-    confidence in place of this step.
+    confidence in place of this step. Agreement is not verification.
 
 10c. **Synthesize root causes** — when the plan contains
     `root-cause-synthesizer` and step 10b leaves 4 or more verified findings,
@@ -395,7 +390,7 @@ workspace modes live only in the classifier and the Step 0 reference.
     clusters to the grader so it calibrates causes rather than symptoms. Below
     4 findings there is nothing to synthesize — skip and say so.
 
-    Fold the synthesizer output here, once, before grading:
+    Have the synthesizer fold records once, before grading; validate its mapping:
     - **Predicted symptoms are findings like any other.** Run one
       `finding-verifier` on each non-null `predictedSymptom` under the step 10b
       rules. Drop it on `FALSE_POSITIVE`; otherwise give it the next free ID and
@@ -403,23 +398,25 @@ workspace modes live only in the classifier and the Step 0 reference.
     - **Each cluster becomes one finding record.** It keeps the lowest dissolved
       ID; `instances` lists every member's `file:line`; `underlyingProblem` is
       the cause and `suggestedPath` the single fix. It carries its members'
-      `verification` objects. If no member is `TRUE_POSITIVE`, the `UNPROVEN`
-      limits apply. Standalone findings pass through unchanged.
+      `verification` objects and `candidateSources`. Do not combine supported
+      and unresolved claims into a supported cluster. Keep unresolved members
+      separate with their missing premises; do not infer support from one
+      confirmed instance. Preserve trigger, exposure, and checked defenses.
+      Standalone findings pass through unchanged.
 
 11. **Severity grading — planned quality gate**: dispatch `review-grader` only
     when its `when` condition in `review-plan.json` is true. A clean TINY review
    skips it. Read `${CLAUDE_SKILL_DIR}/reference/grading-rubric.md` now for
-   the input/output handoff and two-axis grading rules. For an ungraded TINY
-   review, apply its written verdict rules directly. Read
-   `${CLAUDE_SKILL_DIR}/reference/publish-and-track.md` before building
-   `reviewThreads[]` for Step 12.
+   the input/output handoff and two-axis grading rules. The publisher applies
+   those written rules for an ungraded TINY review. Read
+   `${CLAUDE_SKILL_DIR}/reference/publish-and-track.md` for its assembly contract.
 
 11a. **Adjudicate contested findings** — dispatch `review-adjudicator` only
     when it appears in the plan **and** the review disagrees with itself.
-    Exactly one of these must
+    At least one of these must
     hold, and most reviews match none:
 
-    - a `CRITICAL` or `HIGH` finding whose two verifier lenses disagreed
+    - a material verification split newly discovered after step 10b
     - two findings whose resolutions cannot both be followed
     - a blocking finding whose remediation is `REDESIGN` on a narrow PR
     - a re-review where the author disputed a blocking finding on technical grounds
@@ -430,7 +427,10 @@ workspace modes live only in the classifier and the Step 0 reference.
     block is the only place after grading where a severity or blocker changes.
     Apply the rulings to the graded findings before step 11b. A ruling made on
     `ASYMMETRY` rather than `EVIDENCE` always carries a question for the
-    author — post it.
+    author — post it. An unresolved crux stays `UNPROVEN` and non-blocking;
+    never withdraw it or raise severity merely because evidence is unavailable.
+    Do not repeat an unresolved adjudication without new evidence; retain its
+    missing premise and ruling instead of paying for the same opinion again.
 
 11b. **Plan remediation** — dispatch `remediation-planner` only when it appears
     in the plan, the verdict is `REQUEST_CHANGES`, and either 3 or more findings
@@ -447,13 +447,12 @@ workspace modes live only in the classifier and the Step 0 reference.
 
 12. **Provide feedback**: **Read
     `${CLAUDE_SKILL_DIR}/reference/publish-and-track.md` now** for
-    the `post-pr-review` input contract, then delegate all posting to
-    `skill: "code-reviewer:post-pr-review"`.
-
-    Determine the verdict from Review Intent and the graded blocker lane, not
-    severity alone. Read `${CLAUDE_SKILL_DIR}/reference/output-format.md` now
-    for the summary and its two closing lists. Posting is automatic; approving
-    or merging still requires user confirmation.
+    the publication contract, then dispatch the `code-reviewer:post-pr-review` agent
+    with validated stage artifacts. It assembles thread state and the summary
+    from final records, preserving Review Intent and the graded blocker lane.
+    Read `${CLAUDE_SKILL_DIR}/reference/output-format.md` for presentation checks.
+    Local reviews return the report without provider writes. Posting for PRs
+    is automatic; approving or merging still requires user confirmation.
 
 13. **Record what this review cost and caught, then update tracking.** Before
     calling the tracking skill, assemble `reviewMetrics` from data you already
@@ -465,7 +464,7 @@ workspace modes live only in the classifier and the Step 0 reference.
     These counts are what later makes "was this review worth its cost?" a
     question with an answer instead of an opinion.
 
-    Then use `skill: "code-reviewer:update-pr-tracking"`
+    Then dispatch the `code-reviewer:update-pr-tracking` agent
     with the field mapping in
     [reference/publish-and-track.md](reference/publish-and-track.md). Skip for
     Local Branch Reviews. Tracking is best-effort — a tracking failure never
@@ -473,7 +472,7 @@ workspace modes live only in the classifier and the Step 0 reference.
 
 14. **Learn from human feedback:** when new human comments/answers are available,
     a pending retrospective stage can now complete, or when explicitly requested,
-    invoke `skill: "code-reviewer:review-retrospective"`
+    dispatch the `code-reviewer:review-retrospective` agent
     with the reviewed commit, Review Intent, original findings/questions, relevant
     human threads, and existing investigation/effort artifacts. Otherwise skip;
     do not poll or launch a judge merely because a review was posted. Keep the

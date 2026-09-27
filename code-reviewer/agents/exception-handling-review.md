@@ -37,6 +37,18 @@ at a glance.
 
 ## Analysis Process
 
+Use causal reasoning: trace the actual error from its source through local and
+shared handlers to the caller-visible result. A catch shape or missing local log
+is a lead, not a severity assignment. Verify cancellation and cleanup semantics
+for the applicable runtime; check authoritative documentation or request a safe
+minimal reproduction before asserting a platform limitation.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+upstream/global handling; missing evidence remains unresolved. No supported
+finding is a successful outcome. Category severity labels below are examples,
+not defaults that override actual impact.
+
 1. **Use the supplied context pack** — the orchestrator supplies the diff, the
    changed-file list, and the Review Intent. Do not fetch the diff yourself; only read
    full files when the diff alone cannot settle a question. Only analyze NEW or MODIFIED

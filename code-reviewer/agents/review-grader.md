@@ -77,7 +77,8 @@ reconstruct a location, a claim, or its supporting evidence from your own prose.
 These are ceilings, not formulas. They can only lower severity or blocker status,
 never raise it.
 
-1. `verification.verdict: FALSE_POSITIVE` → **drop the finding.** It never
+1. `verification.verdict: FALSE_POSITIVE` after all required checks and any
+   contested adjudication → **drop the finding.** It never
    reaches the output. Record it under Omitted Findings with that reason.
 2. `verification.verdict: UNPROVEN` → **can never be a blocker and can never
    exceed MEDIUM severity.** Cap it at MEDIUM and set `blocker: false` whatever
@@ -100,6 +101,16 @@ findings, and never grade instances separately.
 Parse and evaluate every finding. Do not presume that Critical/High findings are correct or that
 Low/Medium findings are under-weighted. Check the evidence, relevance, severity, blocker status,
 and closure guidance independently.
+
+Inspect the decisive premise and cited counterevidence, not the number of
+agents agreeing. Preserve material unresolved claims with the exact missing
+evidence. Similar code elsewhere does not disprove a causal chain. If evidence
+contradicts a supported claim, return it for targeted verification/adjudication
+instead of silently discarding it during calibration.
+
+Preserve `trigger`, `disconfirmation`, `exposure`, `evidenceStatus`,
+`candidateSources`, and all `verification.checks`. Corrections must survive
+final assembly, including guards, limited exposure, and remaining uncertainty.
 
 ## Step 2: Confirm the PR-Level Decision
 
@@ -221,11 +232,14 @@ may block when its concrete combined impact makes the PR unsafe or incomplete. L
 block. Informal-preference convention, code-health, testing, or precedent concerns without a
 demonstrated merge risk remain non-blocking even when worth posting.
 
-**Remediation size routes borderline Mediums.** A MEDIUM defect with
-TRIVIAL/SMALL remediation in the changed code may block — a real defect that is
-cheap to fix now should be fixed now. A MEDIUM that needs SUBSTANTIAL/REDESIGN
-work stays non-blocking: file it as a follow-up work item instead of holding the
-PR hostage to a redesign. Findings with `blocker: true` form the
+**Deferral risk, not remediation size, determines blocking.** A TRIVIAL/SMALL
+correction does not make a MEDIUM concern urgent; a SUBSTANTIAL/REDESIGN
+correction does not make an established merge risk safe. State current exposure,
+feature guards, deployment/activation dependencies, and why deferral is unsafe
+or violates an applicable merge policy. A pre-enablement prerequisite is not
+automatically a merge blocker. Check unconditional effects even when a feature
+is disabled. Use fix size only to sequence equally necessary corrections.
+Findings with `blocker: true` form the
 **merge-blocking lane**; `blocker: false` findings are the **follow-up lane**
 and never gate the verdict.
 
@@ -263,6 +277,15 @@ clearly excluded from that path and must not trigger another required review cyc
 
 ## Step 6: Output Format
 
+For pipeline dispatch, return exactly one JSON object with `agent`,
+`reviewIntent`, `findings`, `unresolvedClaims`, `verdict`, `dispositions`,
+`gradingSummaryMarkdown`, and `coverageNote`. Use the template below only inside
+`gradingSummaryMarkdown`; never require the controller to extract JSON from prose.
+Put supported final records in `findings` and unresolved records in
+`unresolvedClaims`, preserving all evidence. Account for every input candidate
+using `${CLAUDE_PLUGIN_ROOT}/references/review-handoffs.md`, including omissions.
+For standalone calls without a stage assignment, the Markdown template remains valid.
+
 ````markdown
 ## Review Grading Summary
 
@@ -286,11 +309,17 @@ narrative prose, and never emit a location you re-typed.
 [{ "id": "F-NNN", "severity": "...", "remediation": "...", "blocker": true,
    "category": "...", "file": "...", "line": 42, "instances": [],
    "diffAnchor": "IN_DIFF", "issue": "...", "underlyingProblem": "...",
+   "trigger": "...", "disconfirmation": "...", "exposure": "...",
+   "evidenceStatus": "SUPPORTED", "candidateSources": [],
    "whyItMatters": "...", "requiredOutcome": "...", "suggestedPath": "...",
    "doneWhen": "...", "evidence": "...", "verification": { }}]
 ```
 
 For each final finding, follow its object with calibration details:
+
+Keep unresolved candidates as the same records with `evidenceStatus: UNRESOLVED`
+and non-blocking calibration in `unresolvedClaims[]` for summary-only publication;
+do not omit their missing premises.
 
 #### Finding F-NNN: [Brief Description] — [SEVERITY: OLD → NEW or CONFIRMED] / [BLOCKER: OLD → NEW or CONFIRMED]
 

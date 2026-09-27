@@ -54,6 +54,22 @@ Only include if there are real strengths — do not manufacture praise.
 A clustered finding occupies ONE row; list its instances in the Issue cell as
 `file:line` references. `Fix Size` is the remediation estimate
 (TRIVIAL/SMALL/SUBSTANTIAL/REDESIGN).
+Include each supported finding's trigger, relevant exposure/guard, and decisive
+disconfirmation check in its Issue / Why It Matters cell or immediately below
+the row. Do not remove these qualifiers when shortening the review.
+
+## Material Unresolved Claims (not confirmed defects)
+
+Keep claims whose deciding premise could not be verified separate from the
+severity-grouped supported findings. These are non-blocking, have at most
+MEDIUM reporting severity, and do not count as confirmed defects. Describe
+conditional impact without claiming it occurred.
+
+| ID | Location | Candidate Claim | Evidence Checked | Exact Missing Evidence | Exposure / Activation Condition |
+|---|---|---|---|---|---|
+
+Omit this section when empty. Preserve source candidates and verifier/adjudicator
+results in durable artifacts, even when a claim is finally refuted and not posted.
 
 ## Optional Follow-up
 
@@ -106,6 +122,18 @@ do not add another AI fix suggestion.
 
 <details>
 <summary>Review state (machine-readable)</summary>
+
+## Unresolved Claim State
+
+Persist the current summary-only claim records for re-review comparison, including
+their missing evidence and exposure/conditional impact. Use an explicit empty
+array when none remain; omission means unknown legacy state, not resolution.
+
+```json
+{
+   "unresolvedClaims": []
+}
+```
 
 ## Active Review Threads
 

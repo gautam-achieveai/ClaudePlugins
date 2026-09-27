@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Task
 **Primary objective:** Learn from review outcomes and human feedback without rewriting the original verdict.
 **Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
 
-Explain what the reviewer missed, why the human could answer, and what should
-improve next time. Assess the review, not the developer. A posted review alone
-does not trigger a retrospective; use new human feedback or an explicit request.
+Assess the review, not the developer, on new human feedback or explicit request.
+Use [review-handoffs.md](../../references/review-handoffs.md) for controller
+placement and persisted stage results; a posted review alone is not a trigger.
 
 ## 1. Recover the evidence
 
@@ -78,7 +78,7 @@ verdict, publish comments, or reopen resolved findings.
 
 ## 4. Retain the learning
 
-Invoke `code-reviewer:apply-review-learning` with the source-linked gap records,
+Dispatch the `code-reviewer:apply-review-learning` agent with source-linked gaps,
 judge result/status, and the user's output request. It owns the two knowledge
 and process outputs. Passing a retrospective is not permission to edit global
 skills or publish anything.

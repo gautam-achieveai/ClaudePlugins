@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -105,12 +105,147 @@ const closedThreadArchiveFields = [
   "lastCompletedActionId",
 ];
 
+test("every scanning specialist has the concise hypothesis evidence contract", () => {
+  const supporting = new Set([
+    "code-reviewer", "pr-context-gatherer", "finding-verifier", "review-adjudicator",
+    "review-grader", "review-performance-judge", "root-cause-synthesizer", "remediation-planner",
+    "post-pr-review", "update-pr-tracking", "review-pending-prs",
+    "review-retrospective", "apply-review-learning",
+  ]);
+  for (const file of readdirSync(path.join(repoRoot, "code-reviewer/agents")).filter((file) => file.endsWith(".md"))) {
+    if (supporting.has(file.slice(0, -3))) continue;
+    const prompt = readRepoFile(`code-reviewer/agents/${file}`);
+    for (const term of ["claim", "trigger", "mechanism", "consequence", "disconfirmation", "evidence status"]) {
+      assert.ok(prompt.includes(term), `${file}: missing ${term}`);
+    }
+    assert.match(prompt, /[Nn]o supported\s+finding/);
+    assert.match(prompt, /unresolved/i);
+  }
+});
+
+test("correctness keeps lifecycle traces intact and delegates only through the orchestrator", () => {
+  const correctness = readRepoFile("code-reviewer/agents/correctness-review.md");
+  const guidance = readRepoFile("code-reviewer/skills/pr-review/reference/agent-guidance.md");
+  assert.match(correctness, /first invocation/i);
+  assert.match(correctness, /captured before initialization/);
+  assert.match(correctness, /Do not spawn reviewers/);
+  assert.match(correctness, /investigationRequests\[\]/);
+  for (const field of ["question", "scope", "reasonToSplit", "existingOwner", "stopCondition"]) {
+    assert.ok(guidance.includes(field), field);
+  }
+  assert.match(guidance, /Split independent investigations/);
+  assert.match(guidance, /do not recursively request another team/);
+  assert.match(guidance, /per-lane finding cap/);
+});
+
+test("platform claims need version evidence rather than specialist agreement", () => {
+  for (const file of ["agent-contract-review", "schema-compatibility-review", "finding-verifier", "nscript-review", "orleans-review"]) {
+    const prompt = readRepoFile(`code-reviewer/agents/${file}.md`);
+    assert.match(prompt, /authoritative documentation|authoritative\s+documentation|authoritative version-specific documentation/);
+    assert.match(prompt, /minimal\s+reproduction/);
+    assert.match(prompt, /unresolved|UNPROVEN/);
+  }
+  const verifier = readRepoFile("code-reviewer/agents/finding-verifier.md");
+  assert.doesNotMatch(verifier, /Default to `FALSE_POSITIVE`/);
+  assert.match(verifier, /incomplete search or inaccessible dependency is `UNPROVEN`/);
+});
+
+test("split verification retains every check before any candidate is discarded", () => {
+  const filter = readRepoFile("code-reviewer/skills/pr-review/reference/filter-and-verify.md");
+  const schema = readRepoFile("code-reviewer/skills/pr-review/reference/finding-schema.md");
+  const adjudicator = readRepoFile("code-reviewer/agents/review-adjudicator.md");
+  assert.match(filter, /even if the first refutes it/);
+  assert.match(filter, /before\s+dropping or grading, at any review size/);
+  assert.match(filter, /verification\.checks\[\]/);
+  assert.match(schema, /FALSE_POSITIVE`\/`UNPROVEN` split/);
+  assert.match(schema, /All required checks must be\s+`TRUE_POSITIVE`/);
+  assert.match(adjudicator, /Never use `WITHDRAWN` for missing evidence/);
+  assert.match(prReview, /Do not repeat an unresolved adjudication without new evidence/);
+});
+
+test("test coverage uses escaped regressions without empty-review padding", () => {
+  const prompt = readRepoFile("code-reviewer/agents/test-coverage-review.md");
+  assert.match(prompt, /shared\/inherited/);
+  assert.match(prompt, /plausible broken implementation/);
+  assert.match(prompt, /protection the proposed assertion adds/);
+  assert.doesNotMatch(prompt, /Include 3-4 rated items only if/);
+  assert.doesNotMatch(prompt, /Every change deserves at least a basic test/);
+  assert.doesNotMatch(prReview, /Flag new public methods without tests/);
+});
+
+test("merge decisions depend on deferral risk rather than small fixes or schema defaults", () => {
+  const schemaSkill = readRepoFile("code-reviewer/skills/schema-compatibility-review/SKILL.md");
+  const schemaAgent = readRepoFile("code-reviewer/agents/schema-compatibility-review.md");
+  const wrapper = readRepoFile("code-reviewer/agents/code-reviewer.md");
+  assert.match(reviewGrader, /Deferral risk, not remediation size/);
+  assert.match(reviewGrader, /pre-enablement prerequisite is not\s+automatically a merge blocker/);
+  assert.doesNotMatch(reviewGrader, /Remediation size routes borderline Mediums/);
+  for (const text of [schemaSkill, schemaAgent]) {
+    assert.doesNotMatch(text, /Default backward-incompatible|\*\*CRITICAL\*\* by default|cheapest\s+moment to fix/);
+  }
+  assert.doesNotMatch(wrapper, /Assume one defect is hiding|block by default/);
+});
+
+test("publication keeps corrected qualifiers and unresolved claims separate from finding threads", () => {
+  const publication = readRepoFile("code-reviewer/skills/pr-review/reference/publish-and-track.md");
+  for (const field of ["trigger", "disconfirmation", "exposure", "evidenceStatus", "candidateSources"]) {
+    assert.ok(reviewGrader.includes(field), `grader: ${field}`);
+    assert.ok(publication.includes(field), `publication: ${field}`);
+    assert.ok(postReview.includes(field), `posting: ${field}`);
+  }
+  assert.match(publication, /Only supported final findings require new thread records/);
+  assert.match(postReview, /unresolvedClaims\[\]/);
+  assert.match(postReview, /no new inline-thread action/);
+  assert.match(outputFormat, /Material Unresolved Claims/);
+  assert.match(outputFormat, /Exact Missing Evidence/);
+});
+
+test("small-delta publication preserves unresolved claim state across re-reviews", () => {
+  const delta = postReview.match(/<small_delta_summary>([\s\S]*?)<\/small_delta_summary>/)?.[1];
+  assert.ok(delta, "missing small-delta publication policy");
+  assert.match(delta, /unresolvedClaims/);
+  for (const transition of ["additions", "changes", "resolutions", "empty"]) {
+    assert.ok(delta.includes(transition), `missing ${transition} transition guard`);
+  }
+  assert.match(delta, /cannot be recovered or compared[\s\S]*?disable small-delta/);
+  assert.match(delta, /unchanged[\s\S]*?small-delta mode/);
+  assert.match(delta, /On GitHub[\s\S]*?Latest Delta/);
+  assert.match(delta, /On ADO, use `smallDeltaSummary`/);
+  assert.match(reReview, /Recover[\s\S]*?`unresolvedClaims\[\]`/);
+  const callerGuard = reReview.match(/Disable small-delta mode when state changes[\s\S]*?(?=\n- \*\*)/)?.[0];
+  assert.ok(callerGuard);
+  assert.match(callerGuard, /unresolvedClaims/);
+  assert.match(callerGuard, /unknown[\s\S]*?full/);
+  assert.match(postReview, /Persist[\s\S]*?`unresolvedClaims\[\]`[\s\S]*?explicit empty array/);
+  assert.match(outputFormat, /"unresolvedClaims": \[\]/);
+});
+
+test("offline review evaluation includes paired controls and valid fixture references", () => {
+  const skillPath = "code-reviewer/skills/pr-review";
+  const suite = JSON.parse(readRepoFile(`${skillPath}/evals/evals.json`));
+  assert.equal(suite.skill_name, "pr-review");
+  for (const evaluation of suite.evals) {
+    assert.ok(evaluation.expectations.length > 0);
+    for (const file of evaluation.files) {
+      const { cases } = JSON.parse(readRepoFile(`${skillPath}/${file}`));
+      const ids = new Set(cases.map(({ id }) => id));
+      assert.equal(ids.size, cases.length);
+      for (const id of [
+        "export-first-use", "export-safe-order", "platform-supported", "platform-unknown",
+        "shared-tests", "test-escaped-regression", "development-token", "disabled-unconditional-effect",
+        "split-verification", "single-causal-trace", "independent-investigations",
+      ]) assert.ok(ids.has(id), id);
+      assert.ok(cases.every(({ evidence, candidate, task }) => evidence && candidate && task));
+    }
+  }
+});
+
 test("review decisions stay anchored to problem and solution fit", () => {
   const skillSpine = readRepoFile("code-reviewer/skills/pr-review/SKILL.md");
   assert.match(skillSpine, /## Rigorous Reviews That Converge/);
-  assert.match(skillSpine, /Guardian of engineering excellence and the codebase/);
-  assert.match(skillSpine, /Mentor to other developers/);
-  assert.match(skillSpine, /Balance both roles without sacrificing either/);
+  assert.match(skillSpine, /guardians of engineering quality and constructive\s+mentors/);
+  assert.match(skillSpine, /evidence over preference/);
+  assert.match(skillSpine, /agents own substantive judgments/);
   assert.match(skillSpine, /Does the code solve the stated problem\?/);
   assert.match(skillSpine, /Is the solution in the right ballpark\?/);
   assert.match(skillSpine, /What must change before merge\?/);
@@ -260,7 +395,7 @@ test("provider posting preserves one canonical summary", () => {
   );
   assert.match(
     postReview,
-    /Require `reviewIntent`, `reviewThreads`, `closedThreadArchive`, and verdict to\s+be unchanged/i
+    /Require `reviewIntent`, `reviewThreads`, `closedThreadArchive`,\s+`unresolvedClaims\[\]`, and verdict to\s+be unchanged/i
   );
   assert.match(postReview, /summary persistence fails[\s\S]*do not approve/i);
   assert.match(postReview, /at or below 60,000 characters/i);

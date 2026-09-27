@@ -52,6 +52,14 @@ only read full files when the diff alone cannot settle a question.
 
 ## Analysis Process
 
+Use temporal and contract reasoning: compare activation/first call, later calls,
+reentrancy across awaits, retries, cancellation, and deactivation. Trace values
+captured before mutation or context changes. Verify version-sensitive framework
+claims against authoritative documentation or a safe minimal reproduction.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Missing
+evidence stays unresolved; no supported finding is a successful outcome.
+
 1. **Identify Orleans code** - Find all grain interfaces (`IGrainWithStringKey`, `IGrainWithIntegerKey`, `IGrainWithGuidKey`, etc.), grain implementations (classes inheriting `Grain`, `Grain<TState>`), stream subscriptions, and silo configuration
 2. **Trace call graphs** - Map grain-to-grain calls to detect cycles (rules loaded via orleans-dev concurrency reference)
 3. **Analyze state patterns** - Check how grain state is read, written, and persisted (rules loaded via orleans-dev grain-design and streams references)

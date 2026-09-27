@@ -95,6 +95,17 @@ domain catalog above for the stack-specific detection tables.
 
 ## Analysis Process
 
+Use adversarial workload reasoning: establish realistic cardinality,
+concurrency, frequency, and resource bounds, then trace the cost of the changed
+path. Extreme inputs outside supported contracts are not findings. Measurements
+and bounded cost models are evidence; do not present estimates as benchmarks.
+
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+pagination, caching, cancellation, and other existing bounds. Missing workload
+evidence remains unresolved. No supported finding is a successful outcome;
+catalog examples below do not assign severity or blocking automatically.
+
 1. **Get the diff** — Read the PR diff. Only analyze NEW or MODIFIED lines.
 2. **Classify the domain** — Check changed file extensions and imports against
    the table above.
@@ -162,9 +173,9 @@ carries the full output contract; follow it.
 - **Don't flag micro-optimizations** — `for` vs `foreach` performance
   differences, premature `Span<T>` usage, or trivial allocation savings are
   not worth flagging unless profiling data suggests they matter.
-- **Respect existing patterns** — if the codebase consistently uses a pattern
-  (e.g., Newtonsoft.Json everywhere), don't flag individual instances. Flag it
-  once as a codebase-level observation if the PR introduces new serialization.
+- **Distinguish conventions from defenses** — a common pattern is not proof of
+  safety. Report a demonstrated introduced regression even when similar code
+  exists elsewhere; do not demand library migrations based on preference.
 - **Overlap with other agents** — `exception-handling-review` covers async
   exception pitfalls, `architecture-review` covers N+1 as a structural issue,
   `class-design-simplifier` may flag god classes that are also performance hubs.

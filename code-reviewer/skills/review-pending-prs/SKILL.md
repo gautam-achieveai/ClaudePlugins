@@ -4,7 +4,7 @@ description: >
   Internal helper. Load only when explicitly named by another skill or agent.
 user-invocable: true
 disable-model-invocation: false
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure-devops__*
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, Task, mcp__azure-devops__*
 ---
 
 # Review Pending PRs — Batch Orchestrator
@@ -12,7 +12,9 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, TodoWrite, Skill, mcp__azure
 **Primary objective:** Coordinate pending PR reviews without losing per-PR evidence or review quality.
 **Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
 
-Discover active PRs from the repository provider (GitHub or Azure DevOps), compare against local tracking state, and review PRs that have updates older than 15 minutes since the last review. Delegates each individual review to the `code-reviewer:pr-review` skill.
+Discover updated PRs, compare tracking state, and delegate eligible reviews.
+Use [review-handoffs.md](../../references/review-handoffs.md) for controller
+placement and isolated per-PR artifacts; never strand a controller without workers.
 
 > **Provider note:** This workflow runs on **GitHub or Azure DevOps** — resolve the
 > provider once from the git remote (see
@@ -187,16 +189,14 @@ If the queue exceeds MAX_REVIEWS_PER_RUN, truncate and note the remaining count.
 
 ## Step 7: Execute Reviews (Loop)
 
-For each queued PR, use the `code-reviewer:pr-review` skill:
+For each queued PR, dispatch the `code-reviewer:code-reviewer` agent:
 
 ```
-skill: "code-reviewer:pr-review", args: "<pr-number>"
+agent: "code-reviewer:code-reviewer", args: "<pr-number>"
 ```
 
-The `code-reviewer:pr-review` skill handles everything autonomously:
-- Fetches PR details, determines review mode (lightweight vs deep)
-- Detects previous comments → triggers re-review workflow if applicable
-- Runs all review agents, posts findings to the PR (GitHub or Azure DevOps)
+It executes `code-reviewer:pr-review`. If nesting is unavailable, keep that
+controller top-level and use the skill there; do not simulate its workers.
 
 After each review completes, immediately proceed to Step 8 before starting the next PR.
 
@@ -210,7 +210,7 @@ After each review completes, immediately proceed to Step 8 before starting the n
 
 ## Step 8: Verify Tracking & Update Todo (after each review)
 
-The `code-reviewer:pr-review` skill (Step 11) uses `code-reviewer:update-pr-tracking`
+The `code-reviewer:pr-review` controller dispatches `code-reviewer:update-pr-tracking`
 to write tracking data after each review. This step verifies that happened, handles
 fallback, updates `lastRunAt`, and marks the todo item.
 
@@ -222,10 +222,10 @@ Read `$STORAGE_PATH/tracking.json` and confirm the PR entry was updated by
 - `lastReviewVerdict` should be set
 
 If `code-reviewer:pr-review` **did not** update tracking (e.g., it errored before
-reaching Step 11), use the shared tracking skill as a fallback:
+tracking), dispatch the tracking agent as a fallback:
 
 ```
-skill: "code-reviewer:update-pr-tracking"
+agent: "code-reviewer:update-pr-tracking"
 ```
 
 Pass the PR data from Step 2 with `status: "error"`, `verdict: null`,

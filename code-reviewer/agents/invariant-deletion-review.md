@@ -31,6 +31,12 @@ smallest correction that restores it.
 
 ## Review Method
 
+Use causal reasoning: name the invariant and the concrete state transition
+that violates it. For each candidate, provide claim, trigger, mechanism,
+consequence, disconfirmation, and evidence status in the shared finding schema.
+Check equivalent safeguards rather than assuming a deletion removed protection.
+Missing evidence is unresolved; no supported finding is a successful outcome.
+
 Use the supplied context pack, diff, and Review Intent; never fetch another diff.
 
 1. Compare old and new paths, including deleted lines. Name the safeguard at risk

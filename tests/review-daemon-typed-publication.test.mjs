@@ -136,6 +136,19 @@ test("context gatherer operationalizes iterative, read-only, sourced context", (
   }
 });
 
+test("context gatherer recommends relevant repository resources with exact file paths", () => {
+  assert.match(gatherer, /discover relevant repository-local skills, agents/);
+  assert.match(gatherer, /Read names and descriptions\s+first/);
+  assert.match(gatherer, /exact repository-relative file path from the\s+authorized workspace root/);
+  assert.match(gatherer, /actual `SKILL\.md`, agent definition, or guide/);
+  assert.match(gatherer, /Verify each reported path exists/);
+  assert.match(gatherer, /do not invoke discovered skills or dispatch agents/);
+  assert.match(gatherer, /Review Daemon\s+mode[\s\S]*?`claims\[\]` with `file:<path>` citations/);
+  assert.match(gatherer, /keep schema version 1 unchanged/);
+  assert.match(gatherer, /^## Relevant Review Resources$/m);
+  assert.match(gatherer, /\| Name \/ type \| Exact repository-relative file path \| Why relevant to this change \| Suggested specialist owner \|/);
+});
+
 test("daemon context mode returns one schema-v1 JSON object without self-attested host evidence", () => {
   const start = gatherer.indexOf("## Review Daemon Context Manifest");
   const end = gatherer.indexOf("## Why This Matters", start);

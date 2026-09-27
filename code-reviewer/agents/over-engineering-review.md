@@ -39,6 +39,13 @@ scaffolding and leave the requested outcome incomplete.
 
 ## Mindset
 
+Use subtractive and goal-based reasoning. State what can be removed without
+losing required behavior and whether doing so now justifies the churn.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+current integration, safety, and testability needs before calling machinery
+unnecessary. Missing evidence is unresolved; no supported finding is success.
+
 Ask **"does this implementation deliver the required behavior without unnecessary
 machinery?"** Apply the same evidence standard to human and generated code.
 Never infer authorship or lack of human review from style, naming, or verbosity.

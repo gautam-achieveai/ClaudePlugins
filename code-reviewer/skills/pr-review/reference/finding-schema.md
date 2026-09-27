@@ -22,6 +22,10 @@ Each agent returns **one JSON object** and nothing else before or after it:
 }
 ```
 
+Correctness reviewers may additionally return `investigationRequests[]` using
+the bounded-delegation contract in [agent-guidance.md](agent-guidance.md).
+Other lanes need no extra envelope fields.
+
 ## Finding Record
 
 ```json
@@ -37,11 +41,15 @@ Each agent returns **one JSON object** and nothing else before or after it:
   "enablingChange": "file.cs:88 — the changed line that makes this reachable, required when diffAnchor is ENABLED_BY_DIFF",
   "issue": "what is wrong, one or two sentences",
   "underlyingProblem": "the mechanism behind the symptom, one sentence",
+  "trigger": "realistic caller, input, and lifecycle state that reach the failure",
   "whyItMatters": "the concrete consequence for this PR",
+  "exposure": "current reachability, feature guards, and deployment or activation prerequisites, with sources; Unknown where unestablished",
   "requiredOutcome": "implementation-neutral condition that must become true",
   "suggestedPath": "the smallest correction that resolves it, labeled as a floor",
   "doneWhen": "objective evidence that closes this finding",
   "evidence": "the search or read that supports the claim, including scope",
+  "disconfirmation": "guard, contract, or alternate explanation checked; result and exact missing evidence",
+  "evidenceStatus": "SUPPORTED | REFUTED | UNRESOLVED",
   "confidence": "CONFIRMED | PROBABLE | UNVERIFIED"
 }
 ```
@@ -63,6 +71,23 @@ Each agent returns **one JSON object** and nothing else before or after it:
 - `evidence` for any absence claim ("undefined", "unused", "no handler") must
   quote the search performed (pattern + scope) and the nearest place that would
   define the thing.
+- `trigger`, `underlyingProblem`, `whyItMatters`, and `disconfirmation` form a
+  concise, checkable causal account, not a narration of internal reasoning.
+  Separate observed facts from assumptions. Missing evidence is not a defect.
+- `evidenceStatus` is the specialist's evidence assessment, not severity.
+  `SUPPORTED` candidates have a checked causal chain; retain material
+  `UNRESOLVED` candidates with the exact missing premise for verification.
+  Keep `REFUTED` candidates in research artifacts, not emitted findings.
+  Pure context questions without a concrete failure hypothesis belong in `questions`.
+- Verification sets the final evidence status: `TRUE_POSITIVE` -> `SUPPORTED`,
+  `FALSE_POSITIVE` -> `REFUTED`, `UNPROVEN` -> `UNRESOLVED`. Never substitute
+  agreement or self-rated confidence for checking the decisive premise.
+- `exposure` distinguishes unsafe to merge, unsafe to deploy/enable, and an
+  operational prerequisite. A disabled flag is not proof of no merge exposure:
+  check unconditional initialization, migrations, shared effects, and applicable policy.
+- Older records missing the new fields remain readable. Before verification or
+  re-publication, enrich them from sources or mark the missing premise unresolved;
+  never fabricate a trigger, exposure, or disconfirmation.
 
 ## Diff Anchoring
 
@@ -103,6 +128,19 @@ real ones, and every additional finding costs a verification pass downstream.
 ```
 
 Questions are never findings, never blocking, and never go to the grader.
+Material unresolved candidates retain their evidence record and may have a linked
+question; do not discard the candidate merely because an answer is unavailable.
+
+## Candidate Provenance (added at Step 10a)
+
+`candidateSources` contains the original candidate records, including each source
+agent's evidence, guards, exposure, and proposed severity. It is an internal audit
+field preserved through all handoffs, not a set of additional posted findings.
+The mechanical filter merges only exact claims at the same location with matching
+trigger, mechanism, disconfirmation, status, exposure, consequence, required
+outcome, and closure check. Different wording, impact, closure guidance, or
+nearby lines stay separate until causal equivalence is checked. Do not flatten
+away a source's contrary evidence or treat the highest proposed severity as verified.
 
 ## Verification Fields (added at Step 10b)
 
@@ -119,8 +157,24 @@ The verifier appends to each record it judges. It never edits the fields above:
 }
 ```
 
+For multiple lenses, preserve each full result in `verification.checks[]`
+(same verdict/lens/citedEvidence/reasoning shape), plus an aggregate `verdict`,
+the decisive `reasoning`, combined `citedEvidence`, and `contested: true | false`.
+An aggregate may omit `lens` when it has `checks`. All required checks must be
+`TRUE_POSITIVE` for a supported aggregate. Any `UNPROVEN` or disagreement makes
+the aggregate `UNPROVEN` until resolved. Uniform, evidenced `FALSE_POSITIVE`
+results refute it. One `TRUE_POSITIVE` and any other verdict, or a
+`FALSE_POSITIVE`/`UNPROVEN` split, is contested; preserve all results for
+adjudication before dropping. An unavailable required check is `UNPROVEN`.
+Adjudication appends its deciding evidence; it never overwrites the original checks.
+
 ## Grader Fields (set at Step 11)
 
 The grader may set `blocker` and adjust `severity` / `remediation`. It
 must preserve `id`, `file`, `line`, `instances`, `diffAnchor`, `issue`, and
 `evidence` exactly as verified. Never reconstruct a location from grader prose.
+Also preserve `trigger`, `disconfirmation`, `exposure`, `evidenceStatus`,
+`candidateSources`, and all verification checks. If new evidence corrects a
+premise, return it for targeted re-verification and record the correction before
+grading; do not silently rewrite or freeze a disproved claim. Render final
+adjudicated qualifiers in the summary and inline comment.

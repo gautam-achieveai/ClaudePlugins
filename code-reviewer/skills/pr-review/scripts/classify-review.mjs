@@ -347,14 +347,7 @@ function buildPlan(tier, features) {
   if (tier !== "TINY" && !features.allFilesNew) add("history-context-review");
   for (const id of riskLanes(features)) add(id);
   if (tier !== "TINY" && features.behaviorChanged) add("test-coverage-review");
-  if (tier === "MEDIUM" || tier === "LARGE") add("duplicate-code-detector");
-  if (features.architectureChange) add("architecture-review");
-  if (tier === "LARGE") {
-    add("architecture-review");
-    add("over-engineering-review");
-    add("class-design-simplifier");
-    add("code-simplifier");
-  }
+  if (features.architectureChange || features.newProjectOrModule) add("architecture-review");
 
   let reasoningAgents;
   if (tier === "TINY") {
@@ -376,6 +369,9 @@ function buildPlan(tier, features) {
       lane("review-adjudicator", { when: "CONTESTED_FINDING" }),
     ];
   }
+  if (!reasoningAgents.some(({ id }) => id === "review-adjudicator")) {
+    reasoningAgents.push(lane("review-adjudicator", { when: "CONTESTED_FINDING" }));
+  }
 
   const focus = {
     TINY: ["GOAL", "CHANGED_LINE_CORRECTNESS", "BOUNDARIES", "REGRESSION_TEST", "TEMP_ARTIFACTS"],
@@ -391,7 +387,8 @@ function buildPlan(tier, features) {
     requiredGuides,
     nonRiskDomainLaneLimit: tier === "TINY" ? 0 : tier === "SMALL" ? 2 : null,
     externalAgentLimit: tier === "TINY" || tier === "SMALL" ? 0 : tier === "MEDIUM" ? 2 : null,
-    splitCorrectnessByArea: tier === "LARGE",
+    // The orchestrator may split independent questions; size alone cannot split a causal trace.
+    splitCorrectnessByArea: false,
     verification: {
       firstLens: lane("finding-verifier", { when: tier === "TINY" ? "MEDIUM_OR_HIGHER" : "EVERY_SURVIVING_FINDING" }),
       secondLens: {

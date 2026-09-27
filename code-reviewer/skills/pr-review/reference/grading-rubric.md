@@ -19,16 +19,18 @@ smallest real **remediation** (TRIVIAL / SMALL / SUBSTANTIAL / REDESIGN).
 The resulting lane is the blocker flag: merge-blocking is `blocker: true`,
 follow-up is `blocker: false`.
 
-**Blocks merge:** demonstrated CRITICAL or HIGH impact regardless of fix size;
-violations of documented or enforced convention contracts (including release
-metadata and public API); persisted schema, migration, or wire compatibility
-risks; and MEDIUM defects with a TRIVIAL or SMALL correction. A claimed blocker
-must explain why shipping now is unsafe or incomplete, not merely invoke a
-category.
+**Blocks merge:** a supported claim whose deferral creates a concrete unsafe or
+incomplete merge, or violates an evidenced applicable merge policy. Explain the
+current exposure, guard effectiveness, and deployment/activation dependencies.
+Severity, category, and a TRIVIAL or SMALL correction alone do not establish
+blocking. A SUBSTANTIAL or REDESIGN correction does not excuse a demonstrated
+merge risk. Unknown platform semantics require verification, not escalation.
 
-**Follow-up:** MEDIUM issues requiring SUBSTANTIAL or REDESIGN work, LOW issues,
-pre-existing problems not worsened by the PR, and preferences without a
-demonstrated merge risk. These never gate the verdict. A finding not placed
+**Follow-up:** safe-to-defer defects, pre-enablement prerequisites that do not
+affect merge safety, LOW issues, pre-existing problems not worsened by the PR,
+and preferences without a demonstrated merge risk. These never gate the verdict.
+Material unresolved claims remain explicitly unresolved and non-blocking with
+the exact missing evidence. A finding not placed
 explicitly in the blocking lane is follow-up by default.
 
 Every review ends with two lists: the shortest path to approval (required
@@ -42,6 +44,11 @@ condition is true. Start its input with the unchanged Review Intent and pass
 verified finding records with their `verification` objects. Send folded Step
 10c clusters as findings, never raw synthesizer output. Keep stable IDs;
 cluster any remaining shared mechanisms instead of posting repeated findings.
+
+In pipeline mode the grader returns one JSON object with `findings`,
+`unresolvedClaims`, `verdict`, `dispositions`, `gradingSummaryMarkdown`,
+`reviewIntent`, `agent`, and `coverageNote`. Use the collections directly;
+never parse findings out of its human-readable explanation.
 
 The grader returns the same records with `id`, `severity`, `remediation`,
 `blocker`, `category`, `file`, `line`, `instances`, `issue`,

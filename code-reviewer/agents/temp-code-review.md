@@ -31,6 +31,14 @@ Temporary code that reaches production causes incidents, security leaks, and con
 
 **Analysis Process:**
 
+Use causal and contextual reasoning: distinguish accidental production
+artifacts from intentional development tools and incomplete activation work.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Check
+build guards, current exposure, and required behavior before flagging a marker.
+Missing evidence remains unresolved; no supported finding is a successful
+outcome. The catalog's severity labels are examples, not automatic grades.
+
 1. **Use the supplied context pack** — the orchestrator supplies the diff, the changed-file list, and the Review Intent. Do not fetch the diff yourself; only read full files when the diff alone cannot settle a question. Only analyze NEW or MODIFIED lines, not pre-existing code.
 2. **Scan for each category** below across all changed files
 3. **Cross-reference** — Some patterns are legitimate in certain contexts (e.g., `// TODO` in a tracking comment vs. a `// TODO: remove this hack`). Use judgment.

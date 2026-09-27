@@ -8,7 +8,7 @@ This skill enables deep analysis of pull request changes, examining security vul
 
 ## Review Pipeline
 
-The review is a funnel. Each stage is cheaper than the one it protects.
+The review tests failure hypotheses and preserves the evidence needed to settle them.
 
 | Stage | What runs | Purpose |
 |---|---|---|
@@ -26,10 +26,63 @@ Two ideas carry most of the weight. **Findings are anchored before they are
 judged**, because code the PR never touched is the largest source of false
 positives. And **every surviving finding is attacked before it is posted**,
 because disproving a finding is cheaper than generating one, and a confident
-wrong finding costs more credibility than a missed one.
+wrong finding and a missed defect both have costs. Unresolved evidence is neither
+confirmation nor refutation.
 
 Every agent emits the same JSON record, capped at five findings, defined once in
 `skills/pr-review/reference/finding-schema.md`.
+
+### Thin Router and Durable Results
+
+The review controller routes work rather than repeating a specialist's analysis.
+Context owns intent/questions, specialists own investigation, verifiers and the
+adjudicator own evidence decisions, the grader owns calibration, and the publisher
+owns final assembly. The controller validates scope, completion and provenance.
+
+[Review handoffs](references/review-handoffs.md) maps every delegatable skill to
+its agent wrapper and defines immutable snapshot-bound stage artifacts.
+Read-only agents return native results for host/controller capture; they do not
+receive broad write access. Pass validated artifact paths between stages, retain
+every candidate's disposition, and preserve daemon wire schemas. A file alone is
+not proof of completion; stale, partial or corrupt results fail validation.
+
+Use [review-artifacts.mjs](skills/pr-review/scripts/review-artifacts.mjs) for
+snapshot identity, capture and validation. Skill invocation alone does not
+isolate context. Hosts without nested delegation keep controllers top-level and
+dispatch leaf workers there; no recursive reviewer teams are introduced.
+Raw artifacts support retrospectives but do not automatically become lessons.
+
+### Evidence and Reasoning
+
+Each specialist supplies a claim, trigger, mechanism, consequence, checked
+disconfirmation, and evidence status. A clean result is success, not a reason
+to lower the reporting threshold. Platform claims require version-applicable
+authoritative documentation or a safe reproduction. Missing evidence stays
+explicitly unresolved.
+
+Use causal, temporal, contract, adversarial, operational, counterfactual,
+contextual, and subtractive reasoning within the existing roles. Correctness
+compares first use with subsequent use and traces captured values across
+initialization/mutation. Tests are judged by escaped regressions, including
+shared/inherited coverage, not whether a dedicated test file changed.
+
+One correctness reviewer is the default. It may request a bounded independent
+investigation; the orchestrator owns dispatch, scope, budget, and aggregation.
+Do not split a single causal trace by reasoning label or recursively spawn teams.
+Design/simplification lanes require distinct evidenced questions, not Large size.
+
+Exact duplicate candidates retain all source evidence. Resolve split verifier
+results before dropping candidates at every tier. Preserve final guards,
+exposure, and uncertainty through grading and publication. Merge blocking
+depends on demonstrated deferral risk or applicable policy, not fix size;
+deployment/activation prerequisites are not automatically merge blockers.
+
+Reusable offline scenario inputs and expectations live in
+[the PR review evaluations](skills/pr-review/evals/evals.json). They include
+defect/safe controls for lifecycle capture, platform syntax, test coverage,
+activation exposure, verifier disagreement, and bounded delegation. Compare
+original and updated policies over repeated independent trials before claiming
+quality or cost improvements; policy tests are not live PR publication tests.
 
 ### Focused Specialists
 

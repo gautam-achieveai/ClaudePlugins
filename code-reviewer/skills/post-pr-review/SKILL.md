@@ -102,9 +102,10 @@ proceeding — reject with a clear error if any are missing.
 | `approveAfterPosting` | boolean | If `true` and verdict is `APPROVE` or `APPROVE_WITH_COMMENTS`, approve after posting. Default: `false` (confirm with user first) |
 | `mergeAfterApproval` | boolean | If `true`, merge after approval. Default: `false` |
 | `mergeStrategy` | enum | `squash`, `noFastForward`, `rebase`, `rebaseMerge`. Default: `squash` |
-| `isSmallDelta` | boolean | When `true`, the caller is posting a trivial re-review delta and the summary must use small-delta mode. Default: `false` |
+| `isSmallDelta` | boolean | Requests small-delta mode for a trivial re-review, subject to the unchanged-state checks below. Default: `false` |
 | `smallDeltaSummary` | string | Required when `isSmallDelta` is `true`. A 1-3 sentence delta-only summary reply |
 | `preExisting[]` | array | Pre-existing observations from the caller's mechanical filter (`diffAnchor = PRE_EXISTING`). Summary-only — see [Pre-existing Finding Format](#pre-existing-finding-format). Default: empty |
+| `unresolvedClaims[]` | array | Material unresolved candidates with their evidence and exact missing premise. Summary-only, non-blocking; default empty. |
 
 ### Finding Format
 
@@ -121,11 +122,31 @@ Each item in `findings[]` must have:
 - instances: string[] (file:line list for clustered findings; empty otherwise)
 - issue: string (description of the problem)
 - underlyingProblem: string (mechanism behind the symptom, one sentence — REQUIRED)
+- trigger: string (realistic caller, input, and lifecycle state)
+- disconfirmation: string (checked defense or alternative and result, including missing evidence)
+- exposure: string (current reachability, guards, and deployment/activation dependencies)
+- evidenceStatus: SUPPORTED | REFUTED | UNRESOLVED
 - whyItMatters: string (concrete consequence for this PR)
 - requiredOutcome: string (implementation-neutral condition; required for blockers)
 - suggestedPath: string (minimal safe route or 1-2 viable options)
 - doneWhen: string (objective closure evidence; required for blockers)
 ```
+
+Preserve internal `candidateSources`, `verification` (including every check),
+and adjudication evidence when supplied; do not rebuild records from summary
+prose. Older records may omit the new fields: request source-based enrichment
+before re-publication, or explicitly label the missing premise unresolved.
+Never invent evidence or silently publish an unqualified claim.
+
+Render the final trigger, exposure/guards, and decisive disconfirmation in
+both summary and inline comments. Partition `UNRESOLVED` candidates into
+`unresolvedClaims[]`, not supported `findings[]`, and keep them in the summary's
+Material Unresolved Claims section with exact missing evidence and conditional
+consequence; do not create new inline defect threads for them or treat them as
+blockers. Retain existing unresolved threads under the thread state machine;
+uncertainty alone does not authorize closing a previous blocker. `REFUTED`
+records remain in audit artifacts and do not become new findings. Empty supported
+findings is a successful outcome; do not add optional noise to fill the review.
 
 ### Pre-existing Finding Format
 
@@ -197,7 +218,12 @@ Each item in `questions[]` must have:
 1. Verify all required top-level fields are present. Arrays may be empty for a
   clean review; `requiredOutcome` and `doneWhen` may be empty only for
   non-blocking findings.
-2. Verify `findings[]` items have the required structure
+2. Verify `findings[]` items have the required structure. They must be supported
+   after verification. `unresolvedClaims[]` must be non-blocking with exact
+   missing evidence and no new inline-thread action; render them in
+   `outputFormatMarkdown`. Preserve existing historical threads separately.
+   On re-review, an omitted collection does not resolve previous claims:
+   recover and carry them forward until evidence changes their disposition.
 3. Verify finding/thread parity before deriving a verdict:
    - Every final finding ID is unique and has exactly one `reviewThreads[]` record.
    - Every review-thread finding ID is unique.
@@ -689,9 +715,16 @@ clean, we **reuse the existing summary thread** instead of creating new ones.
 
 <small_delta_summary>
 If `reviewType` is `re-review` and `isSmallDelta` is `true`:
-- Require `reviewIntent`, `reviewThreads`, `closedThreadArchive`, and verdict to
-  be unchanged. If any changes, disable small-delta mode and post the full
-  structured summary.
+- Require `reviewIntent`, `reviewThreads`, `closedThreadArchive`,
+  `unresolvedClaims[]`, and verdict to be unchanged. If any changes, disable
+  small-delta mode and post the full structured summary.
+- Compare current `unresolvedClaims[]` with the latest persisted collection.
+  Treat additions, changes to claims or their evidence/qualifiers, and resolutions
+  (including transition to an empty array) as state changes. Ignore ordering
+  and whitespace-only differences, not missing premises or conditional impact.
+  If previous state cannot be recovered or compared, disable small-delta mode;
+  absence of a legacy collection is unknown, not an empty collection.
+  These checks apply to both providers before selecting a summary body.
 - On ADO, reply on the existing summary thread when one exists.
 - On GitHub, retain the canonical summary body and update only a `Latest Delta`
   section with `smallDeltaSummary`; never replace serialized intent/state with
@@ -719,6 +752,10 @@ If `reviewType` is `re-review` and `isSmallDelta` is `true`:
   summary is the source for re-review recovery; do not omit acceptance criteria,
   non-goals, delivered approach, evidence, attempt counts, or last-attempt
   commit from non-terminal records.
+- Persist the current `unresolvedClaims[]` alongside that state, including an
+  explicit empty array when none remain. On ADO, recover it from the latest full
+  summary in the canonical thread, not a later delta-only reply. Full publication
+  must replace stale unresolved-claim prose with the current collection.
 - Move `CLOSED` records to `closedThreadArchive[]` using only `findingId`,
   `threadId`, `status`, `blocker`, `closedAt`, and `lastCompletedActionId`.
   Record `closedAt` immediately after provider closure succeeds, sort ascending

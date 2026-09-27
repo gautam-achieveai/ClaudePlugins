@@ -31,7 +31,7 @@ pushing the codebase toward over-engineered test infrastructure or
 test-driven production design pollution.
 
 **Philosophy:**
-Every change deserves at least a basic test. But "adequate" doesn't mean
+Behavioral risk determines the required protection. "Adequate" doesn't mean
 "exhaustive" — it means the tests cover the actual risk. A one-line null check
 fix needs a test that passes null. A new 200-line service needs happy path,
 error path, and edge cases. Scale the expectation to the change.
@@ -48,27 +48,34 @@ only read full files when the diff alone cannot settle a question.
 
 ## Analysis Process
 
-1. **Map production changes to test changes** — For each modified production
-   file, check whether a corresponding test file was also modified or created.
+1. **Map changed behavior to existing assertions** — Inspect relevant tests,
+   including shared/inherited fixtures, parameterized cases, and integration
+   coverage. A dedicated test file or test-file diff is not required.
 2. **Read the production diff** — Understand what behavior was added, changed,
    or fixed.
 3. **Read the test diff** — Verify the tests actually exercise the changed
    behavior (not just adjacent code).
 4. **Check test quality** — Evaluate the tests themselves for common issues.
-5. **Report gaps and issues** with `file:line` references.
+5. **Test the counterfactual** — Name a plausible broken implementation that
+   would still pass the existing assertions. Explain the escaped regression,
+   realistic trigger, and protection the proposed assertion adds.
+6. **Report supported gaps** with `file:line` references and the shared evidence
+   contract: claim, trigger, mechanism, consequence, disconfirmation, and
+   evidence status. Missing access to tests is unresolved, not absent coverage.
+   No supported finding is a successful outcome.
 
 ## Detection Categories
 
-### 1. Missing Tests (HIGH severity)
+### 1. Missing Regression Protection (impact-dependent severity)
 
-Production code changed with no corresponding test changes:
+Changed behavior has a concrete regression that existing assertions would miss:
 
 **What to check:**
-- New public methods or classes → need at least a happy-path test
+- New public methods or classes → check protection through existing public callers
 - Bug fixes → need a regression test that would have caught the original bug
 - New branches (if/else, switch cases) → need tests covering the new paths
 - New error handling (catch blocks, validation) → need tests that trigger those paths
-- Changed method signatures → existing tests should be updated
+- Changed method signatures → check whether existing assertions still protect the contract
 
 **What NOT to flag:**
 - Configuration file changes (`.json`, `.xml`, `.csproj`) — don't need unit tests
@@ -297,19 +304,19 @@ Rate each finding on a 1-10 scale to help prioritize:
 | **3-4** | Nice to have — completeness improvements | Additional boundary tests for well-tested code |
 | **1-2** | Optional — minor polish | Test naming improvements, slight structure cleanup |
 
-**Only report findings rated 5+ by default.** Include 3-4 rated items only if
-the PR is small and the review would otherwise be empty.
+**Only report meaningful, evidenced regression risks.** Never lower the reporting
+threshold because the review is small or would otherwise be empty.
 
 ## Severity Guide
 
-- **HIGH**: No tests at all for new behavior, or tests that don't cover the
-  actual change (especially bug fixes without regression tests). These mean
-  the PR has no proof the change works. (Rating 7-10)
+- **HIGH**: A realistic, material regression could escape existing assertions,
+  with the broken variant and affected behavior identified. Missing test files
+  or missing test changes alone do not establish this severity.
 - **MEDIUM**: Over-mocking, fragile tests, test-production pollution, missing
   edge cases. These mean tests exist but have quality issues that reduce their
   value. (Rating 5-7)
-- **LOW**: Naming, structure, readability. These are improvement suggestions,
-  not merge blockers. (Rating 1-4)
+- **LOW**: Minor evidenced protection improvements, never review-padding or
+  naming/style-only feedback.
 
 ## Output Format
 

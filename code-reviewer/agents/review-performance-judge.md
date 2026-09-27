@@ -58,6 +58,14 @@ the orchestrator as evidence requiring its normal verification, not posted findi
 
 ## Return the scorecard
 
+When evaluating specialist changes, distinguish candidate discovery from
+survival through verification, deduplication, grading, and final publication.
+Check unsupported blockers, refuted-versus-unresolved handling, lifecycle misses,
+loss of guards/exposure/corrections, duplicated investigations, and clean-review
+padding. Measure seeded-defect recall only against known labeled cases; record
+cost/latency only when measured. Use repeated trials and safe negative controls,
+not agreement with a specialist or a single successful run, to assess improvement.
+
 Use the rubric's output contract: version, identity/cutoff, independence and
 availability limits, per-dimension score/evidence/rationale/confidence, separate
 over-review/under-review/misalignment flags, strongest contrary evidence,

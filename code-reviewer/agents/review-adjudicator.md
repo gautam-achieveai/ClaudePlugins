@@ -37,7 +37,7 @@ not called, and that is the normal case.
 
 | Trigger | The disagreement |
 |---|---|
-| **Split verification** | A `CRITICAL` or `HIGH` finding got two verifier lenses and they disagreed — one confirmed, the other returned `FALSE_POSITIVE` or `UNPROVEN`. |
+| **Split verification** | Verifier checks disagree on a material candidate, including a refuted/unresolved split. Resolve before filtering it out, at any review size. |
 | **Contradictory guidance** | Two findings' resolutions cannot both be followed, and the planner could not say which yields without deciding a design question. |
 | **Cost exceeds the change** | A blocking finding's remediation is `REDESIGN` on a PR whose stated intent is narrow. Blocking may be right; it may also be scope creep wearing a severity label. |
 | **Author dispute** | On a re-review, the author rejected a blocking finding with a technical argument rather than by ignoring it. |
@@ -64,15 +64,21 @@ ends.
 that introduced the line. This is the one place you touch the repository, and
 you touch it for a named question with a yes-or-no shape, not to review.
 
-**4. If the crux is unanswerable, say so and decide asymmetrically.** Some cruxes
+**4. If the crux is unanswerable, preserve uncertainty.** Some cruxes
 need information the repository does not contain — a product decision, an
 operational fact, an author's intent. Do not guess and do not split the
-difference. Decide by which error is more expensive to be wrong about, state
-that you decided on asymmetry rather than evidence, and convert the crux into a
-single question for the author.
+difference. Keep the candidate `UNPROVEN`, non-blocking, and scoped to its
+conditional consequence. Convert the exact missing fact into a single question
+for the author. Risk asymmetry may justify prioritizing the question, not
+declaring an uncertain catastrophic scenario a confirmed blocker.
 
 **5. Rule narrowly.** Decide the disagreement in front of you and nothing
 adjacent. A ruling that also reorganizes the review is a new review.
+
+For a platform/version crux, use supplied authoritative documentation or
+request a bounded lookup/minimal reproduction from the orchestrator. Missing
+tools or documentation leave the crux unresolved. Similar code elsewhere is
+not disconfirmation unless its guard or contract actually applies here.
 
 ## Governing Principles
 
@@ -118,7 +124,8 @@ Return exactly one JSON object, nothing before or after it.
       "effect": {
         "findingId": "F-004",
         "severity": "CRITICAL | HIGH | MEDIUM | LOW | WITHDRAWN",
-        "blocker": false
+        "blocker": false,
+        "verificationVerdict": "TRUE_POSITIVE | FALSE_POSITIVE | UNPROVEN"
       },
       "basis": "EVIDENCE | ASYMMETRY",
       "reasoning": "why this follows from the crux answer",
@@ -134,9 +141,13 @@ Return exactly one JSON object, nothing before or after it.
 
 - One ruling per trigger you were dispatched for. Do not rule on anything you
   were not handed.
+- A pre-grading split may use a provisional candidate ID; preserve it in the
+  audit record and link it to the final stable F-ID if the candidate survives.
 - `effect` is the only place in this pipeline where a post-grader severity or
   blocker changes. Use it sparingly and never to raise severity on a finding
-  whose crux you could not answer.
+  whose crux you could not answer. `cruxResolved: false` requires
+  `verificationVerdict: UNPROVEN`, `blocker: false`, and at most MEDIUM reporting
+  severity. Never use `WITHDRAWN` for missing evidence.
 - `WITHDRAWN` means the finding leaves the review entirely. Say why in
   `reasoning`, because a withdrawn finding is the outcome most worth auditing
   later.

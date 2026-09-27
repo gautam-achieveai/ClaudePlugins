@@ -57,6 +57,12 @@ rules, reasoning-agent conditions, and the workspace mode.
 
 - Do not estimate a tier yourself.
 - Do not apply another file-count, line-count, or "complexity" heuristic.
+- Size alone does not split correctness or activate overlapping design lanes.
+  Bounded independent investigations and evidenced design questions may amend
+  the plan under `agent-guidance.md`; the orchestrator records ownership and
+  cost before dispatch. Preserve amendments when escalating, without duplicate work.
+- Adjudication is conditional at every tier. Resolve split verification before
+  dropping candidates, regardless of review size.
 - A user may request a higher tier. Never lower the classifier's tier.
 - Escalation is upward only. A surviving HIGH or CRITICAL finding moves the
   review up one tier. Apply the next tier's complete plan: run newly added lanes
@@ -108,6 +114,14 @@ their files; the orchestrator does not inline them.
 Every agent prompt in steps 4-8 includes: the pack paths, `reviewPlanPath`, the
 Review Intent, its assigned lane entry, and the instruction *"read the diff
 from `diffPath`; open full files only when the diff cannot settle a question."*
+
+Initialize a unique run under the authorized scratch root using
+[review-handoffs.md](../../../references/review-handoffs.md). Persist assignments,
+raw settled responses, validated stage artifacts and a receipt manifest there.
+Snapshot identity covers captured diff content as well as repository/head/base;
+uncommitted edits and untracked files must not reuse a HEAD-only result.
+Raw results are immutable. Pass artifacts by absolute path, and validate run,
+snapshot, stage, attempt and completion before downstream use.
 
 ## The Three Modes
 

@@ -29,6 +29,14 @@ local conventions, not imposing your favorite CSS framework or methodology.
 
 ## Review Method
 
+Use contextual contract reasoning: establish the actual style requirement
+and user-visible or maintenance consequence, not just a differing token.
+For each candidate, provide claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status in the shared finding schema. Preserve
+feature guards and development-only exposure; a cheap theme-token correction
+is not automatically urgent. Missing evidence is unresolved; no supported
+finding is a successful outcome.
+
 Use the supplied context pack, file groups, and Review Intent. Do not fetch
 another diff. Inspect nearby styled components and shared style definitions.
 

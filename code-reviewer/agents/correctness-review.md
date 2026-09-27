@@ -36,7 +36,35 @@ the Review Intent. **Do not fetch the diff yourself.** Read full files only when
 the diff alone cannot settle a question — and prefer reading the one function
 that contains the change over the whole file.
 
+On re-review, own the supplied previous findings' closure checks using
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/re-review-workflow.md`.
+Return evidence-backed state-transition recommendations separately as
+`closureChecks[]`, keyed by finding ID, with the prior closure condition intact.
+Do not publish, count unrelated commits as attempts, or resolve threads yourself;
+the publisher applies the existing state machine.
+
 ## How to look
+
+Use causal, temporal, and contract reasoning together, not separate scans.
+Compare first invocation with subsequent use, retry, and cancellation. Identify
+values captured before initialization, asynchronous mutation, or context switch;
+trace whether they remain valid when used. Follow the complete lifecycle even
+when it crosses files. A pre-operation snapshot is not the post-operation state.
+
+For each candidate, return claim, trigger, mechanism, consequence,
+disconfirmation, and evidence status under the shared finding schema. Check
+the strongest applicable guard or alternative. Missing evidence stays unresolved;
+no supported finding is a successful outcome.
+
+## Optional Investigation Requests
+
+Do not spawn reviewers. When a substantial independent question needs separate
+context, return `investigationRequests[]` under the contract in
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/agent-guidance.md`: question,
+scope, reasonToSplit, existingOwner, and stopCondition. The orchestrator owns
+dispatch and budget and may reuse a planned specialist. Do not split one causal
+chain by reasoning label, request help merely because the PR is large, or
+recursively request another team from a delegated investigation.
 
 Start shallow and stay close to the diff. Most real bugs are visible in the
 changed lines plus the function that contains them. Resist the pull to explore
@@ -70,7 +98,9 @@ Work through the changed hunks in order and ask, for each:
 Do not report any of these, even when true:
 
 - Anything a compiler, type checker, linter, or formatter would catch. Assume
-  CI runs them. Do not build or typecheck yourself.
+  CI runs them. Do not build or typecheck the reviewed project. A safe isolated
+  minimal reproduction may settle a disputed semantic premise; it is not a
+  general compiler/linter pass.
 - Missing tests, missing docs, naming, structure, duplication, or general
   quality.
 - Pre-existing defects on lines this PR did not touch, unless a changed line
@@ -83,7 +113,9 @@ Do not report any of these, even when true:
 
 For each candidate, state the concrete failure: an input or state, the path it
 takes, and the wrong result or crash at the end. A candidate you cannot express
-that way is not ready to report — either trace it until you can, or drop it.
+that way is not a supported finding. Preserve a material concrete hypothesis
+as unresolved with its exact missing premise; discard only refuted or unanchored
+speculation.
 
 Then check the cheapest disqualifier: **is there already a guard?** Read one
 frame up from the change and the top of the containing function. A finding
