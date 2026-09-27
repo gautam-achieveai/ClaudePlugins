@@ -107,7 +107,7 @@ const closedThreadArchiveFields = [
 
 test("every scanning specialist has the concise hypothesis evidence contract", () => {
   const supporting = new Set([
-    "code-reviewer", "pr-context-gatherer", "finding-verifier", "review-adjudicator",
+    "code-reviewer", "pr-context-gatherer", "lane-scout", "finding-verifier", "review-adjudicator",
     "review-grader", "review-performance-judge", "root-cause-synthesizer", "remediation-planner",
     "post-pr-review", "update-pr-tracking", "review-pending-prs",
     "review-retrospective", "apply-review-learning",

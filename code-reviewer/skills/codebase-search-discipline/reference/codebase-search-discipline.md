@@ -44,6 +44,10 @@ rg "SymbolName"
 If a scoped search returns nothing, widen the scope incrementally rather than
 concluding the symbol doesn't exist.
 
+Never `Glob` a repository root with a bare wildcard (`**/*`), and bound output
+(for example `head_limit`), reporting truncation. Review lanes follow the full
+Search Budget in `skills/pr-review/reference/agent-guidance.md`.
+
 ## Rule 3: Check the PR diff before flagging missing definitions
 
 If changed code references `FooHelper.DoSomething()`, check whether

@@ -23,6 +23,12 @@ The script anchors each finding to the diff, merges exact candidates across agen
 and applies the per-agent cap. It outputs `toVerify`, `preExisting`, `dropped`,
 and `merges`, plus a `stats` block that feeds `reviewMetrics` at step 13.
 
+The script reads only `findings`. Before running it, copy each envelope's
+`outsideMapCheck` and `mapGaps[]` into the report's coverage section, keyed by
+agent. List any lane that had its own `### Lane:` section but returned either
+field missing, nested in `coverageNote`, or `null`. `mapGaps` entries are
+evidence about the start map, not findings.
+
 - `toVerify` continues to step 10b.
 - Preserve `candidateSources` on every record. Exact duplicates retain all
   source evidence; nearby or similarly worded claims remain separate until a

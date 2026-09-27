@@ -30,6 +30,7 @@ ci_test_marker: <repo-specific-ci-test-marker>
 - `build_command` - repo-specific build command when the default ecosystem command is wrong
 - `security_sensitive_paths` - paths that should trigger stricter review and broader agent dispatch
 - `ci_test_marker` - optional repo-specific marker or trait required for CI test inclusion
+- `lane_scout` - set `false` to skip the gatherer's lane-scout and Specialist Start Map; lanes then get `no start map`
 
 ## Fallback Rules
 

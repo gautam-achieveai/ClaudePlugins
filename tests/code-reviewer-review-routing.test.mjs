@@ -474,6 +474,7 @@ test("agent frontmatter keeps the approved intelligence distribution", () => {
     "finding-verifier": 1,
     "code-simplifier": 1,
     "pr-context-gatherer": 1,
+    "lane-scout": 1,
     "euii-leak-detector": 2,
     "feature-flag-reviewer": 2,
     "history-context-review": 2,
@@ -628,6 +629,51 @@ test("PR context gatherer loads its skill and calibrates scrutiny by lifecycle a
   assert.match(agent, /emit a focused question asking the caller or author/);
   assert.match(agent, /\*\*Knowledge Base candidate\*\*/);
   assert.match(agent, /Do not add top-level JSON fields/);
+});
+
+test("PR context gatherer dispatches one lane scout and emits a specialist start map", () => {
+  const agent = readFileSync(path.join(root, "code-reviewer/agents/pr-context-gatherer.md"), "utf8");
+  const scout = readFileSync(path.join(root, "code-reviewer/agents/lane-scout.md"), "utf8");
+  const output = agent.split("## Output Format")[1]?.split("## Edge Cases")[0];
+  assert.ok(output, "missing gatherer output format");
+  assert.match(output, /^## Specialist Start Map$/m);
+  assert.match(output, /^### Common Orientation$/m);
+  assert.match(output, /^### Lane: <agent-id>$/m);
+  assert.match(agent, /dispatch exactly one\s+`code-reviewer:lane-scout`/);
+  assert.match(agent, /never dispatch any other/);
+  assert.match(agent, /cannot spawn[\s\S]{0,40}nested agent, run the scout pass inline/);
+  // A scout that spawns and then fails must be visible, never reported as dispatched.
+  assert.match(agent, /If the scout errors, times out,\s+or omits a planned lane's block or `### Unexplored`/);
+  assert.match(agent, /never write them yourself as the\s+scout's/);
+  assert.match(output, /Scout: <dispatched \| inline because nested agents unavailable \| failed: <reason> \(lanes: <ids>\)>/);
+  assert.match(agent, /`lane_scout: false`/);
+  assert.match(agent, /never re-runs the scout/);
+  assert.equal(agent.match(/`code-reviewer:[\w-]+`/g)?.filter((id) => id !== "`code-reviewer:lane-scout`").length ?? 0, 0);
+
+  assert.match(scout, /^name: lane-scout$/m);
+  assert.match(scout, /no finding, no severity, no\s+BLOCKER language/);
+  assert.match(scout, /No findings, severity, BLOCKER language/);
+  assert.match(scout, /Specialists verify\s+everything independently and may expand beyond your map/);
+  assert.match(scout, /No bare repository-root wildcard Glob/);
+  for (const heading of ["### Common Orientation", "### Lane: <agent-id>", "### Contradictions and Leads", "### Unexplored", "### Search Ledger"]) {
+    assert.ok(scout.includes(heading), heading);
+  }
+  assert.match(scout, /`### Unexplored` is mandatory and never empty/);
+  assert.match(scout, /Its `plan\.lanes\[\]` are the planned lanes/);
+  const conventions = readFileSync(path.join(root, "code-reviewer/skills/pr-review/reference/repo-conventions.md"), "utf8");
+  assert.match(conventions, /`lane_scout` - set `false`/);
+
+  // Shared-blind-spot guards: the gatherer may not settle contradictions on its
+  // own, and the scout's negative space reaches every lane unchanged.
+  assert.match(agent, /Cite or flag, never resolve/);
+  assert.match(agent, /Carry the scout's `### Unexplored` list into the Start Map unchanged/);
+  assert.match(output, /^### Unexplored$/m);
+
+  const correctness = readFileSync(path.join(root, "code-reviewer/agents/correctness-review.md"), "utf8");
+  assert.match(correctness, /\*\*Blind first reads\.\*\*/);
+  assert.match(correctness, /your prompt carries only the\s+`context-report\.md` path, not your `### Lane:` section/);
+  assert.match(correctness, /Do not open the report's\s+`## Specialist Start Map` yet/);
+  assert.match(correctness, /report it in `mapGaps\[\]`/);
 });
 
 test("new specialists preserve the shared finding and evidence contract", () => {

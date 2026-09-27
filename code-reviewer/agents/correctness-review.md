@@ -36,6 +36,15 @@ the Review Intent. **Do not fetch the diff yourself.** Read full files only when
 the diff alone cannot settle a question — and prefer reading the one function
 that contains the change over the whole file.
 
+**Blind first reads.** When a start map exists, your prompt carries only the
+`context-report.md` path, not your `### Lane:` section. Do not open the report's
+`## Specialist Start Map` yet. Read your diff hunks and write down your own 2-3
+first reads (path, range, why). Then read `### Lane: correctness-review` and
+`### Unexplored` from the report and compare. Any file you chose
+that the map lacks is a map gap: follow it, and report it in `mapGaps[]`. You
+are the catch-all lane; an anchored correctness review is the most expensive
+miss in the team.
+
 On re-review, own the supplied previous findings' closure checks using
 `${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/re-review-workflow.md`.
 Return evidence-backed state-transition recommendations separately as

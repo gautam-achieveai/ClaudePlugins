@@ -61,7 +61,7 @@ configuration drift instead of pretending the requested tier ran.
 
 | Tier | Level | Agents | Why this tier |
 |---|---|---|---|
-| **1** | L2 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
+| **1** | L2 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, `lane-scout`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
 | **2** | L3 — narrow judgement inside a fixed rulebook | `euii-leak-detector`, `feature-flag-reviewer`, `history-context-review`, `class-design-simplifier`, `accessibility-review`, `css-consistency-review` | Recognizable shapes with a little reasoning at the edges. |
 | **3** | L4 — reasoning with domain expertise | `nscript-review`, `orleans-review`, `test-coverage-review`, `performance-review`, `agent-contract-review`, `review-performance-judge` | Real domain judgement, bounded by a written rulebook. |
 | **4** | L5 — the heavy scanning lanes | `correctness-review`, `exception-handling-review`, `schema-compatibility-review`, `architecture-review`, `over-engineering-review`, `security-review`, `invariant-deletion-review`, `compliance-review`, `reliability-review` | Subtle defects where a weaker model's miss is the expensive outcome. Still grunt work: they read the diff. |
@@ -72,7 +72,7 @@ The employee-level analogy is `0 = L1` (new graduate) through `6 = L7`
 (top engineer with deep domain knowledge): employee level is intelligence + 1.
 No bundled reviewer currently uses intelligence 0.
 
-Distribution across the 30 tiered agents: tiers 1-2 = 11, tier 3 = 6,
+Distribution across the 31 tiered agents: tiers 1-2 = 12, tier 3 = 6,
 tier 4 = 9, tier 5 = 3, and tier 6 = 1. The orchestrator remains untiered
 and inherits.
 

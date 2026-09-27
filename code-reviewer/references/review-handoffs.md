@@ -93,6 +93,11 @@ snapshot identity, payload hash and selected structural contract; it does not
 prove semantic correctness or that an agent really executed. Retain the tool
 execution receipt separately. Never accept an arbitrary existing file as a
 completed worker. Read validates against the controller-owned assignment.
+The capture receipt contains `outputPath` and `contentHash`; `read` emits the
+validated artifact. Suppress that full stdout when the controller only needs
+validation, then pass its path to the next owner. Do not replay it into chat.
+Immutable publication requires filesystem hard-link support; if unavailable,
+report the failure rather than falling back to an overwrite-prone write.
 
 Use `scanner` for scanner JSON, `verification` for verifier JSON, `accounted`
 for derived finding stages, and `generic` for other native payloads. Markdown

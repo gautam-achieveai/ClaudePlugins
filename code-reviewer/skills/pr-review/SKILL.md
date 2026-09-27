@@ -100,6 +100,7 @@ this skill.
 | Supporting agent | When useful and expected contribution |
 | --- | --- |
 | `pr-context-gatherer` | Before team scoping: establish sourced goals and constraints, then group changed files with evidence and context gaps. |
+| `lane-scout` | Once, by the gatherer: map of each lane's first reads, known callers/guards/tests, and open leads; no findings. |
 | `finding-verifier` | Candidate findings: try to disprove each claim and return its verification verdict. |
 | `root-cause-synthesizer` | Several verified findings: cluster shared causes into coherent corrections. |
 | `review-grader` | Planned grading gate: calibrate impact, remediation, and blocker status with closure criteria. |
@@ -233,8 +234,19 @@ workspace modes live only in the classifier and the Step 0 reference.
   > Return the sourced context plus a file-group map: group purpose, exact file
   > paths, supporting evidence, relevant specialist perspectives, and shared
   > contracts or dependencies between groups. Account for every changed file;
-  > mark uncertain placement explicitly rather than guessing. Reuse the supplied
-  > diff; do not fetch another diff or dispatch reviewers.
+  > mark uncertain placement explicitly rather than guessing. Also return
+  > `## Specialist Start Map`: `### Common Orientation`, then one
+  > `### Lane: <agent-id>` per `review-plan.json` lane. Dispatch exactly one
+  > `code-reviewer:lane-scout` for it. Reuse the supplied diff; do not
+  > fetch another diff or dispatch other reviewers.
+
+  **Readiness gate:** save the gatherer's Markdown to
+  `<scratch>/pr-<number>/context-report.md` before dispatching any lane in
+  steps 4-8. Only patch-only `temp-code-review` may start earlier; that run
+  is its step-4 lane. Never cite an unsaved report to a lane. If context
+  fails or is inaccessible, wait or dispatch with `intent unresolved: <gap>`;
+  never treat the PR description as settled intent. A lane without its own
+  `### Lane:` section gets `no start map` (Search Budget).
 
   Wait for the selected context path's result before accepting the file groups. The
   orchestrator checks coverage against the context pack and uses the groups
@@ -259,12 +271,15 @@ workspace modes live only in the classifier and the Step 0 reference.
   For each entry with `id: <agent-id>`, load
   `${CLAUDE_PLUGIN_ROOT}/agents/<agent-id>.md` and spawn
   `code-reviewer:<agent-id>` through the host's Agent tool. These are bundled
-  agents in this plugin, not agents to rediscover in the reviewed repository.
+  plugin agents, not agents to rediscover in the reviewed repository.
    `correctness-review` and `temp-code-review` appear at every tier.
    `history-context-review` starts at SMALL. Keep one correctness reviewer by
-   default, including LARGE reviews; size or top-level folders alone do not
+   default, even for LARGE; size or folders alone do not
    define independent behavior. Each lane owns
-   only its assigned files and focus. Risk lanes keep their base intelligence
+   only its assigned files and focus. Assemble its prompt charter first, map
+   last (agent-guidance Prompt Assembly). If context changes after dispatch,
+   send only affected lanes a short versioned delta before step 10,
+   not the report. Risk lanes keep their base intelligence
    even when the review is otherwise TINY or SMALL.
   Pass each relevant open activation question, its citation and affected
   data/deployment path to the owning planned specialist as a question to
@@ -282,7 +297,7 @@ workspace modes live only in the classifier and the Step 0 reference.
    discipline blocks in every agent prompt**: Evidence Contract, Context Question Emission,
    Claim-Strength Discipline, Defect-Statement Discipline (smallest-fix
    floors, quoted searches for absence claims, mandatory `underlyingProblem`),
-   Convergence Guidance (include the Review Intent), and the Output Contract
+   Search Budget, Convergence Guidance (include the Review Intent), and the Output Contract
    (the JSON schema and the 5-finding cap).
     **Also read `${CLAUDE_SKILL_DIR}/reference/finding-schema.md` now** —
    it is the output contract for every agent from here to posting.

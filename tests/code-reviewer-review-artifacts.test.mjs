@@ -15,9 +15,14 @@ import {
 } from "../code-reviewer/skills/pr-review/scripts/review-artifacts.mjs";
 
 const SCRIPT = fileURLToPath(new URL("../code-reviewer/skills/pr-review/scripts/review-artifacts.mjs", import.meta.url));
-const CONTEXT = { repository: "org/repo", head: "head-123", base: "base-456" };
+const CONTEXT = { repository: "org/repo", headCommit: "head-123", mergeBase: "base-456" };
 const snapshot = (diff = "+dirty\n") => createSnapshotId(CONTEXT, Buffer.from(diff));
 const cli = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8" });
+const doc = (relative) => readFileSync(new URL(`../code-reviewer/${relative}`, import.meta.url), "utf8");
+// Bind to producer contracts so a rename on either side fails here, not in a live review.
+const VERIFIER_VERDICTS = doc("agents/finding-verifier.md").match(/"verdict": "([A-Z_ |]+)"/)[1].split(" | ");
+const CONTEXT_DOC = JSON.parse(doc("skills/pr-review/reference/review-modes.md")
+  .split("`context.json` carries:")[1].split("```json")[1].split("```")[0]);
 
 function fixture(t, overrides = {}) {
   const dir = realpathSync(mkdtempSync(path.join(tmpdir(), "review-artifacts-test-")));
@@ -37,19 +42,27 @@ function fixture(t, overrides = {}) {
   return { dir, inputPath, outputPath, assignment, write, capture };
 }
 
-test("snapshot binds exact diff bytes and repository/head/base, including dirty work at the same HEAD", () => {
+test("snapshot keys are the ones the documented context.json producer writes", () => {
+  for (const field of ["repository", "headCommit", "mergeBase"]) {
+    assert.ok(Object.hasOwn(CONTEXT_DOC, field), `review-modes.md context.json lacks ${field}`);
+  }
+  assert.match(createSnapshotId(CONTEXT_DOC, Buffer.from("+dirty\n")), /^sha256:[a-f0-9]{64}$/);
+});
+
+test("snapshot binds exact diff bytes and repository/headCommit/mergeBase, including dirty work at the same HEAD", () => {
   const original = snapshot();
   assert.match(original, /^sha256:[a-f0-9]{64}$/);
   assert.equal(snapshot(), original);
   for (const diff of ["+other dirty\n", "+dirty\r\n", "+dirty", ""]) {
     assert.notEqual(snapshot(diff), original);
   }
-  for (const field of ["repository", "head", "base"]) {
+  for (const field of ["repository", "headCommit", "mergeBase"]) {
     assert.notEqual(createSnapshotId({ ...CONTEXT, [field]: "different" }, Buffer.from("+dirty\n")), original);
     assert.throws(() => createSnapshotId({ ...CONTEXT, [field]: "" }, Buffer.alloc(0)), new RegExp(field));
   }
   assert.notEqual(createSnapshotId(CONTEXT, Buffer.from([0xff])), createSnapshotId(CONTEXT, Buffer.from([0xfe])));
   assert.throws(() => createSnapshotId(CONTEXT, "+dirty\n"), /must be bytes/);
+  assert.throws(() => createSnapshotId({ repository: "repo", head: "head", base: "base" }, Buffer.alloc(0)), /headCommit/);
 });
 
 test("explicit scanner clean result round-trips without modifying native bytes or assignment", (t) => {
@@ -80,10 +93,14 @@ test("scanner missing findings or coverageNote never becomes a clean result", (t
 
 test("verification accepts only native verdicts and retains corrections and provenance", (t) => {
   const f = fixture(t, { resultKind: "verification" });
-  for (const verdict of ["CONFIRMED", "REFUTED", "UNCERTAIN"]) {
+  assert.deepEqual(VERIFIER_VERDICTS, ["TRUE_POSITIVE", "FALSE_POSITIVE", "UNPROVEN"]);
+  for (const verdict of VERIFIER_VERDICTS) {
     const assignment = { ...f.assignment, outputPath: path.join(f.dir, `${verdict}.json`) };
     const native = {
-      verdict, correctedFinding: { line: 42, issue: "Corrected claim", severity: "LOW" },
+      verdict, lens: "REACHABILITY", citedEvidence: ["src/Foo.cs:42 - traced caller to guard"],
+      reasoning: "Traced the candidate trigger and the existing guard.",
+      falsePositiveReason: verdict === "FALSE_POSITIVE" ? "already-guarded" : null,
+      correctedFinding: { line: 42, issue: "Corrected claim", severity: "LOW" },
       candidateSources: [{ agent: "scanner", evidence: ["call-site:42"], custom: { detail: true } }],
       disconfirmation: "Checked guarded caller", unknownFutureField: [1, null, false],
     };
@@ -92,7 +109,7 @@ test("verification accepts only native verdicts and retains corrections and prov
     assert.deepEqual(readArtifact({ assignment }).result, native);
     assert.deepEqual(artifact.result, native);
   }
-  for (const verdict of [undefined, null, "", "confirmed", "PASS", "LIKELY"]) {
+  for (const verdict of [undefined, null, "", "true_positive", "PASS", "LIKELY", "CONFIRMED", "REFUTED", "UNCERTAIN"]) {
     assert.throws(() => f.capture({ verdict }), /verification verdict/);
   }
 });
@@ -157,7 +174,7 @@ test("invalid assignments and incompatible Markdown accounting are rejected", (t
   f.write({});
   for (const changes of [
     { schemaVersion: 2 }, { runId: "" }, { snapshotId: "HEAD" }, { stageId: 3 },
-    { attemptId: null }, { agent: " " }, { format: "text" }, { resultKind: "other" },
+    { attemptId: null }, { agent: " " }, { format: "text" }, { resultKind: "other" }, { resultKind: null },
     { outputPath: "relative.json" }, { outputPath: path.join(f.dir, "absent", "artifact.json") },
     { resultKind: "accounted" }, { expectedCandidateIds: ["a", "a"] },
     { expectedCandidateIds: [null] }, { expectedCandidateIds: "a" },

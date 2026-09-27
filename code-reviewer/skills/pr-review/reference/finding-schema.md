@@ -22,9 +22,13 @@ Each agent returns **one JSON object** and nothing else before or after it:
 }
 ```
 
-Correctness reviewers may additionally return `investigationRequests[]` using
-the bounded-delegation contract in [agent-guidance.md](agent-guidance.md).
-Other lanes need no extra envelope fields.
+Every lane dispatched with a start map also returns `outsideMapCheck` (`{
+"path", "why", "result" }`, exactly one) and `mapGaps[]` (paths or boundaries
+the map lacked; empty array when none) per the Search Budget in
+[agent-guidance.md](agent-guidance.md). Both are top-level envelope fields,
+never nested in `coverageNote`. Under `no start map`, set both to `null`. Correctness reviewers may additionally return `investigationRequests[]`
+using the bounded-delegation contract in the same file. Other lanes need no
+further envelope fields.
 
 ## Finding Record
 

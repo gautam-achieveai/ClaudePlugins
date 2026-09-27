@@ -4,15 +4,20 @@
 //   node review-artifacts.mjs capture --assignment assignment.json --input native.json --out artifact.json
 //   node review-artifacts.mjs read --assignment assignment.json --input artifact.json
 //
-// Context: {repository, head, base, diffPath}; diffPath is relative to context.json
+// Context: {repository, headCommit, mergeBase, diffPath}; diffPath is relative to context.json
 // or absolute. Snapshot hashes exact captured bytes, including uncommitted changes.
 // Assignment: {schemaVersion:1, runId, snapshotId, stageId, attemptId, agent,
 //   format:"json"|"markdown", outputPath:<absolute>, resultKind?:"generic"|
 //   "scanner"|"verification"|"accounted", expectedCandidateIds?:[<string>]}.
 // Scanner: {findings:[], coverageNote:<nonempty string>}.
-// Verification: {verdict:"CONFIRMED"|"REFUTED"|"UNCERTAIN"}.
+// Verification: {verdict:"TRUE_POSITIVE"|"FALSE_POSITIVE"|"UNPROVEN"}.
 // Accounted: {dispositions:[{candidateId, outcome, targetId?}]}; requires
 // expectedCandidateIds. Other fields are preserved. Markdown is generic only.
+// expectedCandidateIds, when present, enforces accounting for any JSON kind.
+// Optional native runId/snapshotId/stageId/attemptId/agent must match assignment.
+// Artifact: normalized assignment metadata, status:"complete", result, and
+// contentHash = "sha256:" + hex SHA-256 of JSON.stringify(all fields except
+// contentHash), in stored property order. Hashes detect corruption, not forgery.
 //
 // Capture is called ONLY AFTER the caller observes settled tool success. Native
 // results cannot prove tool completion, or detect valid-but-incomplete JSON or
@@ -37,13 +42,13 @@ const nonempty = (value) => typeof value === "string" && value.trim().length > 0
 const digest = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 /** diffBytes must be the captured bytes, not a HEAD-only identifier. */
-export function createSnapshotId({ repository, head, base }, diffBytes) {
-  for (const [key, value] of Object.entries({ repository, head, base })) {
+export function createSnapshotId({ repository, headCommit, mergeBase }, diffBytes) {
+  for (const [key, value] of Object.entries({ repository, headCommit, mergeBase })) {
     if (!nonempty(value)) throw new Error(`snapshot ${key} must be a nonempty string`);
   }
   if (!(diffBytes instanceof Uint8Array)) throw new Error("snapshot diffBytes must be bytes");
   return `sha256:${createHash("sha256")
-    .update(JSON.stringify(["review-snapshot-v1", repository, head, base]))
+    .update(JSON.stringify(["review-snapshot-v1", repository, headCommit, mergeBase]))
     .update("\0").update(diffBytes).digest("hex")}`;
 }
 
@@ -66,7 +71,7 @@ function assignmentMetadata(assignment) {
   }
   if (!HASH.test(assignment.snapshotId)) throw new Error("assignment snapshotId must be a sha256 digest");
   if (!["json", "markdown"].includes(assignment.format)) throw new Error("assignment format must be json or markdown");
-  const resultKind = assignment.resultKind ?? "generic";
+  const resultKind = assignment.resultKind === undefined ? "generic" : assignment.resultKind;
   if (!KINDS.has(resultKind)) throw new Error("assignment resultKind is invalid");
   if (assignment.format === "markdown" && (resultKind !== "generic" || assignment.expectedCandidateIds !== undefined)) {
     throw new Error("markdown requires generic resultKind without expectedCandidateIds");
@@ -102,8 +107,8 @@ function validateResult(result, metadata) {
     if (!Array.isArray(result.findings)) throw new Error("scanner findings must be an explicit array (including clean [])");
     if (!nonempty(result.coverageNote)) throw new Error("scanner coverageNote must be nonempty");
   }
-  if (metadata.resultKind === "verification" && !["CONFIRMED", "REFUTED", "UNCERTAIN"].includes(result.verdict)) {
-    throw new Error("verification verdict must be CONFIRMED, REFUTED, or UNCERTAIN");
+  if (metadata.resultKind === "verification" && !["TRUE_POSITIVE", "FALSE_POSITIVE", "UNPROVEN"].includes(result.verdict)) {
+    throw new Error("verification verdict must be TRUE_POSITIVE, FALSE_POSITIVE, or UNPROVEN");
   }
   if (metadata.expectedCandidateIds !== undefined) {
     if (!isRecord(result) || !Array.isArray(result.dispositions)) throw new Error("result dispositions must be an array");
