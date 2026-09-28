@@ -35,7 +35,8 @@ The calling skill passes these values as `$ARGUMENTS` or context:
 | `verdict` | Yes | `APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`, or `null` (if error) |
 | `status` | Yes | `completed` or `error` |
 | `reviewType` | Yes | `initial` or `re-review` |
-| `sourceCommitId` | No | HEAD commit hash of source branch |
+| `sourceCommitId` | No | Sampled HEAD of this attempt, even on error; never a completion cursor |
+| `reviewBaseline` | No | Completed code scope `{ headCommit, mergeBase, snapshotId, reviewer, completionReceipt }`; absent on error/state-only |
 | `findings` | No | `{ critical, high, medium, low }` counts |
 | `commentsSummary` | No | Array of top findings (one-line each) |
 | `blockerCount` | No | Number of `[BLOCKER]`-tagged findings |
@@ -45,30 +46,9 @@ The calling skill passes these values as `$ARGUMENTS` or context:
 
 ### `reviewMetrics`
 
-| Field | Source |
-|-------|--------|
-| `candidatesGenerated` | `stats.received` from the mechanical filter |
-| `preExistingFiltered` | `stats.preExisting` from the mechanical filter |
-| `duplicatesMerged` | `stats.mergedDuplicates` from the mechanical filter |
-| `cappedOff` | `stats.cappedOff` from the mechanical filter |
-| `verifiedTruePositive` | Count of `TRUE_POSITIVE` verification verdicts |
-| `verifiedFalsePositive` | Count of `FALSE_POSITIVE` verification verdicts |
-| `verifiedUnproven` | Count of `UNPROVEN` verification verdicts |
-| `postedFindings` | Findings actually published to the PR this round |
-| `blockerCount` | Merge-blocking findings posted (mirrors the top-level field) |
-| `agentsDispatched` | `{ "count": <integer>, "names": [<agent names>] }` |
-| `wallClockSeconds` | Seconds from review start to the end of posting |
-| `reviewTier` | `eligibility-stop`, `TINY`, `SMALL`, `MEDIUM`, or `LARGE` (final tier after escalation) |
-| `triggeringRule` | The classifier's `triggeringRule` |
-| `riskFlags` | The classifier's risk flags (array) |
-| `escalations` | Array of `{ from, to, evidence }` upward tier moves |
-| `laneRouting` | Array of `{ id, requested, effective }` model-intelligence/effort per lane |
-| `reviewType` | `initial` or `re-review` (mirrors the top-level field) |
-
-Store every value exactly as the caller supplied it. These are measured
-numbers, not estimates — do not compute, infer, or backfill a missing one from
-the other fields. A value the caller did not supply is stored as `null`; `0`
-means measured and zero.
+Use the caller's exact metrics per [publish-and-track.md](../pr-review/reference/publish-and-track.md#reviewmetrics).
+`reviewTier` also accepts `state-only`. Store supplied values without inference;
+missing is `null`, while `0` means measured zero.
 
 ### `findingOutcomes`
 
@@ -154,6 +134,7 @@ Update (or create) the entry keyed by PR number:
   "lastReviewedAt": "<current UTC time>",
   "lastReviewVerdict": "<verdict from input>",
   "lastReviewStatus": "<status from input>",
+  "lastCompletedReview": null,
   "reviewCount": <previous + 1, or 1 if new>,
   "createdAt": "<from input>"
 }
@@ -163,6 +144,10 @@ Do NOT update `lastRunAt` — that field is owned by the
 `code-reviewer:review-pending-prs` batch orchestrator.
 
 Write `tracking.json`.
+
+Advance `lastCompletedReview` only for `status: completed` with a matching
+`reviewBaseline` and completion receipt. Preserve it on error and state-only
+rounds; `sourceCommitId` records the attempt, not reviewed coverage.
 
 ## Step 5: Append to `reviews/pr-<number>.json`
 
@@ -186,6 +171,7 @@ Append a new entry to the `reviews` array:
   "verdict": "<from input>",
   "status": "<from input>",
   "sourceCommitId": "<from input, or null>",
+  "reviewBaseline": null,
   "findings": { "critical": 0, "high": 0, "medium": 0, "low": 0 },
   "commentsSummary": [],
   "blockerCount": 0,
@@ -215,6 +201,8 @@ Append a new entry to the `reviews` array:
 Populate `findings`, `commentsSummary`, and `blockerCount` from input if
 provided. If status is `error`, set `commentsSummary` to
 `["Review failed: <errorReason>"]`.
+Set `reviewBaseline` only when the verified completed code cursor advanced;
+otherwise leave it null. Never copy the previous cursor into a new round.
 
 Populate `reviewMetrics` from the input object, key by key. Keep `null` for any
 key the caller did not supply — never substitute an estimate, a count derived

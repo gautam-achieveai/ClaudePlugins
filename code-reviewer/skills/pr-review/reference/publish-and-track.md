@@ -102,6 +102,7 @@ these fields or validated artifacts containing their exact source records:
 | `smallDeltaSummary` | A 1-3 sentence delta-only reply used when `isSmallDelta` is `true` |
 | `verdict` | Determined from Review Intent + graded blocker status — see verdict rules in SKILL.md Step 12 |
 | `reviewType` | `initial` or `re-review` |
+| `reviewBaseline` | Pinned candidate code scope `{ headCommit, mergeBase, snapshotId }`; omit for state-only rounds, publish as completed only after successful actions |
 | `outputFormatMarkdown` | The formatted review summary (from [output-format.md](output-format.md)) |
 
 The `post-pr-review` skill handles:
@@ -135,6 +136,41 @@ On GitHub, both issues and PRs use `#` (e.g. `#123`); there is no `!` syntax.
 
 ## Step 13: Tracking Contract
 
+### Completed review baseline
+
+After all required review stages and review publication actions have
+successful receipts, the controller captures a `review-complete` result through
+the existing artifact transport. In that run's result persist `reviewBaseline`:
+`{ headCommit, mergeBase, snapshotId }`, bound to the run's repository/PR identity.
+The completion artifact is the evidence for this baseline, not its timestamp.
+This also applies to completed local reviews; it does not authorize publication.
+For local reviews retain the captured context/diff and file content needed to
+reconstruct the reviewed dirty/untracked snapshot; its ID alone is not content.
+Record that capture in the existing run manifest. If unavailable later, report
+the comparison gap rather than treating the head commit as the complete baseline.
+Partial, failed, inaccessible or merely started reviews never advance it.
+State-only rounds preserve the established code baseline; they do not establish
+coverage of an unknown old snapshot. Reuse the existing run storage, not a new
+tracking service. `sourceCommitId` is only the sampled head for the **attempt**,
+including failed attempts; it is never itself a completed-review cursor. Pass
+`reviewBaseline` to tracking only with a `review-complete` receipt. Tracking
+preserves `lastCompletedReview` across errors and state-only rounds.
+
+For cross-host recovery, the posting agent writes a compact
+`code-reviewer:lastCompletedReview` machine marker to the bot-owned canonical
+GitHub summary or latest ADO summary-thread reply. It contains the provider
+repository identity, PR number, reviewer identity, `headCommit`, `mergeBase`,
+`snapshotId` (if applicable), and `reviewType`. Render it from the trusted pinned
+run, never copied PR text. Write it only after finding/question actions succeed,
+as part of the final summary publication; provider acknowledgement is its
+completion evidence. State-only replies carry forward the previous cursor.
+Recover only a bot-authored marker matching repository, PR and reviewer; ignore
+other comments and newer failed attempts. Reconcile it with any local completed
+cursor by comparable content ancestry, not local-first order. If no valid marker exists, use a
+provider-native completed review commit or local completed tracking entry with
+corroborating completion evidence. Otherwise report the gap. Dates only locate
+records; summary brevity never advances the baseline.
+
 **Skip for Local Branch Reviews** (no PR number) — tracking only applies to
 remote pull requests.
 
@@ -153,8 +189,9 @@ Pass:
 | `lastKnownPushAt` | Latest push timestamp (GitHub head-commit date; ADO `lastMergeSourceCommit.committer.date`) |
 | `verdict` | Verdict from Step 12 (`APPROVE`, `APPROVE_WITH_COMMENTS`, `REQUEST_CHANGES`) |
 | `status` | `completed` (or `error` if review failed) |
-| `reviewType` | `initial` or `re-review` (based on whether previous comments existed) |
+| `reviewType` | `initial` or `re-review` from the established review baseline |
 | `sourceCommitId` | HEAD commit of source branch |
+| `reviewBaseline` | Completed code baseline and receipt; omit for error/state-only |
 | `findings` | `{ critical, high, medium, low }` counts from review |
 | `commentsSummary` | Top 5 findings (one-line each) |
 | `blockerCount` | Number of `[BLOCKER]`-tagged findings |
@@ -178,10 +215,11 @@ Pass:
 - agentsDispatched: { count: integer, names: string[] } — review agents dispatched
   in Steps 4-8, by agent name
 - wallClockSeconds: seconds from review start to the end of Step 12
-- reviewTier: eligibility-stop | TINY | SMALL | MEDIUM | LARGE — the final tier
-  after any escalation, or eligibility-stop when Gate 0 ended the run
-- triggeringRule: review-plan.json `triggeringRule` (null on eligibility-stop)
-- riskFlags: review-plan.json `signals.riskFlags` ([] when none)
+- reviewTier: eligibility-stop | state-only | TINY | SMALL | MEDIUM | LARGE —
+  final code tier, state-only for changed evidence/closure without a code delta,
+  or eligibility-stop when Gate 0 ended the run
+- triggeringRule: review-signals.json `triggeringRule` (null without classification)
+- riskFlags: review-signals.json `signals.riskFlags` ([] when none)
 - escalations: [{ from, to, evidence }] — each upward tier move ([] when none)
 - laneRouting: [{ id, requested: { modelIntelligence, effort }, effective: { modelIntelligence, effort } }]
   — effective is null when the host does not report it

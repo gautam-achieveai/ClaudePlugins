@@ -9,6 +9,8 @@ const entrypoints = [
   "code-reviewer/skills/review-retrospective/SKILL.md",
   "code-reviewer/skills/apply-review-learning/SKILL.md",
   "code-reviewer/agents/review-performance-judge.md",
+  "code-reviewer/skills/repo-onboarding/SKILL.md",
+  "code-reviewer/agents/repo-onboarding.md",
 ];
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 
@@ -42,7 +44,7 @@ test("progressive references in the learning workflow resolve locally", () => {
       assert.ok(resolved.startsWith(root + path.sep), `Reference escapes repo: ${target}`);
       assert.ok(existsSync(resolved), `${file} links to missing ${target}`);
       const relative = path.relative(root, resolved).replaceAll(path.sep, "/");
-      if (/review-retrospective|apply-review-learning|review-performance-judge/.test(relative)) {
+      if (/review-retrospective|apply-review-learning|review-performance-judge|repo-onboarding/.test(relative)) {
         visit(relative);
       }
     }
@@ -64,7 +66,7 @@ test("review lessons and development lessons share one store and one schema", ()
   const owner = read("development/skills/compound-learning/SKILL.md");
   const contract = read("code-reviewer/skills/review-retrospective/reference/evidence-contract.md");
   const store = "docs/superpowers/learnings/<category>/<slug>.md";
-  for (const file of [owner, contract, read("code-reviewer/skills/apply-review-learning/SKILL.md")]) {
+  for (const file of [owner, contract, read("code-reviewer/skills/apply-review-learning/SKILL.md"), read("code-reviewer/skills/repo-onboarding/SKILL.md")]) {
     assert.ok(file.includes(store), `every writer must name ${store}`);
   }
   for (const key of ["title", "date", "type", "component", "tags", "applies_when", "skip_when", "source", "status", "revalidate_when"]) {
@@ -75,5 +77,46 @@ test("review lessons and development lessons share one store and one schema", ()
   assert.match(read("code-reviewer/skills/pr-review/SKILL.md"), /development:compound-learning/);
   for (const file of [contract, read("code-reviewer/skills/pr-review/SKILL.md"), read("code-reviewer/README.md")]) {
     assert.doesNotMatch(file, /knowledge-entries\.md|process-improvements\.md|conversation_memories\/review-learning/);
+  }
+});
+
+test("review convention discovery consumes scoped onboarding notes without automatic fan-out", () => {
+  const conventions = read("code-reviewer/skills/pr-review/reference/repo-conventions.md");
+  assert.match(conventions, /reviewer-onboarding\/index\.md/);
+  assert.match(conventions, /do not launch repository-wide onboarding/);
+  assert.match(conventions, /skill routing/);
+  assert.match(conventions, /Recheck stale or contradicted claims/);
+  assert.match(read("code-reviewer/README.md"), /\/code-reviewer:repo-onboarding/);
+});
+
+test("onboarding defines bounded recursive handoffs and preserves corrected evidence", () => {
+  const workflow = read("code-reviewer/skills/repo-onboarding/SKILL.md");
+  const agent = read("code-reviewer/agents/repo-onboarding.md");
+  for (const requirement of [
+    "12 research invocations", "3 active workers across the tree", "logical depth 3",
+    "parent IDs", "visited", "A child request is not a dispatch",
+    "PARTIAL: delegation unavailable", "do not delete the lesson or its provenance",
+    "AGENTS.md", "AGENT.md", "CLAUDE.md", "SKILL.md",
+    "currency unverified", "supported-not-observed", "closed-unmerged",
+    "Launch independent ready nodes concurrently", "deduplicate follow-up questions",
+    "requires separate explicit user opt-in", "an onboarding request alone is not authorization",
+    "A single-worker host still supports delegation", "Do not invent percentages",
+    "Runtime configuration", "Deployment and failure signals",
+    "Trust and authorization boundaries", "Data migrations and compatibility",
+    "How it works", "What we learned", "Next questions",
+    "directly in the final response, not just notebook paths",
+  ]) {
+    assert.ok(workflow.includes(requirement), `Missing onboarding contract: ${requirement}`);
+  }
+  assert.match(agent, /do not restart the root workflow/);
+  assert.match(agent, /actual agent launches \(not file reads\)/);
+  assert.doesNotMatch(workflow, /authorized by this onboarding request/);
+  const evaluations = JSON.parse(read("code-reviewer/skills/repo-onboarding/evals/evals.json"));
+  assert.equal(evaluations.skill_name, "repo-onboarding");
+  assert.equal(new Set(evaluations.evals.map((entry) => entry.id)).size, evaluations.evals.length);
+  assert.ok(evaluations.evals.length >= 3);
+  for (const entry of evaluations.evals) {
+    assert.ok(entry.prompt && entry.expected_output);
+    assert.ok(entry.assertions.length > 0);
   }
 });

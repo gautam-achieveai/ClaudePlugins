@@ -82,8 +82,9 @@ revision explicitly; review comments themselves never redefine it.
    orchestrator's and the grader's decisions.
 6. **Use the supplied context pack.** Read the diff from `diffPath`; do not
    fetch your own. Open full files only when the diff cannot settle a question.
-7. **Do not report what a compiler, linter, type checker, or formatter would
-   catch.** Assume CI runs them. Do not build or typecheck the reviewed project.
+7. **Avoid duplicating established compiler/linter diagnostics.** First confirm
+   effective settings and executed checks cover the changed code. Unknown CI
+   coverage does not settle a contract concern. Do not build or typecheck the reviewed project.
    A disposable, isolated minimal reproduction is allowed only to settle a
    disputed version-specific semantic premise, without external side effects.
 </output_contract>
@@ -202,13 +203,19 @@ When proposing doc changes or prescriptive fixes:
 
 Mandatory methodology reads (`finding-schema.md` and references your agent
 definition names) are outside this budget.
+
+On re-review, the delta and named `scopeExceptions[]` bound the investigation.
+An off-map check traces a changed/closure question; it does not authorize a
+whole-PR scan. Record new exception reasons/scopes and return independent work
+to the scout. Prior verified findings and unchanged context are not fresh tasks.
 </search_budget>
 
 <prompt_assembly>
 **Prompt Assembly — charter first, map last:** build each lane's prompt in this
 order: (1) the agent's own definition, its `plan.lanes` entry, and the
 plan-level `plan.focus` from `review-plan.json`; (2) the context pack and Review
-Intent; (3) the Evidence Contract, Context Question Emission, Claim-Strength,
+Intent, plus re-review baseline, delta paths, changed closure obligations and
+named scope exceptions when applicable; (3) the Evidence Contract, Context Question Emission, Claim-Strength,
 Defect-Statement, Search Budget, Convergence Guidance, and Output Contract
 blocks; (4) the saved `context-report.md` path and Common Orientation; (5) last,
 only that lane's `### Lane: <agent-id>` section and the scout's `### Unexplored`
@@ -243,9 +250,10 @@ files), `reasonToSplit`, `existingOwner` (a planned lane or null), and
 `stopCondition` (supported, refuted, or unresolved with exact missing evidence).
 Uncertainty alone, file count, or a request to "review more" is insufficient.
 
-The orchestrator checks whether the question needs substantial independent
-context, reuses an already-planned owner when possible, and records accepted
-requests in `review-plan.json` with owner, scope, expected result, and budget.
+The controller returns the question to the scout, which checks whether it needs
+substantial independent context and reuses a selected owner when possible.
+The controller validates and records accepted selection revisions in
+`review-plan.json` with owner, scope, expected result, and budget.
 Dispatch only that bounded investigation; retain one owner for each complete
 causal trace. Reviewers do not spawn reviewers, and delegated investigations
 do not recursively request another team. Reject redundant requests with a

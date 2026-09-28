@@ -76,6 +76,7 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 | `lastReviewedAt` | ISO 8601 | Timestamp of the last review |
 | `lastReviewVerdict` | string or null | `"APPROVE"`, `"APPROVE_WITH_COMMENTS"`, `"REQUEST_CHANGES"`, or `null` |
 | `lastReviewStatus` | string | `"completed"` or `"error"` |
+| `lastCompletedReview` | object or null | Last verified completed code cursor: head, merge-base, snapshot, reviewer, receipt. Preserve after errors/state-only rounds |
 | `reviewCount` | number | Total number of reviews performed on this PR |
 | `createdAt` | ISO 8601 | PR creation date from the provider |
 | `closedAt` | ISO 8601 | Set when status changes to `"closed"` |
@@ -94,6 +95,7 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
       "verdict": "REQUEST_CHANGES",
       "status": "completed",
       "sourceCommitId": "abc123def456",
+      "reviewBaseline": { "headCommit": "abc123def456", "mergeBase": "base123", "snapshotId": null, "reviewer": "review-bot", "completionReceipt": "provider-summary-id" },
       "findings": { "critical": 1, "high": 3, "medium": 5, "low": 2 },
       "commentsSummary": [
         "[BLOCKER] HIGH: Missing null check in UserService.cs:45",
@@ -113,7 +115,8 @@ Both `.claude/` and `scratchpad/` are typically git-excluded, so tracking data s
 | `reviewType` | string | `"initial"` (first review) or `"re-review"` (subsequent reviews) |
 | `verdict` | string | `"APPROVE"`, `"APPROVE_WITH_COMMENTS"`, `"REQUEST_CHANGES"` |
 | `status` | string | `"completed"` or `"error"` |
-| `sourceCommitId` | string | HEAD commit hash of the source branch at time of review |
+| `sourceCommitId` | string | Sampled HEAD of this attempt, including failed rounds; never a completed baseline by itself |
+| `reviewBaseline` | object or null | Verified completed code cursor for this round; null for errors and state-only rounds |
 | `findings` | object | Count of findings by severity: `critical`, `high`, `medium`, `low` |
 | `commentsSummary` | string[] | Top findings (not all). Full findings live on the PR |
 | `blockerCount` | number | Number of findings tagged as `[BLOCKER]` |

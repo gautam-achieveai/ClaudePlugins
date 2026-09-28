@@ -72,6 +72,13 @@ Read the changed and new files. For each new class, interface, or service, estab
 - **What depends on it?** Check if it's exposed through an interface, or used directly.
 - **What is it responsible for?** Read the methods and ask: could this class's name fit on a
   sticky note without using "and"?
+- **Is this the right location?** For new or moved files, compare neighboring
+  responsibilities, namespaces, actual project inclusion and documented layout
+  rules. Name the owning component and cite any placement conflict; do not impose
+  namespace/folder equality or one-type-per-file rules without repository support.
+- **Did responsibility grow?** Inspect substantial new/internal/partial types and
+  additions to existing classes, even without DI or project-reference changes.
+  Distinguish changed-file lines from final type size and exclude generated bulk.
 
 ## Step 2: Load the Catalog, Then Check for Architectural Issues
 

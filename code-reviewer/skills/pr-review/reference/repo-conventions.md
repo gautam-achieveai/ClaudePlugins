@@ -30,7 +30,7 @@ ci_test_marker: <repo-specific-ci-test-marker>
 - `build_command` - repo-specific build command when the default ecosystem command is wrong
 - `security_sensitive_paths` - paths that should trigger stricter review and broader agent dispatch
 - `ci_test_marker` - optional repo-specific marker or trait required for CI test inclusion
-- `lane_scout` - set `false` to skip the gatherer's lane-scout and Specialist Start Map; lanes then get `no start map`
+- `lane_scout` - set `false` to skip the scout subagent and optional Specialist Start Map; selection still runs inline under the same source limits, labelled `inline-scout`, and lanes without a map get `no start map`
 
 ## Fallback Rules
 
@@ -54,3 +54,20 @@ If no convention file exists:
 - Never import defaults from another repo.
 - Never guess a target branch when the PR metadata already tells you.
 - Only enforce repo-specific CI markers when the repo conventions define them.
+
+## Onboarding Context
+
+When an onboarding index is supplied, read it during convention discovery.
+Otherwise check `reviewer-onboarding/index.md` under the repository-prescribed
+conversation scratchpad, or the default
+`.claude/scratchpad/conversation_memories/reviewer-onboarding/index.md`.
+If absent, continue normally; do not launch repository-wide onboarding for a PR.
+
+Read only the linked notes relevant to the changed paths, languages, and risks.
+Use their skill routing to select applicable repository skills. Check repository
+identity, revision, coverage gaps, source provenance, and revalidation triggers.
+Recheck stale or contradicted claims against current authoritative evidence.
+Observed practice, historical comments, and newer language guidance are not
+automatically policy or grounds for blocking a merge. Retrieve durable lessons
+through the existing compound-learning read-back; the notebook is navigation,
+not a competing lesson store or a replacement for current instructions.

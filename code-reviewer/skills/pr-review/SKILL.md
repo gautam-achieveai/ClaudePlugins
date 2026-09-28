@@ -100,7 +100,7 @@ this skill.
 | Supporting agent | When useful and expected contribution |
 | --- | --- |
 | `pr-context-gatherer` | Before team scoping: establish sourced goals and constraints, then group changed files with evidence and context gaps. |
-| `lane-scout` | Once, by the gatherer: map of each lane's first reads, known callers/guards/tests, and open leads; no findings. |
+| `lane-scout` | Select specialists from a quick cross-language review; request targeted context, then supply scopes and starting points; no findings. |
 | `finding-verifier` | Candidate findings: try to disprove each claim and return its verification verdict. |
 | `root-cause-synthesizer` | Several verified findings: cluster shared causes into coherent corrections. |
 | `review-grader` | Planned grading gate: calibrate impact, remediation, and blocker status with closure criteria. |
@@ -112,23 +112,15 @@ this skill.
 | `review-pending-prs` | Coordinate batch selection, not individual scanning. |
 | `review-retrospective` | Coordinate feedback analysis and independent judgment. |
 | `apply-review-learning` | Write only source-validated lessons at the authorized destination. |
+| `repo-onboarding` | Separate repository onboarding; not a PR scanning lane. |
 
 ## Step 0a: Resolve the Provider & Repo
 
-This skill reviews PRs on **GitHub or Azure DevOps**. Resolve the provider once
-from the git remote, then use the matching tools throughout — full mapping in
-`${CLAUDE_PLUGIN_ROOT}/references/provider-resolution.md` (read it now).
-
-- `git remote get-url origin` → host `github.com` = **GitHub** (`<owner>/<repo>`);
-  host `dev.azure.com` / `visualstudio.com` = **Azure DevOps**
-  (`AZURE_DEVOPS_ORG_URL`, `AZURE_DEVOPS_PROJECT`, `AZURE_DEVOPS_REPOSITORY`).
-- State the detected provider in one line and proceed. If no usable remote
-  exists, **ask the user** for the coordinates — do NOT guess from prior reviews
-  or hardcoded defaults.
-- **GitHub** uses GitHub MCP tools when connected, else the `gh` CLI (via `Bash`).
-  **Azure DevOps** uses `mcp__azure-devops__*`. On a tooling failure, use
-  `gh:setup-gh-mcp` or `ado:setup-ado-mcp` and retry. When only one provider's
-  tool is named below, use the mapped counterpart for the other.
+Read `${CLAUDE_PLUGIN_ROOT}/references/provider-resolution.md` now. Resolve
+GitHub or Azure DevOps from `git remote get-url origin` once and state the
+provider. Reuse those coordinates throughout; ask only if the remote cannot
+establish them. Use GitHub MCP/`gh` or the mapped ADO tools, following the
+reference's recovery steps on a tooling failure.
 
 ## Step 0: Eligibility, Review Tier, and Workspace Mode
 
@@ -136,55 +128,53 @@ from the git remote, then use the matching tools throughout — full mapping in
 the cheap eligibility gate, repo-convention loading, deterministic tiering,
 and workspace setup.
 
-Run the eligibility gate **before** any fan-out: closed, draft,
-generated-only, empty, or already reviewed at this exact commit? Stop and say
-why. Re-run this check immediately before posting.
+Run the eligibility gate **before** fan-out. Empty/same-head re-reviews may still
+have new evidence or pending closure actions; follow `review-modes.md`.
+Re-run the freshness check immediately before posting.
 
 **The review tier is not a workspace mode.** Tier chooses cost and thoroughness.
 Workspace mode chooses diff-only, worktree, or local-branch setup.
 
 After Step 1 builds the context pack, `scripts/classify-review.mjs` emits the
-only authoritative tier and lane plan. The closed vocabulary is:
+authoritative tier, measurements and advisory risk signals, never a roster.
+The scout owns specialist selection. The closed tier vocabulary is:
 `TINY | SMALL | MEDIUM | LARGE`.
 
 A user may raise the tier. Never lower the classifier's tier. Escalation is
-upward only: a surviving HIGH or CRITICAL finding moves the review one tier up
-and applies the next tier's complete plan. Run newly added lanes and newly
-required verification or reasoning work; do not repeat equivalent work already
-completed. Tier thresholds, risk floors, mechanical caps, lane budgets, and
-workspace modes live only in the classifier and the Step 0 reference.
+upward only: a newly surviving HIGH or CRITICAL finding moves the review one tier up
+and applies the next tier's fixed verification/reasoning gates. Ask the scout to
+reassess specialist scope from new evidence; retain valid completed work.
+Tier thresholds, risk floors, mechanical caps and cost guidance live in the
+classifier. Read `${CLAUDE_SKILL_DIR}/reference/scout-planning.md` for selection,
+context follow-ups, restricted modes and controller-owned gates.
 
 ## Essential Workflow
 
 1. **Setup — build the context pack once**: the orchestrator fetches metadata
   and creates the pack before dispatching review agents.
    - Fetch PR details — GitHub `gh pr view <n> --json …`, ADO `getPullRequest`.
-   - Triage scope (files added/modified/deleted) to gauge how many parallel
-     agents to dispatch.
+   - Recover completed review state and changed comments before classification.
+     For a re-review, read `${CLAUDE_SKILL_DIR}/reference/re-review-workflow.md`;
+     establish its baseline and thread obligations, then use the shared flow below.
 
-   **Build the context pack** — fetch the diff once, write it to the review
-   scratch directory, and pass its paths to every agent. No agent fetches its
-   own diff: N agents re-fetching the same diff is N times the tokens for
-   identical bytes, and separate fetches can end up reviewing different
-  commits. Full manifest in
-  `${CLAUDE_SKILL_DIR}/reference/review-modes.md`.
-   - Run the classifier and persist the exact plan:
+   **Build one context pack** — initial review: merge-base to head; re-review:
+   last completed review to head. Save that diff and matching changed-file list
+   once; every stage uses these paths. Prior PR files/owners remain context only.
+   Empty deltas follow the state-only path; do not invent code work.
+   Manifest: `${CLAUDE_SKILL_DIR}/reference/review-modes.md`.
+   - Run the classifier and persist measurements (not an executable plan):
      ```bash
      node "${CLAUDE_SKILL_DIR}/scripts/classify-review.mjs" \
        --context <scratch>/pr-<number>/context.json \
-       --out <scratch>/pr-<number>/review-plan.json
+       --out <scratch>/pr-<number>/review-signals.json
      ```
-   - Add the absolute `reviewPlanPath` to `context.json`; initialize snapshot-bound
+   - Add the absolute `reviewSignalsPath` to `context.json`; initialize snapshot-bound
      stage assignments and artifact receipts per `review-handoffs.md`. Echo:
-     `Review route: <tier> / <triggeringRule> / <workspaceMode>; <N> lanes; risk flags: <flags|none>.`
-   - Follow `review-plan.json` exactly. Do not reclassify from prose or add a
-     second size heuristic. If it selects DEEP, use the worktree setup in
-     `${CLAUDE_SKILL_DIR}/reference/review-modes.md` before dispatch.
-   - **Check previous comments** — GitHub `gh pr view <n> --json comments,reviews`,
-     ADO `getPullRequestComments`. **If previous review comments exist from this
-     reviewer (or Claude), read
-     `${CLAUDE_SKILL_DIR}/reference/re-review-workflow.md` now and switch to
-     re-review instead of continuing.**
+     `Review signals: <tier> / <triggeringRule>; specialist selection pending; risk flags: <flags|none>.`
+   - Do not reclassify size from prose. Honor the authorized workspace mode and
+     `${CLAUDE_SKILL_DIR}/reference/review-modes.md`; classifier guidance is not
+     permission to create a worktree. Save `review-plan.json` only after accepting
+     the scout's selection in Step 2.
    - Check linked work items (ADO `getWorkItemById`) or issues (GitHub
      `closingIssuesReferences`).
 
@@ -220,6 +210,10 @@ workspace modes live only in the classifier and the Step 0 reference.
   For `deterministic-offline`, use the context skill's inline rendering path,
   not an agent; missing payloads fail closed. Report gaps in stage, deployment,
   or file grouping rather than claiming new source reads.
+  After either restricted context path, run the scout planning role separately
+  under `scout-planning.md` using only that mode's permitted sources. Never start
+  a second gatherer or add fields to the daemon context schema. Use labelled
+  inline planning if the scout is disabled/unavailable; preserve source limits.
 
   In default enrichment, read
   `${CLAUDE_PLUGIN_ROOT}/agents/pr-context-gatherer.md` and dispatch
@@ -235,23 +229,32 @@ workspace modes live only in the classifier and the Step 0 reference.
   > paths, supporting evidence, relevant specialist perspectives, and shared
   > contracts or dependencies between groups. Account for every changed file;
   > mark uncertain placement explicitly rather than guessing. Also return
-  > `## Specialist Start Map`: `### Common Orientation`, then one
-  > `### Lane: <agent-id>` per `review-plan.json` lane. Dispatch exactly one
-  > `code-reviewer:lane-scout` for it. Reuse the supplied diff; do not
-  > fetch another diff or dispatch other reviewers.
+  > Review Selection, Quality Triage, Context Requests and Coverage from the
+  > scout, plus `## Specialist Start Map`: `### Common Orientation`, then one
+  > `### Lane: <agent-id>` per selected specialist. Dispatch exactly one
+  > `code-reviewer:lane-scout` with `review-signals.json` and the available catalog.
+  > It chooses the team after a quick cross-language code review. Answer its
+  > targeted bug/commit/related-PR context requests and resume that same scout
+  > for at most two follow-up rounds, preserving unknowns and source citations.
+  > Follow `scout-planning.md` for inline/disabled behavior. Reuse the supplied
+  > diff; do not fetch another diff or dispatch other reviewers.
 
   **Readiness gate:** save the gatherer's Markdown to
   `<scratch>/pr-<number>/context-report.md` before dispatching any lane in
-  steps 4-8. Only patch-only `temp-code-review` may start earlier; that run
-  is its step-4 lane. Never cite an unsaved report to a lane. If context
+  steps 4-8. No scanner starts before its selection is accepted.
+  Never cite an unsaved report to a lane. If context
   fails or is inaccessible, wait or dispatch with `intent unresolved: <gap>`;
   never treat the PR description as settled intent. A lane without its own
   `### Lane:` section gets `no start map` (Search Budget).
 
   Wait for the selected context path's result before accepting the file groups. The
-  orchestrator checks coverage against the context pack and uses the groups
-  to scope planned lanes; the gatherer does not replace the classifier or
-  choose the review team. Preserve its sourced Open Activation Questions (or
+  controller validates the scout's selection against available agents, file groups
+  and risk-signal coverage per `scout-planning.md`. Return gaps to the scout;
+  do not independently choose another roster. Save the accepted selection and
+  controller-owned fixed gates as `review-plan.json`; add `reviewPlanPath` to
+  `context.json`. Missing selection or quality coverage is not a clean result.
+  Use labelled inline planning or stop before scanner dispatch if planning is
+  incomplete. Preserve its sourced Open Activation Questions (or
   daemon `claims[]` that explicitly mark an open question) in a parent question
   set. Keep the cited source reference and activation condition; do not turn a question
   into a finding or mistake a source-read `gaps[]` entry for a design question.
@@ -267,13 +270,13 @@ workspace modes live only in the classifier and the Step 0 reference.
 
 4. **Run the planned scanning lanes** — `<parallel agents>`:
 
-   Dispatch exactly the entries in `review-plan.json.plan.lanes`.
+   Dispatch accepted `source: bundled` entries in `review-plan.json.plan.lanes` once.
   For each entry with `id: <agent-id>`, load
   `${CLAUDE_PLUGIN_ROOT}/agents/<agent-id>.md` and spawn
   `code-reviewer:<agent-id>` through the host's Agent tool. These are bundled
   plugin agents, not agents to rediscover in the reviewed repository.
-   `correctness-review` and `temp-code-review` appear at every tier.
-   `history-context-review` starts at SMALL. Keep one correctness reviewer by
+   The scout accounts for behavior, temporary artifacts, tests, prior fixes and
+   quality at every tier; it chooses owners by evidence. Keep one correctness reviewer by
    default, even for LARGE; size or folders alone do not
    define independent behavior. Each lane owns
    only its assigned files and focus. Assemble its prompt charter first, map
@@ -321,37 +324,33 @@ workspace modes live only in the classifier and the Step 0 reference.
   | [Security Checklist](reference/security-checklist.md) | `security-review` when planned; otherwise the domain agent for input handling or data access |
    | [Testing](reference/testing-guide.md) | `test-coverage-review` |
 
-   A separate generic pass over the same guides produced near-duplicate
-   findings that step 11 then had to de-duplicate — paying twice to generate
-   and once more to merge. Dispatch the owning agent instead. If no owning
-   agent matches a guide and the PR clearly needs it, dispatch one agent for
-   that single guide and say why.
+   Assign each needed guide to its selected owner. If none fits, return the
+   gap to the scout for a scoped selection revision.
 
-6. **Design and duplication**: dispatched as part of step 7 via
+6. **Design and duplication**: selected by the scout and dispatched with step 4 via
    `class-design-simplifier`, `code-simplifier`, and `duplicate-code-detector`
-   on evidenced questions, not PR size alone. The classifier selects architecture
-   for structural signals; for other design lanes, record a plan amendment with
-   a concrete question, scope, expected benefit, and non-overlapping owner before
-   dispatch. Include over-engineering only for a demonstrated scope/claims
+   on evidenced questions, not PR size alone. Responsibility growth and placement
+   may select `architecture-review` even without DI/project-reference changes.
+   Later evidence returns to the scout for a scoped plan revision with question,
+   scope, expected benefit and non-overlapping owner before dispatch.
+   Include over-engineering only for a demonstrated scope/claims
    question. A suspicious shape nominates investigation, not a finding.
    Do not run an additional design pass here.
 
 7. **Domain-specific review**: `<parallel agents>` — use the already loaded
   `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md`. Dispatch
-   only domain agents present in the plan. Use the catalog to scope their files
-   and checks, not to choose review breadth. If a new risk signal is found,
-   escalate one tier and record the evidence; bounded correctness requests and
-   question-driven design amendments use their explicit contracts instead.
-   Never append an unplanned lane
-   silently. Run planned lanes in parallel and collect their
-   JSON envelopes into one array for step 10a.
+   only domain agents selected in the plan. The scout uses the catalog to choose
+   and scope reviewers; the controller does not map regex signals to names.
+   New evidence returns to the scout for a bounded selection revision. Apply tier
+   escalation only under the Step 0 rule; do not equate a signal with a finding.
+   Never append an unplanned lane or repeat one dispatched in step 4.
+   Collect settled lanes' JSON envelopes into one array for step 10a.
 
 8. **External agents**: `<parallel agents>` — from the same
-  `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md` catalog, dispatch
-   only agents selected by its ordered external-agent matrix and the plan's
-   `externalAgentLimit`. TINY and SMALL use none; MEDIUM uses the first two
-   eligible available agents; LARGE uses every eligible available agent in
-   matrix order. File count alone never makes an agent eligible.
+  `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md` catalog, dispatch only
+   `source: external` entries once, using resolved host IDs and a distinct question
+   and method. Tier and catalog ordering do not pick reviewers. Record why the
+   benefit justifies extra cost; avoid duplicating bundled lanes.
 
 9. **Cross-reference test coverage** when the plan includes
    `test-coverage-review`: use `test_project_map` from repo
@@ -389,9 +388,8 @@ workspace modes live only in the classifier and the Step 0 reference.
        before synthesis and grading. Reuse the same ID on re-review; IDs never
        change when severity or wording changes.
 
-    Disproving a finding is cheaper than generating one. Never post a finding
-    that no verifier tried to disprove, and never let a model grade its own
-    confidence in place of this step. Agreement is not verification.
+    Never post an unverified finding. Agreement or self-rated confidence cannot
+    replace independent verification.
 
 10c. **Synthesize root causes** — when the plan contains
     `root-cause-synthesizer` and step 10b leaves 4 or more verified findings,
@@ -400,10 +398,7 @@ workspace modes live only in the classifier and the Step 0 reference.
     clusters: for each, the one underlying mistake, the findings it dissolves,
     and the single fix that dissolves them.
 
-    Eleven findings are rarely eleven mistakes. An author handed eleven items
-    fixes eleven things and misses the one that generated them. Pass the
-    clusters to the grader so it calibrates causes rather than symptoms. Below
-    4 findings there is nothing to synthesize — skip and say so.
+    Pass clusters to the grader. Below 4 verified findings, skip synthesis.
 
     Have the synthesizer fold records once, before grading; validate its mapping:
     - **Predicted symptoms are findings like any other.** Run one
@@ -454,11 +449,8 @@ workspace modes live only in the classifier and the Step 0 reference.
 
     It returns the minimum merge-unblocking set, an ordered plan with
     dependencies, and any conflicts between the findings' own suggested paths.
-    Each finding's `suggestedPath` was written by an agent that could see only
-    that finding; independently sensible fixes collide. Use the planner's
-    ordering for the "Blocks merge / shortest path to approval" list in step 12.
-    Below that threshold the grader's own shortest-path line is the better
-    answer and the planner is not dispatched.
+    Use that ordering for Step 12's required corrections. Below the threshold,
+    use the grader's shortest-path line without dispatching the planner.
 
 12. **Provide feedback**: **Read
     `${CLAUDE_SKILL_DIR}/reference/publish-and-track.md` now** for
@@ -476,8 +468,8 @@ workspace modes live only in the classifier and the Step 0 reference.
     intelligence/effort per lane, agents actually dispatched, upward
     escalations, and elapsed wall-clock time. Record a number you did not
     measure as `null` — never estimate one.
-    These counts are what later makes "was this review worth its cost?" a
-    question with an answer instead of an opinion.
+    Capture the completed `reviewBaseline` per `publish-and-track.md`, including
+    local reviews. Failed/partial runs retain the previous baseline.
 
     Then dispatch the `code-reviewer:update-pr-tracking` agent
     with the field mapping in
@@ -499,10 +491,9 @@ workspace modes live only in the classifier and the Step 0 reference.
 <error_handling>
 - **PR fetch fails** → verify PR number, check provider connectivity (GitHub `gh auth status` / ADO MCP), inform user
 - **Worktree script fails** → fall back to lightweight review mode
-- **Classifier fails** → report the error and use LARGE as the safe fallback;
-  never ask a model to recreate the numeric classification by judgment. A
-  context/diff file mismatch is a classifier failure, not permission to classify
-  an incomplete diff.
+- **Classifier fails** → repair matching inputs and retry once. If it still fails,
+  mark review INCOMPLETE (`status: error`) and stop before scout, scanners, grading or posting.
+  Do not invent a tier or roster. State-only rounds skip classification.
 - **Agent dispatch fails or lacks access** → retry that named bundled agent once with the resolved context-pack and agent paths. Do not count a failed or inaccessible agent as a completed lane. If any planned lane still cannot return a usable result, stop before grading or posting; report the incomplete review and missing lanes to the user.
 - **Agent returns malformed JSON** → ask that same agent to re-emit its envelope once. If it fails again, apply the missing-lane rule above. Never hand-transcribe findings out of prose — that is how locations drift.
 - **Filter script fails** → report the failure, then anchor findings by hand against the diff before verifying. Never skip anchoring and post unanchored findings.

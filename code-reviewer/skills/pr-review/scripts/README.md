@@ -12,6 +12,15 @@ corrupt artifacts, output collisions and incomplete candidate accounting.
 Read-only workers return their result; host/controller owns persistence.
 Validation is not proof of agent execution or semantic correctness.
 
+For re-reviews, context requires `reviewType: "re-review"` and `reviewBase`
+(the completed review's head). The snapshot also binds that comparison identity.
+`mergeBase` remains the target merge-base. Missing incremental baselines fail;
+legacy initial-review inputs keep their original IDs. Initial `reviewBase`, if
+supplied, must equal `mergeBase`.
+Saved local baselines also supply `reviewBaseSnapshotId` (a sha256 snapshot ID).
+It distinguishes reviewed dirty content at the same commit; the caller must
+still reconstruct the actual content delta or report an unavailable baseline.
+
 ```text
 node review-artifacts.mjs snapshot --context <context.json>
 node review-artifacts.mjs capture --assignment <assignment.json> --input <raw-result> --out <artifact.json>
@@ -20,37 +29,38 @@ node review-artifacts.mjs read --assignment <assignment.json> --input <artifact.
 
 ## classify-review.mjs
 
-Deterministic cost/quality router. Run it immediately after creating the
-context pack and before dispatching review agents.
+Deterministic measurements and cost guidance. Run it after creating the context
+pack, before scout-owned reviewer selection.
 
 ```bash
 node classify-review.mjs \
   --context <scratch>/pr-<number>/context.json \
-  --out <scratch>/pr-<number>/review-plan.json
+  --out <scratch>/pr-<number>/review-signals.json
 ```
 
 | Option | Default | Meaning |
 |---|---|---|
 | `--context` | required | Context-pack JSON with `changedFiles` and normally `diffPath` |
 | `--diff` | `context.diffPath` | Override the unified diff path |
-| `--out` | stdout | Where to write the plan |
+| `--out` | stdout | Where to write the signals |
 
 The script computes file count, changed lines, hunks, top-level areas, new
 project/module and public-type signals, risk flags, and a conservative
 mechanical-change signal. It emits one `TINY | SMALL | MEDIUM | LARGE` tier,
-the triggering rule, exact scanning lanes, model-intelligence/effort requests,
-verification rules, reasoning-agent conditions, and workspace mode.
+the triggering rule, signals and `costGuidance` (workspace mode and focus).
+Schema version 2 deliberately removes `plan`, scanning lanes, named gate agents
+and reviewer limits. Consumers must obtain the scout's selection separately;
+renaming this output to review-plan.json does not make it an executable plan.
 
-The plan is authoritative. Models do not estimate the tier or choose concrete
-model names. When both are available, the classifier verifies that the diff
+The tier is authoritative for cost policy. Models do not re-estimate it. When
+both are available, the classifier verifies that the diff
 covers the context pack's exact changed-file list. A mismatch fails closed; the
-skill workflow reports it and uses the documented LARGE fallback.
+workflow reports the mismatch and repairs the input before planning.
 
-Every tier offers conditional adjudication for contested findings. Size alone
-does not add overlapping design lanes or split correctness (`splitCorrectnessByArea`
-is false). A new project or module still selects architecture review as a
-structural signal. The orchestrator records bounded independent investigation
-requests and evidenced design questions as plan amendments before dispatch.
+The scout chooses specialists and requests targeted missing context. The
+controller validates that selection and applies fixed verification, grading and
+adjudication gates from `reference/scout-planning.md`. Size alone never selects
+a reviewer or splits a causal trace. Signals nominate questions, not violations.
 
 ## filter-findings.mjs
 

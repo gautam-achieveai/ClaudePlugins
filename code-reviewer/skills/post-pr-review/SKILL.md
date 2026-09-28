@@ -12,12 +12,9 @@ allowed-tools: Read, Bash, Skill, mcp__azure-devops__*
 **Primary objective:** Publish verified review results accurately and without duplicate or misplaced feedback.
 **Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
 
-Publish structured review results (findings, context questions, and summary) to a
-**GitHub or Azure DevOps** pull request. This skill owns the full "write to the PR
-provider" workflow — the caller provides the data, this skill resolves the provider
-(see [Provider Resolution & Tool Mapping](../../references/provider-resolution.md)) and
-handles formatting, deduplication, thread management, and posting. Provider-specific
-calls below show the `mcp__azure-devops__*` tool and its GitHub `gh` equivalent.
+Publish findings, questions, and summaries to a GitHub or Azure DevOps PR.
+Resolve the provider using [provider-resolution.md](../../references/provider-resolution.md).
+Own formatting, deduplication, threads, and posting; the caller supplies data.
 
 ## When to Use
 
@@ -104,6 +101,7 @@ proceeding — reject with a clear error if any are missing.
 | `mergeStrategy` | enum | `squash`, `noFastForward`, `rebase`, `rebaseMerge`. Default: `squash` |
 | `isSmallDelta` | boolean | Requests small-delta mode for a trivial re-review, subject to the unchanged-state checks below. Default: `false` |
 | `smallDeltaSummary` | string | Required when `isSmallDelta` is `true`. A 1-3 sentence delta-only summary reply |
+| `reviewBaseline` | object | Pinned candidate code scope; absent on state-only/error |
 | `preExisting[]` | array | Pre-existing observations from the caller's mechanical filter (`diffAnchor = PRE_EXISTING`). Summary-only — see [Pre-existing Finding Format](#pre-existing-finding-format). Default: empty |
 | `unresolvedClaims[]` | array | Material unresolved candidates with their evidence and exact missing premise. Summary-only, non-blocking; default empty. |
 
@@ -729,7 +727,7 @@ If `reviewType` is `re-review` and `isSmallDelta` is `true`:
 - On GitHub, retain the canonical summary body and update only a `Latest Delta`
   section with `smallDeltaSummary`; never replace serialized intent/state with
   the short text.
-- On ADO, use `smallDeltaSummary` as the entire reply body.
+- On ADO, use `smallDeltaSummary` plus the completed cursor marker as the reply.
 - Keep the reply to 1-3 sentences.
 - Cover only the incremental delta.
 - Do NOT repeat previously verified claims or re-render prior tables.
@@ -779,9 +777,10 @@ If `reviewType` is `re-review` and `isSmallDelta` is `true`:
           60,000 characters, stop with a specific `summary-body-overflow` error and
           do not post or approve. Never truncate Review Intent, active blocker closure
           criteria, handoff evidence, or action reconciliation fields.
-- Set `canonicalStatePersisted = true` only after the provider confirms this
-  summary update. Action markers allow recovery after a failed update, but they
-  do not substitute for durable canonical state in the approval gate.
+- After findings/questions succeed, replace any input `code-reviewer:lastCompletedReview`
+  with one from the pinned `reviewBaseline` in the final summary; carry it forward on
+  state-only rounds. Set `canonicalStatePersisted = true` only on provider receipt.
+  Action markers cannot replace durable state for approval.
 - Ensure exactly one `Pre-existing Observations` section when `preExisting[]` is non-empty
   (replace the one from `output-format.md` if present; never add a second),
   placed after `Optional Follow-up` and before the machine-readable state:
