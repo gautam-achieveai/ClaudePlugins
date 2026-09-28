@@ -106,8 +106,9 @@ Work through the changed hunks in order and ask, for each:
 
 Do not report any of these, even when true:
 
-- Anything a compiler, type checker, linter, or formatter would catch. Assume
-  CI runs them. Do not build or typecheck the reviewed project. A safe isolated
+- Duplicate diagnostics from compiler, type checker, linter or formatter checks
+  whose effective settings and execution are established. Unknown CI coverage
+  does not dismiss a substantive contract risk. Do not build or typecheck the reviewed project. A safe isolated
   minimal reproduction may settle a disputed semantic premise; it is not a
   general compiler/linter pass.
 - Missing tests, missing docs, naming, structure, duplication, or general

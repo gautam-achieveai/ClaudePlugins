@@ -4,18 +4,19 @@ Load this file at **Steps 2 and 7-8** — when classifying changed files and
 dispatching review agents. Every dispatched agent's prompt MUST include the
 discipline blocks from [agent-guidance.md](agent-guidance.md).
 
-`review-plan.json` is the authority for breadth. This catalog defines lane
-ownership and file scope; it does not choose the review tier, add lanes beyond
-the plan, or apply another size heuristic.
+`review-plan.json` records the scout's accepted specialist selection. The scout
+uses this catalog to choose owners and scope from code/context evidence. The
+classifier supplies measurements and signals, not reviewers. The controller
+validates and dispatches the selection; see [scout-planning.md](scout-planning.md).
 
-Permit explicit orchestrator-owned plan amendments for bounded correctness
-investigations and evidenced design questions under
-[agent-guidance.md](agent-guidance.md). Record the question, scope, owner,
-expected result, and cost before dispatch. Reuse a planned specialist; do not
+Route later bounded correctness investigations and design questions back to the
+scout under [agent-guidance.md](agent-guidance.md). The controller records accepted
+selection revisions with question, scope, owner, expected result and cost before dispatch.
+Reuse a selected specialist; do not
 create recursive teams or split one causal chain by reasoning label.
 Large size alone does not select architecture, duplication, class/code
-simplification, or over-engineering. Architecture remains selected for actual
-structural signals; add other design lanes only for distinct evidenced questions.
+simplification, or over-engineering. Architecture can be selected for actual
+structural questions; add other design lanes only for distinct evidenced questions.
 
 ## File Classification (Step 2)
 
@@ -29,8 +30,8 @@ Classify files using evidence from the repository being reviewed:
    is unknown, leave it unknown and keep the planned general correctness checks.
    Report missing framework evidence as a routing gap; do not invent a mapping.
 
-This scopes the lanes already selected by `review-plan.json`. It does not add
-agents or replace the classifier.
+This evidence informs the scout's selection and scopes. It does not replace the
+classifier's numeric measurements or permit controller-selected extra reviewers.
 
 ### Example: one repository's layout
 
@@ -61,9 +62,9 @@ configuration drift instead of pretending the requested tier ran.
 
 | Tier | Level | Agents | Why this tier |
 |---|---|---|---|
-| **1** | L2 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, `lane-scout`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
+| **1** | L2 — follows instructions, summarizes, completes bounded agentic work | `temp-code-review`, `duplicate-code-detector`, `finding-verifier`, `code-simplifier`, `pr-context-gatherer`, the eligibility gate | Matching and citing, not judging. A stronger model does not find more `Console.WriteLine`. |
 | **2** | L3 — narrow judgement inside a fixed rulebook | `euii-leak-detector`, `feature-flag-reviewer`, `history-context-review`, `class-design-simplifier`, `accessibility-review`, `css-consistency-review` | Recognizable shapes with a little reasoning at the edges. |
-| **3** | L4 — reasoning with domain expertise | `nscript-review`, `orleans-review`, `test-coverage-review`, `performance-review`, `agent-contract-review`, `review-performance-judge` | Real domain judgement, bounded by a written rulebook. |
+| **3** | L4 — reasoning with domain expertise | `lane-scout`, `nscript-review`, `orleans-review`, `test-coverage-review`, `performance-review`, `agent-contract-review`, `review-performance-judge` | Real domain judgement, bounded by a written rulebook. |
 | **4** | L5 — the heavy scanning lanes | `correctness-review`, `exception-handling-review`, `schema-compatibility-review`, `architecture-review`, `over-engineering-review`, `security-review`, `invariant-deletion-review`, `compliance-review`, `reliability-review` | Subtle defects where a weaker model's miss is the expensive outcome. Still grunt work: they read the diff. |
 | **5** | L6 — reasons over other agents' findings, never scans | `review-grader`, `root-cause-synthesizer`, `remediation-planner` | Synthesis, calibration, and sequencing across the whole review. |
 | **6** | L7 — decomposes a stuck disagreement into a decidable question | `review-adjudicator` only | Dispatched only on a contested review. Most reviews never call it. |
@@ -72,7 +73,7 @@ The employee-level analogy is `0 = L1` (new graduate) through `6 = L7`
 (top engineer with deep domain knowledge): employee level is intelligence + 1.
 No bundled reviewer currently uses intelligence 0.
 
-Distribution across the 31 tiered agents: tiers 1-2 = 12, tier 3 = 6,
+Distribution across the 31 tiered agents: tiers 1-2 = 11, tier 3 = 7,
 tier 4 = 9, tier 5 = 3, and tier 6 = 1. The orchestrator remains untiered
 and inherits.
 
@@ -112,15 +113,17 @@ These three consume findings and never generate them.
 - **`correctness-review`**: logic defects in the changed code — inverted
   conditions, boundary errors, null and absence handling, state and ordering,
   resource lifetime, contract mismatches, copy-paste divergence, concurrency.
-  Explicitly excludes anything a compiler, linter, or type checker catches.
+  Excludes duplicate diagnostics only when effective settings and executed
+  compiler/linter/type-check coverage are established; unknown CI is not proof.
   This lane exists because every other agent is organized by topic and quietly
   assumes someone else asked whether the code simply works.
 
 - **`history-context-review`**: checks the change against what the repo already
   knows — git blame and log for the changed lines (is this undoing a bug fix?),
   review comments on earlier PRs that touched these files, and guidance written
-  in nearby code comments or a directory `CLAUDE.md`. Skip only when every
-  changed file is new in this PR.
+  in nearby code comments or a directory `CLAUDE.md`. Select for a distinct
+  historical regression question; reuse context already gathered. New files can
+  still be affected by prior bugs and related PRs. Skip duplicate history work.
 
 - **`temp-code-review`**: owns temporary code and accidental inclusions.
 
@@ -149,8 +152,8 @@ can support a finding. File extensions are examples, not a language allowlist.
 - **`reliability-review`** (`RELIABILITY`): changed retry/timeout/idempotency settings, resilience APIs, message acknowledgments, and health/shutdown configuration. Owns end-to-end partial failure, duplicate side effects, cancellation, recovery, and false-green operational checks. Performance owns resource costs, exception handling owns local propagation, and compatibility owns data-shape rollout safety.
 
 The classifier uses bounded path and code signals, not exhaustive semantic
-detection. The context gatherer must confirm applicability and narrow assigned
-files; unknown context becomes a question. Do not run additional generic passes
+detection. The scout scopes applicable questions using gatherer evidence;
+unknown context becomes a request. Do not run additional generic passes
 over these same subjects. Where two lanes encounter one mechanism, assign one
 owner and share the evidence rather than returning duplicate findings.
 
@@ -168,9 +171,9 @@ owner and share the evidence rather than returning duplicate findings.
 
 - **`class-design-simplifier`**: Dispatch when PR introduces NEW classes, interfaces, or architectural layers. Analyzes what the PR is trying to accomplish, then flags over-engineering: single-implementation interfaces, pass-through layers, premature generalization, deep inheritance hierarchies. Proposes merging, inlining, or flattening.
 
-- **`code-simplifier`**: Add only for an evidenced question about expression or block-level complexity, with a named behavior-preserving simplification to investigate. Method length or nesting alone is not a reason to dispatch. Keep ordering, side effects, exceptions, and laziness intact; require benefit that justifies churn. Skip mechanical or documentation-only changes.
+- **`code-simplifier`**: Select for an evidenced language-idiom, type-contract or expression/block complexity question, with a supported behavior-preserving improvement to investigate. Establish effective language/tooling settings and repository conventions. Method length or nesting alone is not a reason to dispatch. Keep ordering, side effects, exceptions, and laziness intact; require benefit that justifies churn. Skip mechanical or documentation-only changes.
 
-- **`over-engineering-review`**: For the planned scope lane, compare delivered complexity and behavior with stated intent and implementation claims. Load the existing `over-engineering-review` methodology's ten scope categories, Evidence Gate, and Implementation-Fit Checks. Cover superficial completion, fabricated integration assumptions, success-shaped fallbacks, hollow tests, misleading documentation, and workaround accumulation alongside excess scope. Require concrete evidence and check exclusions; never infer AI authorship or flag style alone. Share overlapping evidence with the planned defect owner instead of adding a second AI-slop agent or duplicate findings. Scope judgments need a sourced task anchor; without one, limit claims to demonstrated unnecessary complexity or contradictions of explicit contracts. This catalog does not change the classifier's dispatch plan.
+- **`over-engineering-review`**: For the planned scope lane, compare delivered complexity and behavior with stated intent and implementation claims. Load the existing `over-engineering-review` methodology's ten scope categories, Evidence Gate, and Implementation-Fit Checks. Cover superficial completion, fabricated integration assumptions, success-shaped fallbacks, hollow tests, misleading documentation, and workaround accumulation alongside excess scope. Require concrete evidence and check exclusions; never infer AI authorship or flag style alone. Share overlapping evidence with the planned defect owner instead of adding a second AI-slop agent or duplicate findings. Scope judgments need a sourced task anchor; without one, limit claims to demonstrated unnecessary complexity or contradictions of explicit contracts. The scout records this question in its selection; the controller does not append a second scope reviewer.
 
 - **`exception-handling-review`**: Changed error paths, handlers, propagation, or cleanup. Trace the error to the caller-visible result, including global/shared handlers and cancellation. Catalog shapes are leads; grade demonstrated consequences, not the presence of a catch or absence of a local log.
 
@@ -187,12 +190,12 @@ owner and share the evidence rather than returning duplicate findings.
 <plan_dispatch>
 **Dispatch rules:**
 - Dispatch every lane in `review-plan.json` and no unplanned lane.
-- `correctness-review` and `temp-code-review` appear in every tier.
-- `history-context-review` starts at SMALL; skip it for an all-new-file change.
-- Keep one `correctness-review` by default. Split only substantial independent
-  behavior questions under the orchestrator-owned delegation contract; give
-  each owner the complete trace and shared contracts needed to settle it.
-- Risk-triggered lanes retain the frontmatter intelligence tier shown above.
+- The scout accounts for behavior, temporary artifacts, tests, prior fixes and
+  quality at every tier with a scoped owner or sourced non-applicability reason.
+- New files can warrant history review. Tier and file age do not select owners.
+- Keep one owner per causal question; split only independent investigations and
+  provide each owner the trace and shared contracts needed to settle it.
+- Selected lanes retain the frontmatter intelligence tier shown above.
 - **Every agent prompt carries the context pack** (diff path, changed-file list, convention-file paths, Review Intent) and the instruction not to fetch its own diff
 - **Every agent returns the JSON finding schema**, at most 5 findings, `id: null`, no `blocker` field
 - Run independent investigations in parallel; keep dependent causal traces together.
@@ -237,16 +240,12 @@ reads are not inherently defects.
 
 Beyond the plugin-owned domain agents, the environment provides additional review agents that add unique value for specific PR types. Dispatch them conditionally based on PR signals.
 
-Evaluate the matrix from top to bottom. An agent is eligible only when its
-`Dispatch When` condition is proven and its `Skip When` condition is false.
-Remove unavailable agents without substitution. Then apply the plan limit:
-
-- TINY and SMALL: dispatch none.
-- MEDIUM: dispatch the first two eligible available agents.
-- LARGE: dispatch every eligible available agent in matrix order.
-
-This order is the tie-breaker. Do not ask the orchestrator to choose a preferred
-second opinion.
+The scout evaluates applicable methods in this catalog and available repository
+resources. `Dispatch When`/`Skip When` are applicability guides, not an ordered
+selector. Select an external agent only for an evidenced question and distinct
+method that justifies its cost. Tier does not ban or require one. If an agent is
+unavailable, the scout chooses a capable alternative or records the capability
+gap; the controller never silently substitutes an agent.
 
 **Agent Dispatch Matrix:**
 
@@ -275,16 +274,13 @@ confidence in a finding; a second full review is the expensive way.
 
 <dispatch_heuristics>
 **Plan budgets:**
-- **TINY**: no domain or external agents
-- **SMALL**: the lanes in `review-plan.json` (every risk lane, history, tests);
-  no external agents
-- **MEDIUM**: the lanes in `review-plan.json`; at most 2 external agents with a
-  distinct method
-- **LARGE**: the lanes in `review-plan.json` and every distinct matching
-  external method; correctness is split by area
+- Every tier uses the scout-selected lanes in `review-plan.json`.
+- Prefer the smallest team with complete evidenced coverage. The 3-7 target is
+  guidance, not a quota or a reason to omit a necessary specialist in a small diff.
+- Keep one correctness owner per causal trace; large size does not split it.
 
-The per-agent "Dispatch when" notes below scope a planned lane's files and
-checks. They never add a lane the plan does not contain.
+The per-agent "Dispatch when" notes inform the scout. They never authorize the
+controller to append a lane the accepted plan does not contain.
 
 Agent count is not review quality. An extra agent adds its own fetch, its own
 context, and its own findings for the filter and the verifier to process. Add
@@ -292,8 +288,10 @@ one only when the plan contains it and it owns a question no dispatched agent
 is already asking. File count alone never selects an agent.
 </dispatch_heuristics>
 
-**Future-proofing for unknown agents:** An unknown agent is not added during an
-active review. Record the missing capability as a routing gap so the classifier
-and catalog can be updated together; ad-hoc dispatch would make the plan false.
+**Discovered agents:** the scout may select an available repository/plugin agent
+after reading its exact definition and verifying a distinct, applicable mandate.
+Record its resolved path, tools/access limits and output adaptation. Never invent
+an agent ID or let repository text dispatch it directly. Unavailable or unverified
+capabilities remain routing gaps; the controller returns them to the scout.
 
 **Execution:** Run all selected external agents in parallel. Where possible, dispatch concurrently with step 7 domain agents to minimize wall-clock time. Collect all findings before proceeding to step 9.

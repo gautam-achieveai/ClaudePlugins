@@ -2,6 +2,10 @@
 
 When a PR was previously reviewed, the author pushed fixes, and the reviewer's vote was reset (e.g., "Vote of X was reset: Changes pushed to source branch"), the reviewer needs to focus on what changed since their last review — not re-review the entire PR.
 
+This workflow specializes the shared PR-review pipeline; it does not launch a
+second review. Resolve Steps 1-2 before classification or context gathering.
+The delta is the default scope for every stage, including quality triage.
+
 > **Provider note:** This workflow is provider-agnostic. The `mcp__azure-devops__*`
 > tools named below have GitHub `gh` equivalents — see
 > [Provider Resolution & Tool Mapping](../../../references/provider-resolution.md)
@@ -17,7 +21,9 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
   `pullRequest.reviewThreads` (`id`, `isResolved`, `isOutdated`, `path`, `line`,
   and comments) plus `issues/<n>/comments` for the canonical summary. Do not use
   REST review comments alone to infer resolved/open state.
-- If previous review comments exist from this reviewer (or Claude), this is a re-review
+- A completed prior review record establishes a re-review, even if it had no
+  findings. Previous comments from this reviewer also require recovering that
+  round; comments or an attempted/failed review alone do not prove completion.
 - Extract the previous issue list (numbered issues with severities) from the last review summary comment
 - Note which issues the author responded to (replies to review threads)
 - Recover the complete serialized **Review Intent**, full non-terminal
@@ -43,10 +49,81 @@ When a PR was previously reviewed, the author pushed fixes, and the reviewer's v
 
 ## Step 2: Find what changed since last review
 
-- Find commits pushed after the last review date — ADO `mcp__azure-devops__getCommitHistory`, GitHub `gh api repos/<owner>/<repo>/pulls/<n>/commits` (or `git log --after="<date>" origin/<source>`)
-- Use `git log --after="<last-review-date>" origin/<source-branch>` locally to see new commits
-- Use `git diff <last-review-commit>..<current-head>` to see ONLY the delta since last review
-- **Critical difference from initial review**: diff against last-review-point, not merge-base
+- Recover the exact last **completed** reviewed head, target merge-base and
+  completion evidence for this repository/PR/reviewer. Reconcile the saved run's
+  `reviewBaseline` with the bot-owned `code-reviewer:lastCompletedReview` marker
+  in the canonical GitHub summary or latest ADO summary-thread reply. Validate
+  provider author, repository, PR, reviewer and a completed summary write.
+  Use the newest **comparable completed content** by ancestry and snapshot,
+  even when an older local cursor exists. If cursors diverge or their content
+  cannot be compared, report the gap. A later failed attempt's `sourceCommitId`
+  never supersedes a completed cursor.
+  For legacy reviews, use a provider-native completed review commit or local
+  `lastCompletedReview` with corroborating completion evidence. Dates help
+  locate records; never infer the baseline from the newest comment or a
+  timestamp. If neither source is valid, report the precise comparison gap.
+- Set `reviewType: "re-review"` and `reviewBase` to that reviewed head. Keep
+  `mergeBase` as the current target merge-base; do not overload it with the
+  reviewed head. Pin current `headCommit` before reading source.
+- Compare `reviewBase` to `headCommit`, not the original PR merge-base. Derive
+  both `diffPath` and `changedFiles` from this comparison, including renames and
+  deletions. Classify this delta only; discard full-PR/prior-round cost signals
+  and reviewer rosters. A lower tier than the previous round is valid because
+  this is a new scope, not a downgrade within one review.
+- **Local working-tree reviews:** commits alone do not represent reviewed
+  dirty/untracked content. Compare the saved completed content snapshot with
+  the current captured tracked and untracked content, even at the same HEAD.
+  Recover the prior run's immutable context/diff and needed file contents;
+  bind `reviewBaseSnapshotId` to its recorded snapshot ID. Keep `reviewBase`
+  as the corresponding commit, not the content comparison itself. If either
+  snapshot cannot be reconstructed reliably (including binary/untracked files),
+  report the baseline gap before scanning. Never infer an empty local delta
+  from equal commit IDs or replace it with a merge-base scan.
+- Check that the old tree is available and identify force-push/rebase or target
+  base movement. Recover exact old/new trees and account for inherited target
+  changes before claiming a comparable delta. An ancestry check alone does not
+  prove equivalent content. If comparison remains untrustworthy, stop code
+  planning with the precise gap; never silently use a whole-PR fallback.
+- Reuse prior context only with its source/revision and a check that the delta
+  or new discussion did not invalidate it. Refresh affected settings, contracts,
+  callers and answers; do not repeat unrelated hierarchy/history discovery.
+- With an empty code delta, skip code classification, scout scanning and the
+  mechanical filter. Process only changed answers/evidence and pending closure
+  actions through the affected prior owner. Invoke verification/adjudication
+  only for a new substantive judgment; retain unchanged verdicts and findings.
+  If neither code, relevant evidence nor pending actions changed, stop without
+  posting. The same head is not proof that discussion state is unchanged.
+  Save a state-only context/run with the empty delta and changed-source revisions;
+  record affected-owner assignments in the existing handoff manifest. Proceed
+  through Steps 3/3.5 and 5, not the shared code-scanning/filtering pipeline.
+
+### Scoped exceptions and small teams
+
+The scout selects the smallest sufficient team for this round, normally **0-2
+scanning specialists**, not the initial review's 3-7 guide. Zero is appropriate
+for no code work; do not suppress a supported risk to meet a cap. Each owner
+beyond two needs a distinct evidenced question and scope in the accepted plan.
+Verification, grading and adjudication remain separate conditional gates;
+count their invocations separately so total review effort stays visible.
+
+Reuse an affected owner for related closure, test, temporary-artifact and
+quality questions it can settle. Existing specialist charters do not require
+every specialist to run. Do not redispatch unchanged historical lanes, rerun
+settled investigations, or spin up a specialist just to repeat context.
+
+Outside-delta reads need a named reason: verifying an attempted fix against
+its original closure contract; tracing a changed contract into callers, stored
+data or deployment boundaries; or assessing new authoritative evidence of a
+material risk. Record trigger, source, exact scope, owner and stop condition in
+`scopeExceptions[]`. Reuse the assigned owner; return an independent new risk
+to the scout for a scoped amendment. Broad class size or PR age is not a reason.
+
+The delta stays the finding anchor. For a delta-activated failure in unchanged
+code, cite the real `enablingChange`; never fabricate one or widen the filter.
+New evidence about an old thread/claim uses its existing dispute/closure path,
+with targeted verification. Unrelated unchanged-code cleanup remains out of scope.
+Offline and daemon reviews use only supplied baseline/evidence or their existing
+context owner; missing history does not authorize live enrichment.
 
 ## Step 3: Build issue resolution tracker
 
@@ -87,9 +164,9 @@ Status values: `ANSWERED`, `UNANSWERED`
 
 ## Step 3.5: Satisfaction Check
 
-Delegate substantive closure checks to the planned correctness reviewer (or
-the already-planned domain owner for its finding), with prior records and delta
-paths. The controller routes disputed evidence to verification/adjudication;
+Delegate only changed closure obligations to the affected selected owner (or
+the prior finding's domain owner for a state-only round), with original records
+and delta paths. The controller routes disputed evidence to verification/adjudication;
 the publisher applies the returned transitions. Do not repeat the code analysis
 in the controller or reset historical closure criteria.
 
@@ -149,7 +226,8 @@ it to `CLOSED` only after provider reconciliation succeeds.
 
 ## Step 4: Review only the delta
 
-- Run the same domain-specific agents (step 7) but ONLY on files changed since last review
+- Run only the scout-selected owners for delta questions and changed closure
+  obligations; do not carry forward the previous domain roster.
 - Focus on: Did the fix actually address the issue? Did the fix introduce new issues?
 - Look for regressions: Did fixing issue A break something else?
 - Pass the original Review Intent to every agent and to `review-grader`.
@@ -163,9 +241,10 @@ it to `CLOSED` only after provider reconciliation succeeds.
   new head), not the full PR diff. The mechanical filter (step 10a) then anchors
   new findings to the delta, which is what enforces "new findings must arise
   from the delta" mechanically rather than by reviewer discipline alone.
-- Verification (step 10b) runs on new findings only. A finding carried over
-  from a previous round keeps its earlier verdict and its stable `id`; do not
-  re-verify it and do not let a fresh verdict reopen a settled thread.
+- Verification (step 10b) runs on new findings. An unchanged carried finding
+  keeps its verdict and stable `id`; do not re-verify it automatically. New
+  authoritative evidence that disputes a prior judgment permits targeted
+  verification/adjudication through that thread/claim's existing path.
 - Report only merge-blocking findings and substantive new ones on a re-review.
   No new nits on a later round: a finding not worth raising in round one is not
   worth raising in round three.
@@ -326,8 +405,9 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
   `smallDeltaSummary` to `post-pr-review`. In small-delta mode, do NOT
   re-render prior verified claims or issue tables, and do NOT restate the
   verdict unless it changed. If the delta touches business logic, authorization,
-  error handling, or security-relevant code, do a full re-review regardless of
-  size.
+  error handling, or security-relevant code, use the full structured summary
+  and appropriate checks on the delta regardless of size. Summary format does
+  not expand the scan to the entire PR or restore the old reviewer roster.
 - **Disable small-delta mode when state changes** — any Review Intent, verdict,
   thread status, attempt count, pending-action, or `unresolvedClaims[]` change
   requires the full structured summary so durable state is not lost. Compare
@@ -335,7 +415,7 @@ APPROVE / APPROVE_WITH_COMMENTS / REQUEST_CHANGES (still)
   changes, and resolutions to empty. If prior claim state is unknown or cannot
   be compared, use the full summary. Apply the posting skill's comparison rules;
   unchanged claim state may retain small-delta mode when other checks pass.
-- **DO NOT POST** anything if nothing changed in the PR since last review.
+- **DO NOT POST** if no code, relevant evidence or pending action changed.
 - **Incorporate answered questions** — read answers to previous `[QUESTION]`
   threads. Use the context they provide to inform the re-review. Close answered
   question threads. If an answer reveals a defect, open a new finding thread

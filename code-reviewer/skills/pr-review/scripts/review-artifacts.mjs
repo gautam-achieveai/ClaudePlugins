@@ -4,7 +4,10 @@
 //   node review-artifacts.mjs capture --assignment assignment.json --input native.json --out artifact.json
 //   node review-artifacts.mjs read --assignment assignment.json --input artifact.json
 //
-// Context: {repository, headCommit, mergeBase, diffPath}; diffPath is relative to context.json
+// Context: {repository, headCommit, mergeBase, diffPath, reviewType?, reviewBase?}.
+// Re-reviews require reviewBase (the completed review's head); initial defaults to mergeBase.
+// reviewBaseSnapshotId additionally identifies a saved baseline including local dirty content.
+// diffPath is relative to context.json
 // or absolute. Snapshot hashes exact captured bytes, including uncommitted changes.
 // Assignment: {schemaVersion:1, runId, snapshotId, stageId, attemptId, agent,
 //   format:"json"|"markdown", outputPath:<absolute>, resultKind?:"generic"|
@@ -42,13 +45,27 @@ const nonempty = (value) => typeof value === "string" && value.trim().length > 0
 const digest = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 /** diffBytes must be the captured bytes, not a HEAD-only identifier. */
-export function createSnapshotId({ repository, headCommit, mergeBase }, diffBytes) {
+export function createSnapshotId({ repository, headCommit, mergeBase, reviewType = "initial", reviewBase, reviewBaseSnapshotId }, diffBytes) {
   for (const [key, value] of Object.entries({ repository, headCommit, mergeBase })) {
     if (!nonempty(value)) throw new Error(`snapshot ${key} must be a nonempty string`);
   }
   if (!(diffBytes instanceof Uint8Array)) throw new Error("snapshot diffBytes must be bytes");
+  if (!["initial", "re-review"].includes(reviewType)) throw new Error("snapshot reviewType must be initial or re-review");
+  if (reviewType === "re-review" && !nonempty(reviewBase)) {
+    throw new Error("snapshot re-review requires a nonempty reviewBase");
+  }
+  if (reviewType === "initial" && reviewBase !== undefined && reviewBase !== mergeBase) {
+    throw new Error("snapshot initial reviewBase must equal mergeBase");
+  }
+  if (reviewBaseSnapshotId !== undefined && (reviewType !== "re-review" || !nonempty(reviewBaseSnapshotId) || !HASH.test(reviewBaseSnapshotId))) {
+    throw new Error("snapshot reviewBaseSnapshotId requires a re-review and sha256 digest");
+  }
+  // Preserve initial-review IDs; incremental receipts include their comparison baseline.
+  const identity = reviewType === "initial"
+    ? ["review-snapshot-v1", repository, headCommit, mergeBase]
+    : ["review-snapshot-v2", repository, headCommit, mergeBase, reviewType, reviewBase, reviewBaseSnapshotId ?? null];
   return `sha256:${createHash("sha256")
-    .update(JSON.stringify(["review-snapshot-v1", repository, headCommit, mergeBase]))
+    .update(JSON.stringify(identity))
     .update("\0").update(diffBytes).digest("hex")}`;
 }
 

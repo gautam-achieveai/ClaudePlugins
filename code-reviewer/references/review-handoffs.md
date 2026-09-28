@@ -18,6 +18,7 @@ define workflows; invoking a skill does not create an isolated agent context.
 | `review-pending-prs` | `review-pending-prs` | Batch coordination |
 | `review-retrospective` | `review-retrospective` | Feedback analysis, not PR verdict |
 | `apply-review-learning` | `apply-review-learning` | Validated lessons at the authorized destination |
+| `repo-onboarding` | `repo-onboarding` | Repository research outside the PR scanning pipeline; bounded recursive discovery under its own workflow |
 
 All names use the `code-reviewer:` prefix. Definitions are
 `${CLAUDE_PLUGIN_ROOT}/agents/<agent>.md`. `codebase-search-discipline` is an
@@ -29,6 +30,10 @@ delegation is unavailable, keep the batch/review/retrospective controller in the
 top-level session and dispatch leaf workers there. Do not launch a controller
 that cannot launch its required workers, simulate independent review, or create
 recursive reviewer teams. A missing required worker is an incomplete review.
+
+Repository onboarding is a separate research workflow, not a recursive reviewer
+team. Its skill owns the node ledger, global budget, evidence notes, and
+parent-dispatched fallback; it does not emit PR findings or advance review state.
 
 ## Thin, accountable controller
 
@@ -81,6 +86,12 @@ Use absolute paths in dispatches. Freeze the exact diff, including untracked
 content for local work, and repository/head/base identity before computing the
 snapshot. If checkout content changes, stop or create a new snapshot; never
 reuse results merely because HEAD is unchanged.
+
+For re-reviews, freeze `reviewType: "re-review"`, the completed `reviewBase`,
+and the delta's matching file list as well. Incremental IDs bind that baseline;
+initial IDs stay compatible. Prior evidence is context, not this run's receipt.
+Capture a `review-complete` result with `reviewBaseline` only after all required
+stages succeed, per the publishing/tracking contract; partial runs cannot advance it.
 
 Each assignment contains `schemaVersion: 1`, `runId`, `snapshotId`, `stageId`,
 `attemptId`, `agent`, `format` (`json` or `markdown`), `resultKind`, and absolute

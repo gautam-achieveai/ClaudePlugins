@@ -13,14 +13,20 @@ The review tests failure hypotheses and preserves the evidence needed to settle 
 | Stage | What runs | Purpose |
 |---|---|---|
 | **Eligibility gate** | one haiku call | Stop on closed, draft, generated-only, empty, or already-reviewed PRs before any fan-out. |
-| **Review tier** | `classify-review.mjs` | Deterministic: picks TINY, SMALL, MEDIUM, or LARGE and the exact lanes from file count, changed lines, structure, and code or executable-agent-definition signals. |
 | **Context pack** | one fetch | The diff is fetched once and written to disk. Every agent reads the same bytes; no agent fetches its own. |
-| **Core lanes** | `correctness-review`, `history-context-review`, `temp-code-review` | Logic defects, what the repo's history and past review comments already say, and debugging leftovers. |
-| **Domain + external agents** | the lanes in `review-plan.json` | Only the agents the plan selected for this tier and its risk flags. |
+| **Review signals** | `classify-review.mjs` | Measures diff size, structure and risk signals; supplies tier/cost guidance without selecting reviewers. |
+| **Team planning** | `lane-scout` with context gatherer | Screens changed languages and quality concerns, requests targeted bug/commit/PR evidence, then selects specialists and scope. |
+| **Core coverage** | scout-selected owners, such as `correctness-review`, `history-context-review`, `temp-code-review` | Accounts for behavior, prior fixes, temporary artifacts, tests and quality; no fixed roster. |
+| **Domain + external agents** | the scout-selected lanes in `review-plan.json` | Controller validates coverage and dispatches; risk flags and tier do not choose a roster. |
 | **Mechanical filter** | `filter-findings.mjs` | Deterministic and free: anchors every finding to the diff, merges cross-agent duplicates, applies the per-agent cap. |
 | **Verification** | one `finding-verifier` per finding | Each finding gets an agent whose job is to disprove it. Critical and High findings face a second verifier on a different lens. |
 | **Grading** | `review-grader` | Calibrates severity, assigns the merge-blocking or follow-up lane, decides the verdict. |
 | **Publishing** | `post-pr-review` | Inline comments, questions, and the canonical summary. |
+
+Re-reviews use the delta from the last completed review throughout this pipeline.
+The scout normally chooses 0-2 scanning specialists, reusing affected owners for
+fix checks. Extra owners and outside-delta reads need specific evidence and scope.
+Unchanged findings keep their prior decisions; a full summary is not a full scan.
 
 Two ideas carry most of the weight. **Findings are anchored before they are
 judged**, because code the PR never touched is the largest source of false
@@ -95,7 +101,8 @@ top-level agent, which invokes the skill itself.
 
 The review team targets 3-7 specialists with distinct ownership, not every
 available agent. Required risk coverage can exceed that target with an explicit
-reason. These lanes run only when the classifier detects applicable changes:
+reason. The scout selects these lanes when the code and context establish an
+applicable question, including signals the classifier missed:
 
 | Agent | Focus |
 | --- | --- |
@@ -148,6 +155,40 @@ hollow tests, misleading documentation, and accumulated workarounds. Its
 [methodology](skills/over-engineering-review/SKILL.md) requires a concrete trace,
 false-positive exclusions, and one owner per mechanism. It does not infer AI
 authorship or add another parallel reviewer; intelligence and routing are unchanged.
+
+## Reviewer Onboarding
+
+Run `/code-reviewer:repo-onboarding` to learn a repository before reviewing it,
+or to refresh stale context. The [workflow](skills/repo-onboarding/SKILL.md)
+dispatches the [onboarding agent](agents/repo-onboarding.md) across system/skill
+mapping, coding culture/language adoption, and PR history/evolution.
+
+Independent research nodes launch concurrently, then their evidence is reconciled
+and follow-up questions deduplicated. Investigations recursively follow those
+questions. Ordinary agent dispatch is the default; the host's `Workflow` facility
+requires separate explicit user opt-in. Defaults are 12
+research invocations, 3 concurrent workers across the tree, and logical depth 3.
+Hosts without nested agents dispatch child requests from the main session.
+Missing tools, inaccessible history, and exhausted budgets produce explicit
+partial results with a resumable frontier, not claims of exhaustive coverage.
+
+The final response explains **How it works**, **What we learned**, and **Next
+questions**, with source links and disagreements kept explicit. This briefing
+comes before execution counts and paths, including when coverage is partial.
+A scratchpad `reviewer-onboarding/index.md` links the detailed scoped notes:
+what the system does, which skills to use when, conventions and version-aware
+language guidance, undocumented PR rationale, and ongoing versus proposed work.
+Verified non-obvious lessons reuse `docs/superpowers/learnings/` and its existing
+schema. Later reviews consult the index during convention discovery and retrieve
+relevant lessons through the normal read-back. Onboarding does not change code,
+repository policy, or remote systems. New language features are context, not
+automatic requirements.
+
+[Offline evaluation scenarios](skills/repo-onboarding/evals/evals.json) cover
+recursive handoffs, incomplete access, conflicting historical advice, refresh,
+parallel dispatch evidence, source-linked briefings, and serial-host fallback.
+Contract tests check discovery and integration; they do not prove live provider
+access or exhaustive knowledge collection.
 
 ## Skill Structure
 

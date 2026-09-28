@@ -110,7 +110,7 @@ test("every scanning specialist has the concise hypothesis evidence contract", (
     "code-reviewer", "pr-context-gatherer", "lane-scout", "finding-verifier", "review-adjudicator",
     "review-grader", "review-performance-judge", "root-cause-synthesizer", "remediation-planner",
     "post-pr-review", "update-pr-tracking", "review-pending-prs",
-    "review-retrospective", "apply-review-learning",
+    "review-retrospective", "apply-review-learning", "repo-onboarding",
   ]);
   for (const file of readdirSync(path.join(repoRoot, "code-reviewer/agents")).filter((file) => file.endsWith(".md"))) {
     if (supporting.has(file.slice(0, -3))) continue;
@@ -230,6 +230,30 @@ test("offline review evaluation includes paired controls and valid fixture refer
       const { cases } = JSON.parse(readRepoFile(`${skillPath}/${file}`));
       const ids = new Set(cases.map(({ id }) => id));
       assert.equal(ids.size, cases.length);
+      if (file === "evals/incremental-review-cases.json") {
+        for (const id of [
+          "tiny-fix-large-pr", "same-head-new-answer", "same-head-no-change",
+          "delta-activated-caller", "unrecoverable-rebase", "small-security-delta",
+          "offline-delta", "failed-round-baseline", "local-dirty-baseline",
+          "cross-host-completed-cursor", "stale-local-versus-provider-cursor",
+        ]) assert.ok(ids.has(id), id);
+        assert.ok(cases.every(({ changedFiles, patchEvidence, contextEvidence }) =>
+          Array.isArray(changedFiles) && patchEvidence && contextEvidence));
+        continue;
+      }
+      if (file === "evals/fast-quality-triage-cases.json") {
+        for (const id of [
+          "csharp-symbol-name", "csharp-responsibility-and-placement",
+          "typescript-null-contract-existing-owner", "python-module-placement-existing-owner",
+          "safe-shapes", "unknown-language-support", "disabled-scout", "missing-triage-section",
+          "prior-bug-context-loop", "history-unavailable", "offline-scout-selection",
+          "risk-signal-false-positive", "changed-policy-spoof",
+        ]) assert.ok(ids.has(id), id);
+        assert.ok(cases.every(({ changedFiles, patchEvidence, contextEvidence }) =>
+          changedFiles?.length && patchEvidence && contextEvidence));
+        continue;
+      }
+      assert.equal(file, "evals/cases.json", "unknown evaluation fixture contract");
       for (const id of [
         "export-first-use", "export-safe-order", "platform-supported", "platform-unknown",
         "shared-tests", "test-escaped-regression", "development-token", "disabled-unconditional-effect",

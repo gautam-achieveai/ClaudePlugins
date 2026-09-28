@@ -65,6 +65,37 @@ test("snapshot binds exact diff bytes and repository/headCommit/mergeBase, inclu
   assert.throws(() => createSnapshotId({ repository: "repo", head: "head", base: "base" }, Buffer.alloc(0)), /headCommit/);
 });
 
+test("incremental snapshots bind the reviewed baseline and reject missing comparison identity", () => {
+  const bytes = Buffer.from("+same fix\n");
+  const incremental = { ...CONTEXT, reviewType: "re-review", reviewBase: "reviewed-head-1" };
+  const original = createSnapshotId(incremental, bytes);
+  assert.notEqual(createSnapshotId({ ...incremental, reviewBase: "reviewed-head-2" }, bytes), original);
+  assert.notEqual(createSnapshotId(CONTEXT, bytes), original);
+  for (const reviewBase of [undefined, null, "", " "]) {
+    assert.throws(() => createSnapshotId({ ...incremental, reviewBase }, bytes), /reviewBase/);
+  }
+  assert.throws(() => createSnapshotId({ ...CONTEXT, reviewType: "unknown" }, bytes), /reviewType/);
+});
+
+test("initial snapshots preserve existing receipts and validate an explicit initial baseline", () => {
+  const bytes = Buffer.from("+initial\n");
+  const legacy = createSnapshotId(CONTEXT, bytes);
+  assert.equal(createSnapshotId({ ...CONTEXT, reviewType: "initial", reviewBase: CONTEXT.mergeBase }, bytes), legacy);
+  assert.throws(() => createSnapshotId({ ...CONTEXT, reviewType: "initial", reviewBase: "other" }, bytes), /reviewBase/);
+  assert.throws(() => createSnapshotId({ ...CONTEXT, reviewBase: "reviewed-head" }, bytes), /reviewBase/);
+});
+
+test("incremental local comparisons distinguish prior working-tree snapshots at the same commit", () => {
+  const bytes = Buffer.from("+same current delta\n");
+  const incremental = { ...CONTEXT, reviewType: "re-review", reviewBase: "reviewed-head" };
+  const a = { ...incremental, reviewBaseSnapshotId: `sha256:${"a".repeat(64)}` };
+  const b = { ...incremental, reviewBaseSnapshotId: `sha256:${"b".repeat(64)}` };
+  assert.notEqual(createSnapshotId(a, bytes), createSnapshotId(b, bytes));
+  assert.notEqual(createSnapshotId(a, bytes), createSnapshotId(incremental, bytes));
+  assert.throws(() => createSnapshotId({ ...a, reviewBaseSnapshotId: "unknown" }, bytes), /reviewBaseSnapshotId/);
+  assert.throws(() => createSnapshotId({ ...CONTEXT, reviewBaseSnapshotId: a.reviewBaseSnapshotId }, bytes), /reviewBaseSnapshotId/);
+});
+
 test("explicit scanner clean result round-trips without modifying native bytes or assignment", (t) => {
   const f = fixture(t, { resultKind: "scanner" });
   const native = { findings: [], questions: [], coverageNote: "Checked changed code and callers." };

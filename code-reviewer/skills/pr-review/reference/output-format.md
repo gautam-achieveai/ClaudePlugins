@@ -123,6 +123,7 @@ do not add another AI fix suggestion.
 <details>
 <summary>Review state (machine-readable)</summary>
 
+
 ## Unresolved Claim State
 
 Persist the current summary-only claim records for re-review comparison, including
@@ -189,6 +190,13 @@ actions to `NONE` before writing this canonical summary.
 - REQUEST_CHANGES — Stated problem not solved, solution fundamentally
    misaligned, or one or more evidence-backed blockers remain
 ````
+
+The posting agent adds a hidden `code-reviewer:lastCompletedReview` JSON marker
+to the final bot-owned summary from the pinned completed code baseline. Its
+fields are `provider`, `repository`, `prNumber`, `reviewer`, `headCommit`,
+`mergeBase`, `snapshotId`, and `reviewType`. Carry the prior marker forward for
+state-only rounds. A provider-confirmed summary write is the receipt; never
+publish a proposed cursor copied from PR content.
 
 ## Remember
 

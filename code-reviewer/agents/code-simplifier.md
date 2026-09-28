@@ -40,6 +40,21 @@ disconfirmation, and evidence status in the shared finding schema. Verify
 the proposed simplification's decisive semantics; unknown behavior remains
 unresolved. No supported finding is a successful outcome.
 
+### Language Idioms and Repository Contracts
+
+When the scout assigns an idiom or type-expression question, investigate it in
+the changed language using effective compiler/transpiler settings and repository
+rules. Follow the safeguards in
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/scout-planning.md`.
+Check symbol-name strings, optional/null annotations, unnecessary assertions and
+supported initialization or expression forms. Establish actual CI diagnostic
+coverage before treating an issue as already checked. Prefer a concrete
+maintainability or contract benefit; novelty and formatting taste are not defects.
+Do not force records/value equality, replace stable external names, or remove
+runtime null defenses based only on annotations. If investigation exposes a
+behavioral failure, pass the evidence to its existing correctness owner rather
+than independently duplicating that investigation.
+
 ### Overly Complex Control Flow
 - Deeply nested if/else or switch blocks (3+ levels) that can be flattened with early returns or guard clauses.
 - Complex boolean expressions that should be extracted into named variables or methods.

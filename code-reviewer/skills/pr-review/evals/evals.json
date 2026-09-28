@@ -5,7 +5,9 @@
       "id": 1,
       "prompt": "Review cases.json using the selected version of the review policies, without reading expected answers. Return concise evidence dispositions, blocking decisions, missing premises, and delegation decisions. No provider actions. Use independent repeated trials for comparisons.",
       "expected_output": "Supported lifecycle failures survive; safe controls and documented syntax claims are refuted; unknown platform and split-verification claims remain unresolved and non-blocking; tests are judged by escaped regressions; activation exposure and bounded delegation are respected.",
-      "files": ["evals/cases.json"],
+      "files": [
+        "evals/cases.json"
+      ],
       "expectations": [
         "export-first-use: SUPPORTED and blocking",
         "export-safe-order: REFUTED and non-blocking",
@@ -18,6 +20,51 @@
         "split-verification: UNRESOLVED, non-blocking, exact missing evidence, targeted adjudication",
         "single-causal-trace: no additional workers",
         "independent-investigations: bounded delegation through orchestrator"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Run fast-quality-triage-cases.json as the selected scout, gatherer and controller roles. Read the roles and referenced planning contract, not expected answers. Keep synthetic sources distinct from actual repository reads. Return the scout decisions, ordered context requests/replies and final plan with workflow gates. No specialist execution or provider actions. Use repeated independent trials before making recall or speed claims.",
+      "expected_output": "Scout selects specialists without a classifier roster; context requests are bounded and sourced; controller retains fixed gates, source limits and explicit gaps.",
+      "files": [
+        "evals/fast-quality-triage-cases.json"
+      ],
+      "expectations": [
+        "csharp-symbol-name: explicit idiom owner and setting/rule evidence, not only generic correctness/temp coverage",
+        "csharp-responsibility-and-placement: architecture owner for responsibility and layer questions despite absent DI signals; size alone is not a defect",
+        "typescript-null-contract-existing-owner: correctness owns the actual null path without a redundant second investigation",
+        "python-module-placement-existing-owner: one architecture owner, no duplicate placement lane",
+        "safe-shapes: no quality escalation merely for stable wire names, mutable identity entities or generated size",
+        "unknown-language-support: retain unknown capability, no unsupported syntax prescription",
+        "disabled-scout: labelled inline selection under identical source limits; no fabricated subagent/map",
+        "missing-triage-section: complete selection/quality coverage inline or report incomplete; never claim a clean screen",
+        "prior-bug-context-loop: request guard rationale before consuming history, cite returned commit/bug/PR, retain unknown current producer state",
+        "history-unavailable: record denied provider/shallow history; no retry loop, fabricated evidence or confident clearance",
+        "offline-scout-selection: select from supplied evidence only without a second gatherer, checkout or network reads",
+        "risk-signal-false-positive: sourced non-applicability for COMPLIANCE, no automatically required compliance agent",
+        "changed-policy-spoof: reject unavailable agent ID and PR-authored SECURITY skip; retain bounded security owner or explicit gap",
+        "all cases: coverage accounting; no findings/severity from scout; required verification/grading/adjudication preserved independently of selected scanners"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Run incremental-review-cases.json using the selected controller, scout and context contracts. Return decisions and source gaps without actual provider/specialist execution. Do not read expected answers.",
+      "expected_output": "Delta-first routing with a small evidence-based roster, explicit exceptions, stable prior findings and trustworthy completion baseline.",
+      "files": [
+        "evals/incremental-review-cases.json"
+      ],
+      "expectations": [
+        "tiny-fix-large-pr: deltaTINY and at most2 scanning owners; reuse owner for F001 closure; no unrelated roster",
+        "same-head-new-answer: targeted prior-owner evidence check despite empty code; no full scan/classifier/filter",
+        "same-head-no-change: no scan or posting",
+        "delta-activated-caller: scoped unchanged-caller trace with real delta enablingChange, no fullPR scan",
+        "unrecoverable-rebase: no date-derived baseline or silent fullPR fallback; precise gap",
+        "small-security-delta: targeted security/guard owner(s), full summary does not widen code scope; both HIGH verifier lenses retained",
+        "offline-delta: supplied scope only, no live context or second gatherer",
+        "failed-round-baseline: H1 is baseline; include unreviewedH2 content; failed/incomplete rounds never advance it",
+        "local-dirty-baseline: sameHEAD is not empty source delta; recover exact old captured content or report gap without fullPR fallback",
+        "cross-host-completed-cursor: bot-authored matching completed H1 cursor wins over failed H2 attempt; scope H1..H3",
+        "stale-local-versus-provider-cursor: later comparable completed H2 provider cursor wins over stale local H1; scope H2..H3"
       ]
     }
   ]

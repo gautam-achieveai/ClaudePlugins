@@ -21,12 +21,17 @@ Before enforcing repo-specific policy, load [Repo Conventions](repo-conventions.
 ## Gate 0: Eligibility (cheap, before anything else)
 
 Dispatch a **haiku** agent to answer one question: is this PR worth a review
-right now? Stop and report if any of these is true:
+right now? For a previously reviewed PR, recover the completed baseline and
+changed discussion/pending actions using [re-review-workflow.md](re-review-workflow.md)
+before deciding that empty code or the same head means no work. Only affected
+closure/evidence work proceeds in a state-only round; no code-scanner fan-out.
+Unknown discussion state is a gap, not proof that nothing changed.
+Otherwise stop and report if any of these is true:
 
 - The PR is closed, merged, or a draft.
 - It is machine-generated in a way that carries no review value — a dependency
   bump with no code change, a lockfile-only update, a generated-file refresh.
-- The diff is empty, or the change is formatting-only.
+- The diff is empty or formatting-only and no review-state action remains.
 - This reviewer already reviewed this exact head commit and nothing has changed
   since. (A new commit means re-review, not a repeat review — see
   [re-review-workflow.md](re-review-workflow.md).)
@@ -42,34 +47,36 @@ nothing.
 The review tier is not a workspace mode. The tier controls review cost and
 thoroughness. The workspace mode controls where the review reads code.
 
-After building `context.json`, run the deterministic classifier:
+After building `context.json` for the active full/delta scope, run the classifier.
+State-only re-reviews skip classification and use their changed-state gates.
 
 ```bash
 node "${CLAUDE_SKILL_DIR}/scripts/classify-review.mjs" \
   --context <scratch>/pr-<number>/context.json \
-  --out <scratch>/pr-<number>/review-plan.json
+  --out <scratch>/pr-<number>/review-signals.json
 ```
 
-`review-plan.json` is authoritative. It contains exactly one tier (`TINY`,
-`SMALL`, `MEDIUM`, or `LARGE`), the numeric rule that matched, risk flags,
-the exact lanes to run, model-intelligence and effort requests, verification
-rules, reasoning-agent conditions, and the workspace mode.
+`review-signals.json` (schema 2) contains one tier (`TINY`, `SMALL`, `MEDIUM`,
+or `LARGE`), the matching rule, measurements, risk signals and cost guidance.
+It contains no lanes or gate agents. The scout chooses reviewers using
+[scout-planning.md](scout-planning.md); the controller validates and saves the
+accepted selection plus fixed gates as `review-plan.json` before dispatch.
 
 - Do not estimate a tier yourself.
 - Do not apply another file-count, line-count, or "complexity" heuristic.
 - Size alone does not split correctness or activate overlapping design lanes.
-  Bounded independent investigations and evidenced design questions may amend
-  the plan under `agent-guidance.md`; the orchestrator records ownership and
-  cost before dispatch. Preserve amendments when escalating, without duplicate work.
+  Return bounded independent investigations and new questions to the scout;
+  the controller records accepted revisions and cost before dispatch. Retain
+  valid completed work when escalating.
 - Adjudication is conditional at every tier. Resolve split verification before
   dropping candidates, regardless of review size.
 - A user may request a higher tier. Never lower the classifier's tier.
 - Escalation is upward only. A surviving HIGH or CRITICAL finding moves the
-  review up one tier. Apply the next tier's complete plan: run newly added lanes
-  plus newly required verification and reasoning work, without repeating
-  equivalent completed work.
-- Risk flags add their named lane at any size. They raise a TINY review to
-  SMALL but do not raise it further by themselves.
+  review up one tier. Apply its fixed gates and ask the scout to reassess scope;
+  do not mechanically append reviewers or repeat completed work.
+- Risk signals raise a TINY classification to SMALL but not further by themselves.
+  The scout accounts for each signal with an owner or sourced non-applicability;
+  the signal does not choose an agent or establish a defect.
 - A uniform mechanical edit is capped at SMALL after the script verifies its
   hunk shape. Never infer "mechanical" from a title or description.
 
@@ -83,10 +90,11 @@ agents that fetch separately can end up reviewing different commits.
 Write to the review scratch directory:
 
 ```text
-<scratch>/pr-<number>/diff.patch          full unified diff vs the merge-base
+<scratch>/pr-<number>/diff.patch          initial: merge-base to head; re-review: reviewed head to head
 <scratch>/pr-<number>/changed-files.txt   one path per line, with status
 <scratch>/pr-<number>/context.json        the pack manifest
-<scratch>/pr-<number>/review-plan.json    deterministic tier and lane plan
+<scratch>/pr-<number>/review-signals.json deterministic measurements and cost guidance
+<scratch>/pr-<number>/review-plan.json    accepted scout selection and controller gates
 ```
 
 `context.json` carries:
@@ -98,14 +106,31 @@ Write to the review scratch directory:
   "prNumber": 123,
   "headCommit": "<sha>",
   "mergeBase": "<sha>",
+  "reviewType": "initial",
+  "reviewBase": "<sha>",
   "diffPath": "<abs path to diff.patch>",
   "changedFiles": [{"path": "src/Foo.cs", "status": "modified", "addedLines": 12, "removedLines": 3}],
   "conventionFiles": ["CLAUDE.md", "src/Server/CLAUDE.md", ".code-reviewer.yml"],
   "reviewIntent": {},
+  "reviewSignalsPath": "<abs path to review-signals.json>",
   "reviewPlanPath": "<abs path to review-plan.json>",
   "workspacePath": "<repo root or worktree root>"
 }
 ```
+
+Omit `reviewPlanPath` until scout selection is accepted; the scout initially
+receives `reviewSignalsPath`, source/access limits and the available catalog.
+Schema-1 classifier output is not an executable fallback; regenerate signals
+and obtain scout selection for the current snapshot.
+
+For initial reviews, `reviewBase` equals `mergeBase`. Re-reviews require
+`reviewType: "re-review"` and the recovered completed review's head as
+`reviewBase`. Keep prior intent, thread/claim state and source-cited context
+separate from the delta's `changedFiles`. Carry prior completion evidence and
+scoped exceptions in the local pack; do not alter daemon schema-v1 payloads.
+State-only rounds omit `reviewSignalsPath` and code-scanner plan fields; retain
+the empty diff, baseline and changed-source revisions for run/assignment identity.
+They follow re-review closure/dispute handling without entering code scanning.
 
 `conventionFiles` lists **paths only** — the root `CLAUDE.md` plus any
 `CLAUDE.md` in a directory this PR touches. Agents read the ones relevant to
@@ -120,6 +145,11 @@ Initialize a unique run under the authorized scratch root using
 raw settled responses, validated stage artifacts and a receipt manifest there.
 Snapshot identity covers captured diff content as well as repository/head/base;
 uncommitted edits and untracked files must not reuse a HEAD-only result.
+Incremental identity also binds `reviewType` and `reviewBase`; old unbound
+receipts cannot prove this round complete. Initial-review IDs stay compatible.
+For saved local content baselines, also pass `reviewBaseSnapshotId`; equal HEADs
+do not make two dirty/untracked snapshots equivalent. Hashing cannot recover
+content omitted from the supplied diff; establish the comparison first.
 Raw results are immutable. Pass artifacts by absolute path, and validate run,
 snapshot, stage, attempt and completion before downstream use.
 
@@ -127,13 +157,14 @@ snapshot, stage, attempt and completion before downstream use.
 
 ### Lightweight Review (diff-only)
 
-Use when `review-plan.json` says `workspaceMode: "LIGHTWEIGHT"`. Review from
+Use `review-signals.json.costGuidance.workspaceMode` for initial setup and the
+accepted `review-plan.json.plan.workspaceMode` thereafter. For `LIGHTWEIGHT`, review from
 the shared diff and open full files only to settle a specific question.
 
 ### Deep Review (worktree checkout)
 
-Use when `review-plan.json` says `workspaceMode: "DEEP"`, or when the user
-explicitly asks for a worktree. The classifier uses DEEP for LARGE reviews.
+`DEEP` is guidance for LARGE reviews; create a worktree only when authorized by
+the user. An explicit workspace choice overrides cost guidance.
 
 **Worktree setup (Deep Review):**
 
@@ -199,7 +230,12 @@ Use this mode when reviewing changes on the **current branch** before a PR has b
    If the user doesn't specify a base branch, use `default_base_branch` from repo
    conventions when available. Otherwise auto-detect from `origin/HEAD`; if that
    fails, check which of `main`, `master`, `dev` exists on origin (in that order).
-2. Use the merge-base commit to scope all diffs:
+2. Initial committed review: use the merge-base for the comparison below.
+   On re-review, use the completed baseline and delta procedure in
+   [re-review-workflow.md](re-review-workflow.md) instead. For working-tree
+   review, capture tracked/untracked content as well; these commit-only examples
+   do not include it. Compare exact saved/current content for later local rounds,
+   or stop with the baseline gap. Same HEAD is not proof of no local changes.
    ```bash
    # List changed files
    git diff --name-only <merge_base>...HEAD
@@ -219,10 +255,12 @@ Use this mode when reviewing changes on the **current branch** before a PR has b
 
 Echo the classifier result. Do not restate a qualitative judgment:
 
-`Review route: MEDIUM / MEDIUM_CHANGED_LINES / LIGHTWEIGHT; 6 lanes; risk flags: PERFORMANCE.`
+`Review signals: MEDIUM / MEDIUM_CHANGED_LINES / LIGHTWEIGHT; specialist selection pending; risk flags: PERFORMANCE.`
 
-For a local branch, append `source: LOCAL_BRANCH`; the tier and lane plan still
-come from the same classifier.
+For a state-only round, echo `Review route: state-only; code scanners: 0`.
+
+For a local branch, append `source: LOCAL_BRANCH`. The classifier measures the
+active diff; the scout selects its lanes. State-only rounds have no code tier.
 
 ## No Second Complexity Assessment
 

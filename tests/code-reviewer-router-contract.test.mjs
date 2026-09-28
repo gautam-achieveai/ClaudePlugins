@@ -21,6 +21,7 @@ const owners = {
   "review-pending-prs": "review-pending-prs",
   "review-retrospective": "review-retrospective",
   "apply-review-learning": "apply-review-learning",
+  "repo-onboarding": "repo-onboarding",
 };
 
 test("every delegatable review skill has an associated agent, not a recursive wrapper", () => {
@@ -166,9 +167,8 @@ test("specialist lanes wait for a saved context report and receive only their st
   assert.ok(gather, "missing context step");
   assert.match(gather, /Dispatch exactly one\s+> `code-reviewer:lane-scout`/);
   assert.match(gather, /`## Specialist Start Map`: `### Common Orientation`/);
-  assert.match(gather, /do not\s+> fetch another diff or dispatch other reviewers/);
+  assert.match(gather, /do not fetch another diff or dispatch other reviewers/);
   assert.match(gather, /save the gatherer's Markdown to\s+`<scratch>\/pr-<number>\/context-report\.md` before dispatching any lane in\s+steps 4-8/);
-  assert.match(gather, /Only patch-only `temp-code-review` may start earlier; that run\s+is its step-4 lane/);
   assert.match(gather, /Never cite\s+an unsaved report to a lane/);
   assert.match(gather, /`intent unresolved: <gap>`;\s+never treat the PR description as settled intent/);
   assert.match(gather, /A lane without its own\s+`### Lane:` section gets `no start map`/);

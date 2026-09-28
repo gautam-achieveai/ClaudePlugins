@@ -43,24 +43,31 @@ test("ordered numeric thresholds classify Tiny, Small, Medium, and Large", () =>
   assert.equal(classifyReview(context(changedFiles(26, { addedLines: 1 }))).tier, "LARGE");
 });
 
-test("contested findings have an adjudication route at every review size", () => {
-  for (const count of [1, 6, 14, 26]) {
-    const result = classifyReview(context(changedFiles(count)));
-    assert.ok(result.plan.reasoningAgents.some(({ id, when }) =>
-      id === "review-adjudicator" && when === "CONTESTED_FINDING"), result.tier);
-    assert.equal(result.plan.splitCorrectnessByArea, false, "size alone must not split a causal trace");
+test("classifier leaves specialist and gate selection to the scout and controller", () => {
+  for (const input of [
+    context(changedFiles(1)),
+    singleLineChange("src/Auth/Policy.cs", "Guard.Valid(user);", "services.AddScoped<Policy>();"),
+    context(changedFiles(26)),
+  ]) {
+    const result = classifyReview(input);
+    assert.equal(result.plan, undefined, "classification must not be an executable review plan");
+    assert.equal(result.schemaVersion, 2);
+    assert.ok(["LIGHTWEIGHT", "DEEP"].includes(result.costGuidance.workspaceMode));
+    assert.ok(Array.isArray(result.signals.riskFlags));
+    assert.doesNotMatch(JSON.stringify(result), /"(?:lanes|reasoningAgents|verification|requiredGuides|externalAgentLimit)"/);
   }
 });
 
-test("size alone does not add overlapping design and simplification lanes", () => {
-  const result = classifyReview(context(changedFiles(26)));
-  for (const id of ["architecture-review", "over-engineering-review", "class-design-simplifier", "code-simplifier", "duplicate-code-detector"]) {
-    assert.ok(!result.plan.lanes.some((lane) => lane.id === id), id);
-  }
+test("size and structure produce cost signals without choosing reviewers", () => {
+  const broad = classifyReview(context(changedFiles(26)));
+  assert.equal(broad.costGuidance.workspaceMode, "DEEP");
+  assert.equal(broad.plan, undefined);
   const structural = classifyReview(singleLineChange("src/Startup.cs", "", "services.AddSingleton<Store>();"));
-  assert.ok(structural.plan.lanes.some(({ id }) => id === "architecture-review"));
+  assert.equal(structural.signals.architectureChange, true);
+  assert.equal(structural.plan, undefined);
 });
-test("a risk flag raises a numerically Tiny review to Small and adds its named lane", () => {
+
+test("a risk flag raises a numerically Tiny review to Small without choosing a reviewer", () => {
   const result = classifyReview(
     context(
       changedFiles(1, { path: () => "src/Auth/AuthorizationPolicy.cs", addedLines: 6, removedLines: 6 }),
@@ -70,43 +77,35 @@ test("a risk flag raises a numerically Tiny review to Small and adds its named l
 
   assert.equal(result.tier, "SMALL");
   assert.ok(result.signals.riskFlags.includes("SECURITY"));
-  assert.ok(result.plan.lanes.some((lane) => lane.id === "correctness-review"));
-  assert.ok(result.plan.lanes.some((lane) => lane.id === "security-review"));
-  assert.ok(result.plan.requiredGuides.includes("security-checklist"));
   assert.equal(result.triggeringRule, "RISK_FLOOR");
 });
 
-test("UI, styling, agent, and recovery changes select their specialist lanes", () => {
+test("UI, styling, agent, and recovery changes emit distinct risk signals", () => {
   const cases = [
-    ["src/Dialog.tsx", '+return <dialog aria-label="Confirm" />;', ["accessibility-review"]],
-    ["src/dialog.scss", "+.dialog { color: red; }", ["accessibility-review", "css-consistency-review"]],
-    ["src/Panel.vue", '+<div class="panel">Text</div>', ["accessibility-review", "css-consistency-review"]],
-    ["src/styles/tokens.ts", '+export const spacing = "8px";', ["accessibility-review", "css-consistency-review"]],
-    ["src/Panel.js", "+const Panel = styled.div`color: red;`;", ["accessibility-review", "css-consistency-review"]],
-    ["plugin/agents/helper.md", "+Use the supplied context.", ["agent-contract-review"]],
-    ["plugin/skills/helper/SKILL.md", "+Read the tool result.", ["agent-contract-review"]],
-    [".github/prompts/helper.prompt.md", "+Inspect the handoff.", ["agent-contract-review"]],
-    [".mcp.json", '+{"mcpServers": {}}', ["agent-contract-review"]],
-    ["src/tools.ts", '+server.registerTool("read", {}, handler);', ["agent-contract-review"]],
-    ["src/client.ts", "+const timeout = 5000;", ["reliability-review"]],
-    ["deploy/service.yaml", "+readinessProbe:", ["reliability-review"]],
-    ["src/Worker.cs", "+await receiver.CompleteMessageAsync(message);", ["reliability-review"]],
+    ["src/Dialog.tsx", '+return <dialog aria-label="Confirm" />;', ["ACCESSIBILITY"]],
+    ["src/dialog.scss", "+.dialog { color: red; }", ["ACCESSIBILITY", "CSS_CONSISTENCY"]],
+    ["src/Panel.vue", '+<div class="panel">Text</div>', ["ACCESSIBILITY", "CSS_CONSISTENCY"]],
+    ["src/styles/tokens.ts", '+export const spacing = "8px";', ["ACCESSIBILITY", "CSS_CONSISTENCY"]],
+    ["src/Panel.js", "+const Panel = styled.div`color: red;`;", ["ACCESSIBILITY", "CSS_CONSISTENCY"]],
+    ["plugin/agents/helper.md", "+Use the supplied context.", ["AGENT_CONTRACT"]],
+    ["plugin/skills/helper/SKILL.md", "+Read the tool result.", ["AGENT_CONTRACT"]],
+    [".github/prompts/helper.prompt.md", "+Inspect the handoff.", ["AGENT_CONTRACT"]],
+    [".mcp.json", '+{"mcpServers": {}}', ["AGENT_CONTRACT"]],
+    ["src/tools.ts", '+server.registerTool("read", {}, handler);', ["AGENT_CONTRACT"]],
+    ["src/client.ts", "+const timeout = 5000;", ["RELIABILITY"]],
+    ["deploy/service.yaml", "+readinessProbe:", ["RELIABILITY"]],
+    ["src/Worker.cs", "+await receiver.CompleteMessageAsync(message);", ["RELIABILITY"]],
   ];
-  for (const [filePath, diffText, expectedAgents] of cases) {
+  for (const [filePath, diffText, expectedSignals] of cases) {
     const result = classifyReview(context(changedFiles(1, { path: () => filePath }), diffText));
     assert.notEqual(result.tier, "TINY", filePath);
-    for (const agentId of expectedAgents) {
-      const selected = result.plan.lanes.find((item) => item.id === agentId);
-      assert.ok(selected, `${filePath} must select ${agentId}`);
-      const definition = readFileSync(path.join(root, "code-reviewer/agents", `${agentId}.md`), "utf8");
-      assert.ok(definition.includes(`modelintelligence: ${selected.modelIntelligence}`), agentId);
-      assert.ok(definition.includes(`effort: ${selected.effort}`), agentId);
+    for (const agentId of expectedSignals) {
+      assert.ok(result.signals.riskFlags.includes(agentId), `${filePath} must signal ${agentId}`);
     }
-    assert.equal(new Set(result.plan.lanes.map((item) => item.id)).size, result.plan.lanes.length);
   }
 });
 
-test("destructive operations and removed guards select the invariant lane", () => {
+test("destructive operations and removed guards signal invariant review questions", () => {
   for (const [before, after] of [
     ["Guard.NotNull(value);", "Save(value);"],
     ["if (!IsValid(value)) {", "{"],
@@ -127,14 +126,11 @@ test("destructive operations and removed guards select the invariant lane", () =
     const result = classifyReview(input);
     assert.equal(result.tier, "SMALL", before);
     assert.ok(result.signals.riskFlags.includes("INVARIANT_DELETION"), `${before} -> ${after}`);
-    const lane = result.plan.lanes.find(({ id }) => id === "invariant-deletion-review");
-    assert.equal(lane.modelIntelligence, 4);
-    assert.equal(lane.effort, "high");
-    assert.equal(result.plan.lanes.filter(({ id }) => id === lane.id).length, 1);
+
   }
 });
 
-test("removing a multi-line guard selects the invariant lane", () => {
+test("removing a multi-line guard signals an invariant question", () => {
   const filePath = "src/Store.cs";
   const diffText = [
     `diff --git a/${filePath} b/${filePath}`,
@@ -150,7 +146,6 @@ test("removing a multi-line guard selects the invariant lane", () => {
     path: () => filePath, removedLines: 3,
   }), diffText));
   assert.ok(result.signals.riskFlags.includes("INVARIANT_DELETION"));
-  assert.ok(result.plan.lanes.some(({ id }) => id === "invariant-deletion-review"));
 });
 
 test("invariant routing ignores ordinary deleted statements and prose", () => {
@@ -160,7 +155,6 @@ test("invariant routing ignores ordinary deleted statements and prose", () => {
   }
   const result = classifyReview(singleLineChange("src/Counter.cs", "count += 1;", "count += 2;"));
   assert.ok(!result.signals.riskFlags.includes("INVARIANT_DELETION"));
-  assert.ok(!result.plan.lanes.some(({ id }) => id === "invariant-deletion-review"));
 });
 
 test("compliance signals nominate a reviewer without declaring applicability", () => {
@@ -174,12 +168,11 @@ test("compliance signals nominate a reviewer without declaring applicability", (
   ]) {
     const result = classifyReview(singleLineChange(filePath, before, after));
     assert.ok(result.signals.riskFlags.includes("COMPLIANCE"), filePath);
-    assert.ok(result.plan.lanes.some(({ id }) => id === "compliance-review"), filePath);
   }
   const prose = classifyReview(singleLineChange("docs/policies.md", "old policy", "HIPAA region: eu-west"));
   assert.ok(!prose.signals.riskFlags.includes("COMPLIANCE"));
   const unrelated = classifyReview(singleLineChange("src/Counter.cs", "return count;", "return count + 1;"));
-  assert.ok(!unrelated.plan.lanes.some(({ id }) => id === "compliance-review"));
+  assert.ok(!unrelated.signals.riskFlags.includes("COMPLIANCE"));
 });
 
 test("compliance specialist requires project-specific stage and obligation evidence", () => {
@@ -192,7 +185,7 @@ test("compliance specialist requires project-specific stage and obligation evide
   assert.match(agent, /finding-schema\.md/);
 });
 
-test("bare, suffixed, and nested style modules select accessibility and CSS review", () => {
+test("bare, suffixed, and nested style modules signal accessibility and CSS questions", () => {
   for (const filePath of [
     "src/theme.ts", "src/themes.js", "src/styles.ts", "src/tokens.json",
     "src/theme.dark.ts", "src/styles.module.js", "src/theme/palette.ts",
@@ -202,8 +195,8 @@ test("bare, suffixed, and nested style modules select accessibility and CSS revi
     assert.equal(validateDiffCoverage(input).complete, true, filePath);
     const result = classifyReview(input);
     assert.equal(result.tier, "SMALL", filePath);
-    for (const id of ["accessibility-review", "css-consistency-review"]) {
-      assert.ok(result.plan.lanes.some((lane) => lane.id === id), `${filePath}: ${id}`);
+    for (const id of ["ACCESSIBILITY", "CSS_CONSISTENCY"]) {
+      assert.ok(result.signals.riskFlags.includes(id), `${filePath}: ${id}`);
     }
   }
   for (const filePath of ["src/themeLoader.ts", "src/styles.test.txt", "docs/theme.ts"]) {
@@ -212,7 +205,7 @@ test("bare, suffixed, and nested style modules select accessibility and CSS revi
   }
 });
 
-test("quoted resilience settings select the same risk lanes as unquoted settings", () => {
+test("quoted resilience settings emit the same risk signals as unquoted settings", () => {
   for (const [filePath, before, after] of [
     ["config/client.json", '{"timeout":5000}', '{"timeout":0}'],
     ["config/client.json", '{"retries":3}', '{"retries":0}'],
@@ -225,15 +218,15 @@ test("quoted resilience settings select the same risk lanes as unquoted settings
     assert.equal(validateDiffCoverage(input).complete, true, filePath);
     const result = classifyReview(input);
     assert.equal(result.tier, "SMALL", `${filePath}: ${after}`);
-    for (const id of ["reliability-review", "feature-flag-reviewer"]) {
-      assert.ok(result.plan.lanes.some((lane) => lane.id === id), `${filePath}: ${after}: ${id}`);
+    for (const id of ["RELIABILITY", "FEATURE_FLAG"]) {
+      assert.ok(result.signals.riskFlags.includes(id), `${filePath}: ${after}: ${id}`);
     }
   }
   const prose = singleLineChange("docs/client.md", '{"timeout":5000}', '{"timeout":0}');
   assert.deepEqual(classifyReview(prose).signals.riskFlags, []);
 });
 
-test("quoted health and shutdown settings select reliability review", () => {
+test("quoted health and shutdown settings signal reliability questions", () => {
   for (const [filePath, before, after] of [
     ["deploy/service.json", '{"terminationGracePeriodSeconds":30}', '{"terminationGracePeriodSeconds":0}'],
     ["deploy/service.json", '{"readinessProbe":{}}', "{}"],
@@ -244,7 +237,7 @@ test("quoted health and shutdown settings select reliability review", () => {
     assert.equal(validateDiffCoverage(input).complete, true, filePath);
     const result = classifyReview(input);
     assert.equal(result.tier, "SMALL", `${filePath}: ${after}`);
-    assert.ok(result.plan.lanes.some((lane) => lane.id === "reliability-review"), filePath);
+    assert.ok(result.signals.riskFlags.includes("RELIABILITY"), filePath);
   }
 });
 
@@ -260,23 +253,23 @@ test("new specialist signals ignore ordinary prose and unrelated code", () => {
   ].join("\n");
   assert.deepEqual(detectDiffFeatures(context(changedFiles(1, { path: () => filePath }), diffText)).riskFlags, []);
   const plainCode = classifyReview(context(changedFiles(1), "+return count + 1;"));
-  assert.deepEqual(plainCode.plan.lanes.map((item) => item.id), ["correctness-review", "temp-code-review"]);
+  assert.deepEqual(plainCode.signals.riskFlags, []);
   const ui = classifyReview(context(changedFiles(1, { path: () => "src/Button.tsx" }), "+return <button>OK</button>;"));
-  assert.ok(!ui.plan.lanes.some((item) => item.id === "css-consistency-review"));
+  assert.ok(!ui.signals.riskFlags.includes("CSS_CONSISTENCY"));
 });
 
 test("removing UI, tool, or recovery protections still triggers review", () => {
   for (const [change, agentId] of [
-    ['-element.setAttribute("aria-label", "Confirm");', "accessibility-review"],
-    ['-server.registerTool("read", {}, handler);', "agent-contract-review"],
-    ["-const timeout = 5000;", "reliability-review"],
+    ['-element.setAttribute("aria-label", "Confirm");', "ACCESSIBILITY"],
+    ['-server.registerTool("read", {}, handler);', "AGENT_CONTRACT"],
+    ["-const timeout = 5000;", "RELIABILITY"],
   ]) {
     const result = classifyReview(context(changedFiles(1, { path: () => "src/changed.ts" }), change));
-    assert.ok(result.plan.lanes.some((item) => item.id === agentId), agentId);
+    assert.ok(result.signals.riskFlags.includes(agentId), agentId);
   }
 });
 
-test("CamelCase DTO, request, and response names trigger schema compatibility review", () => {
+test("CamelCase DTO, request, and response names signal schema compatibility questions", () => {
   for (const typeName of ["ThingDto", "CreateThingRequest", "ThingResponse"]) {
     const result = classifyReview(
       context(
@@ -286,17 +279,16 @@ test("CamelCase DTO, request, and response names trigger schema compatibility re
     );
 
     assert.ok(result.signals.riskFlags.includes("SCHEMA_COMPATIBILITY"), typeName);
-    assert.ok(result.plan.lanes.some((lane) => lane.id === "schema-compatibility-review"), typeName);
   }
 });
 
-test("the classifier, not prose, removes history for an all-new-file review", () => {
+test("all-new-file measurements do not decide historical review coverage", () => {
   const result = classifyReview(
     context(changedFiles(3, { status: "added", addedLines: 20 }))
   );
   assert.equal(result.tier, "SMALL");
   assert.equal(result.signals.allFilesNew, true);
-  assert.ok(!result.plan.lanes.some((lane) => lane.id === "history-context-review"));
+  assert.equal(result.plan, undefined);
 });
 
 test("new public types raise the floor to Medium", () => {
@@ -311,7 +303,7 @@ test("new public types raise the floor to Medium", () => {
   assert.equal(result.triggeringRule, "MEDIUM_NEW_PUBLIC_TYPE");
 });
 
-test("DI and project-reference changes route through Medium architecture review", () => {
+test("DI and project-reference changes raise structural measurements to Medium", () => {
   const result = classifyReview(
     context(
       changedFiles(2, { addedLines: 8, removedLines: 2 }),
@@ -322,7 +314,6 @@ test("DI and project-reference changes route through Medium architecture review"
   assert.equal(result.tier, "MEDIUM");
   assert.equal(result.triggeringRule, "MEDIUM_ARCHITECTURE_CHANGE");
   assert.equal(result.signals.architectureChange, true);
-  assert.ok(result.plan.lanes.some((lane) => lane.id === "architecture-review"));
 });
 
 test("new project or module and three top-level areas route to Large", () => {
@@ -332,9 +323,9 @@ test("new project or module and three top-level areas route to Large", () => {
     ])
   );
   assert.equal(newProject.tier, "LARGE");
-  assert.equal(newProject.plan.workspaceMode, "DEEP");
+  assert.equal(newProject.costGuidance.workspaceMode, "DEEP");
   assert.equal(newProject.signals.architectureChange, false);
-  assert.ok(newProject.plan.lanes.some(({ id }) => id === "architecture-review"));
+  assert.equal(newProject.signals.newProjectOrModule, true);
 
   const broad = classifyReview(
     context([
@@ -432,40 +423,9 @@ test("a uniform mechanical change is capped at Small despite file count", () => 
   assert.equal(result.signals.mechanical, true);
   assert.equal(result.tier, "SMALL");
   assert.equal(result.triggeringRule, "MECHANICAL_CAP");
-  assert.equal(result.plan.workspaceMode, "LIGHTWEIGHT");
+  assert.equal(result.costGuidance.workspaceMode, "LIGHTWEIGHT");
 });
 
-test("Tiny omits the grader unless a High finding survives; larger tiers have fixed reasoning rules", () => {
-  const tiny = classifyReview(context(changedFiles(1, { addedLines: 8 })));
-  assert.deepEqual(tiny.plan.reasoningAgents, [
-    { id: "review-grader", when: "HIGH_OR_CRITICAL_SURVIVES", modelIntelligence: 5, effort: "high" },
-    { id: "review-adjudicator", when: "CONTESTED_FINDING", modelIntelligence: 6, effort: "xhigh" },
-  ]);
-
-  const small = classifyReview(context(changedFiles(3, { addedLines: 20 })));
-  assert.ok(small.plan.reasoningAgents.some((agent) => agent.id === "review-grader" && agent.when === "ALWAYS"));
-
-  const large = classifyReview(context(changedFiles(26, { addedLines: 50 })));
-  assert.ok(large.plan.reasoningAgents.some((agent) => agent.id === "root-cause-synthesizer"));
-  assert.ok(large.plan.reasoningAgents.some((agent) => agent.id === "review-adjudicator"));
-  assert.equal(large.plan.splitCorrectnessByArea, false);
-  assert.equal(
-    tiny.escalation.action,
-    "APPLY_NEXT_TIER_PLAN_AND_RUN_NEWLY_REQUIRED_WORK",
-  );
-});
-
-test("every emitted lane has closed-vocabulary model intelligence and effort", () => {
-  const result = classifyReview(
-    context(changedFiles(14, { addedLines: 35, removedLines: 15 }), "+try { await client.SendAsync(request); } catch (Exception ex) { logger.LogError(ex, \"failed\"); }\n")
-  );
-
-  for (const lane of [...result.plan.lanes, ...result.plan.reasoningAgents]) {
-    assert.ok(Number.isInteger(lane.modelIntelligence), `${lane.id} missing modelIntelligence`);
-    assert.ok(lane.modelIntelligence >= 1 && lane.modelIntelligence <= 6, `${lane.id} tier out of range`);
-    assert.ok(["low", "medium", "high", "xhigh"].includes(lane.effort), `${lane.id} effort is not closed-vocabulary`);
-  }
-});
 
 test("agent frontmatter keeps the approved intelligence distribution", () => {
   const expected = {
@@ -474,7 +434,7 @@ test("agent frontmatter keeps the approved intelligence distribution", () => {
     "finding-verifier": 1,
     "code-simplifier": 1,
     "pr-context-gatherer": 1,
-    "lane-scout": 1,
+    "lane-scout": 3,
     "euii-leak-detector": 2,
     "feature-flag-reviewer": 2,
     "history-context-review": 2,
@@ -535,14 +495,12 @@ test("NScript routing requires framework evidence rather than a project-specific
     "+class ViewModel : ObservableObject { }\n",
   ));
   assert.ok(!ordinaryClient.signals.riskFlags.includes("NSCRIPT"));
-  assert.ok(!ordinaryClient.plan.lanes.some((lane) => lane.id === "nscript-review"));
 
   const nscript = classifyReview(context(
     changedFiles(1, { path: () => "packages/ui/Ui.csproj", addedLines: 1 }),
     '+<Sdk Name="Mcqdb.NScript.Sdk" />\n',
   ));
   assert.ok(nscript.signals.riskFlags.includes("NSCRIPT"));
-  assert.ok(nscript.plan.lanes.some((lane) => lane.id === "nscript-review"));
 });
 
 test("the skill spine names one authoritative classifier and separates tier from workspace mode", () => {
@@ -561,7 +519,7 @@ test("the skill spine names one authoritative classifier and separates tier from
   assert.doesNotMatch(skill, /mandatory for every review/i);
 });
 
-test("review skill references and planned bundled agents resolve within the plugin", () => {
+test("review skill references resolve within the plugin", () => {
   const skill = readFileSync(path.join(root, "code-reviewer/skills/pr-review/SKILL.md"), "utf8");
   const skillDir = path.join(root, "code-reviewer/skills/pr-review");
   const pluginRoot = path.join(root, "code-reviewer");
@@ -573,12 +531,7 @@ test("review skill references and planned bundled agents resolve within the plug
     assert.ok(existsSync(path.join(pluginRoot, relativePath)), `missing plugin resource: ${relativePath}`);
   }
 
-  for (const files of [changedFiles(1), changedFiles(6), changedFiles(14), changedFiles(26)]) {
-    const plan = classifyReview(context(files)).plan;
-    for (const { id } of [...plan.lanes, ...plan.reasoningAgents, plan.verification.firstLens]) {
-      assert.ok(existsSync(path.join(pluginRoot, "agents", `${id}.md`)), `missing bundled agent: ${id}`);
-    }
-  }
+
 });
 
 test("review team guidance names bundled workers, excludes the caller, and keeps a bounded specialist target", () => {
@@ -613,7 +566,6 @@ test("context gathering precedes file grouping and supplies specialist scope", (
   assert.match(step, /For `daemon-direct`/);
   assert.match(step, /For `deterministic-offline`/);
   assert.match(step, /In default enrichment, read/);
-  assert.match(step, /does not replace the classifier/);
 });
 
 test("PR context gatherer loads its skill and calibrates scrutiny by lifecycle and deployment", () => {
@@ -631,7 +583,7 @@ test("PR context gatherer loads its skill and calibrates scrutiny by lifecycle a
   assert.match(agent, /Do not add top-level JSON fields/);
 });
 
-test("PR context gatherer dispatches one lane scout and emits a specialist start map", () => {
+test("PR context gatherer exposes the scout and its optional start map", () => {
   const agent = readFileSync(path.join(root, "code-reviewer/agents/pr-context-gatherer.md"), "utf8");
   const scout = readFileSync(path.join(root, "code-reviewer/agents/lane-scout.md"), "utf8");
   const output = agent.split("## Output Format")[1]?.split("## Edge Cases")[0];
@@ -642,12 +594,8 @@ test("PR context gatherer dispatches one lane scout and emits a specialist start
   assert.match(agent, /dispatch exactly one\s+`code-reviewer:lane-scout`/);
   assert.match(agent, /never dispatch any other/);
   assert.match(agent, /cannot spawn[\s\S]{0,40}nested agent, run the scout pass inline/);
-  // A scout that spawns and then fails must be visible, never reported as dispatched.
-  assert.match(agent, /If the scout errors, times out,\s+or omits a planned lane's block or `### Unexplored`/);
-  assert.match(agent, /never write them yourself as the\s+scout's/);
   assert.match(output, /Scout: <dispatched \| inline because nested agents unavailable \| failed: <reason> \(lanes: <ids>\)>/);
   assert.match(agent, /`lane_scout: false`/);
-  assert.match(agent, /never re-runs the scout/);
   assert.equal(agent.match(/`code-reviewer:[\w-]+`/g)?.filter((id) => id !== "`code-reviewer:lane-scout`").length ?? 0, 0);
 
   assert.match(scout, /^name: lane-scout$/m);
@@ -659,7 +607,6 @@ test("PR context gatherer dispatches one lane scout and emits a specialist start
     assert.ok(scout.includes(heading), heading);
   }
   assert.match(scout, /`### Unexplored` is mandatory and never empty/);
-  assert.match(scout, /Its `plan\.lanes\[\]` are the planned lanes/);
   const conventions = readFileSync(path.join(root, "code-reviewer/skills/pr-review/reference/repo-conventions.md"), "utf8");
   assert.match(conventions, /`lane_scout` - set `false`/);
 
@@ -700,10 +647,8 @@ test("routing references do not reintroduce competing size heuristics", () => {
   assert.doesNotMatch(dispatch, /30\+ files/);
 });
 
-test("external-agent selection has one stable order and no duplicate simplifier route", () => {
+test("external-agent catalog does not duplicate the bundled simplifier", () => {
   const dispatch = readFileSync(path.join(root, "code-reviewer/skills/pr-review/reference/agent-dispatch.md"), "utf8");
-  assert.match(dispatch, /Evaluate the matrix from top to bottom/);
-  assert.match(dispatch, /MEDIUM: dispatch the first two eligible available agents/);
   assert.doesNotMatch(dispatch, /\| `code-simplifier:code-simplifier` \| PR introduces verbose/);
 });
 
@@ -784,7 +729,6 @@ test("the feature-flag lane runs for risky unflagged changes, not for already-fl
 
   const unflagged = classifyReview(context(files, change("var timeout = 5;")));
   assert.ok(unflagged.signals.riskFlags.includes("FEATURE_FLAG"));
-  assert.ok(unflagged.plan.lanes.some((lane) => lane.id === "feature-flag-reviewer"));
 
   const flagOnly = classifyReview(context(files, change("if (await featureManager.IsEnabledAsync(\"Fast\")) Go();")));
   assert.ok(!flagOnly.signals.riskFlags.includes("FEATURE_FLAG"));

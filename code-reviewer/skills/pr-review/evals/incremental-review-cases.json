@@ -1,0 +1,86 @@
+{
+  "description": "Synthetic re-review controller/scout scenarios. No providers, posting or actual reviewed checkout. Use current workflow contracts. Return baseline, active scope, specialist selections/counts, context reuse, exceptions, fixed gates, prior-state treatment and completion disposition. Do not read expected answers.",
+  "cases": [
+    {
+      "id": "tiny-fix-large-pr",
+      "changedFiles": [
+        "src/Prices.cs"
+      ],
+      "patchEvidence": "H1..H2 changes two lines in Prices.cs:20-21, correcting total = quantity + unitPrice to quantity * unitPrice. Corresponding arithmetic regression asserts quantity3/unitPrice4 yields12. No other code changes.",
+      "contextEvidence": "Completed review H1/mergeBaseM and successful receipt R1. Original PR26files/550lines,6owners correctness,temp,architecture,security,performance,test-coverage. F001 was a material arithmetic blocker; original outcome total=quantity*unitPrice, required regression. Author marks resolved atH2. Other findings CLOSED. Existing settings and contracts unchanged. Delta classifier reports TINY, no risk flags."
+    },
+    {
+      "id": "same-head-new-answer",
+      "changedFiles": [],
+      "patchEvidence": "H1..H1 empty code delta.",
+      "contextEvidence": "Completed review H1/baseM receiptR1. New author answer supplies current caller source ref revH1 proving the previously unresolved null-input question has a nonnull guard. Prior question owner correctness-review. No other source, intent or closure change. Caller evidence needs targeted verification before claim resolution; it is not a code edit."
+    },
+    {
+      "id": "same-head-no-change",
+      "changedFiles": [],
+      "patchEvidence": "H1..H1 empty code delta.",
+      "contextEvidence": "Completed review H1/baseM receiptR1. Provider discussion revision unchanged. No pending actions, unresolved new prerequisites or altered evidence. Previous verdict APPROVE."
+    },
+    {
+      "id": "delta-activated-caller",
+      "changedFiles": [
+        "src/Users.cs"
+      ],
+      "patchEvidence": "H1..H2 Users.cs:30 changes Lookup from guaranteedUser to returning null when absent. Delta has no Caller.cs changes.",
+      "contextEvidence": "Completed H1/baseM receiptR1. Current Caller.cs:12 calls Lookup(id).Name without a guard; callers may supply missing IDs per caller-test:20. Prior full PR contains unrelatedUI. Delta classifier SMALL, SCHEMA_COMPATIBILITY lead; no cross-process deployment boundary established. Trace this one causal mechanism and record any outside-delta reads."
+    },
+    {
+      "id": "unrecoverable-rebase",
+      "changedFiles": [
+        "src/Prices.cs"
+      ],
+      "patchEvidence": "Only current fullPR merge-base diff is supplied; actual since-review delta is unknown.",
+      "contextEvidence": "Prior review date known, exact completed head/tree and completion record unavailable. Force-push replaced ancestry. Provider access denied and no local old object. No prior closure record to act on. Current fullPR has26files. Do not treat supplied changedFiles as a verified delta."
+    },
+    {
+      "id": "small-security-delta",
+      "changedFiles": [
+        "src/Auth.cs"
+      ],
+      "patchEvidence": "H1..H2 removes a two-line tenant check before read at Auth.cs:15.",
+      "contextEvidence": "Completed H1/baseM receiptR1, previous largePR with6reviewers. Tenant-ID input remains untrusted. Prior unrelated findings CLOSED. Supplied delta classification SMALL/SECURITY and INVARIANT_DELETION. A later independent specialist candidate is stipulated HIGH solely for controller gate selection; scout must not emit that finding itself."
+    },
+    {
+      "id": "offline-delta",
+      "changedFiles": [
+        "src/Receipt.cs"
+      ],
+      "patchEvidence": "H1..H2 changes Receipt.cs:8-10 to persist SQL from a Domain method.",
+      "contextEvidence": "deterministic-offline. Supplied completed baselineH1/baseM receiptR1, saved delta and matching file list. docs/layers.md:14 explicitly prohibits persistence in Domain. C# settings/current callers absent. Classifier SMALL, no other signal. Prior fullPR and external history not supplied."
+    },
+    {
+      "id": "failed-round-baseline",
+      "changedFiles": [
+        "src/Prices.cs"
+      ],
+      "patchEvidence": "Current headH3. Available objects support H1..H3 and H2..H3; H2 included a guard change not in H2..H3.",
+      "contextEvidence": "Completed reviewH1/baseM receiptR1. More recent runH2 failed because security owner had no usable response; tracking sourceCommitIdH2 has statuserror. Its review-complete receipt does not exist. Prior intent and unresolved original closure criteria remain available. HeadH3 makes arithmetic fix. Choose comparison and completion conditions before any source scan."
+    },
+    {
+      "id": "local-dirty-baseline",
+      "changedFiles": [
+        "src/Prices.cs",
+        "src/NewHelper.cs"
+      ],
+      "patchEvidence": "Local HEAD isH1 before and after. Tracked Prices.cs was edited again and NewHelper.cs is newly untracked. No exact since-review content diff is supplied.",
+      "contextEvidence": "Previous completed local review covered dirty Prices.cs atH1 under snapshotS1. Only headH1 and hashS1 remain; old captured patch/file content is missing. Current dirty/untracked content can be read. Same HEAD must not be assumed to mean same source; determine whether a reliable delta is available before scanning."
+    },
+    {
+      "id": "cross-host-completed-cursor",
+      "changedFiles": ["src/Prices.cs"],
+      "patchEvidence": "Current headH3. H1..H3 includes a guard addition atH2 and a rounding fix atH3; H2..H3 contains only rounding.",
+      "contextEvidence": "Fresh host has no saved run or tracking files. Canonical GitHub summary is bot-authored for this repository, PR and reviewer and carries code-reviewer:lastCompletedReview headH1/baseM plus a provider summary-write receipt. A later H2 review attempt failed and recorded sourceCommitIdH2 in a bot-owned error note. Recover the completed cursor and select the exact scope."
+    },
+    {
+      "id": "stale-local-versus-provider-cursor",
+      "changedFiles": ["src/Prices.cs"],
+      "patchEvidence": "Ancestry is H1 -> H2 -> H3. H1..H3 includes a guard change atH2 and rounding atH3; H2..H3 contains only rounding.",
+      "contextEvidence": "Returning host has a verified saved completed run H1/baseM. The bot-authored canonical summary for matching repository, PR and reviewer has a later valid completed cursor H2/baseM and provider write receipt from another host. Current head is H3. Reconcile both completed cursors before choosing the delta."
+    }
+  ]
+}

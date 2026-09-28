@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// classify-review.mjs — deterministic review breadth and lane planner.
+// classify-review.mjs — deterministic diff measurements and review cost guidance.
 //
 // Usage:
-//   node classify-review.mjs --context <context.json> [--diff <diff.patch>] [--out <plan.json>]
+//   node classify-review.mjs --context <context.json> [--diff <diff.patch>] [--out <signals.json>]
 //
 // The context pack supplies changedFiles and normally diffPath. The script emits
-// one closed-vocabulary tier and a complete plan. Models execute the plan; they
-// do not estimate size, reconcile competing heuristics, or choose model names.
+// one closed-vocabulary tier and source-derived signals, never a reviewer roster.
+// The scout selects specialists; the controller owns fixed review gates.
 
 import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -32,43 +32,6 @@ const RISK_ORDER = [
   "EXCEPTION_HANDLING",
   "PERFORMANCE",
 ];
-
-const LANE_DEFAULTS = {
-  "temp-code-review": [1, "low"],
-  "duplicate-code-detector": [1, "low"],
-  "finding-verifier": [1, "low"],
-  "code-simplifier": [1, "low"],
-  "pr-context-gatherer": [1, "low"],
-  "euii-leak-detector": [2, "medium"],
-  "feature-flag-reviewer": [2, "medium"],
-  "history-context-review": [2, "medium"],
-  "class-design-simplifier": [2, "medium"],
-  "nscript-review": [3, "medium"],
-  "orleans-review": [3, "medium"],
-  "test-coverage-review": [3, "medium"],
-  "performance-review": [3, "medium"],
-  "accessibility-review": [2, "medium"],
-  "css-consistency-review": [2, "medium"],
-  "agent-contract-review": [3, "high"],
-  "security-review": [4, "high"],
-  "invariant-deletion-review": [4, "high"],
-  "compliance-review": [4, "high"],
-  "reliability-review": [4, "high"],
-  "correctness-review": [4, "high"],
-  "exception-handling-review": [4, "high"],
-  "schema-compatibility-review": [4, "high"],
-  "architecture-review": [4, "high"],
-  "over-engineering-review": [4, "high"],
-  "review-grader": [5, "high"],
-  "root-cause-synthesizer": [5, "high"],
-  "remediation-planner": [5, "high"],
-  "review-adjudicator": [6, "xhigh"],
-};
-
-const lane = (id, overrides = {}) => {
-  const [modelIntelligence, effort] = LANE_DEFAULTS[id];
-  return { id, modelIntelligence, effort, ...overrides };
-};
 
 const normalizePath = (value) => String(value || "").replace(/\\/g, "/").replace(/^\.\//, "");
 // Providers report composite statuses such as Azure DevOps "edit, rename".
@@ -318,61 +281,7 @@ function initialTier(features) {
   return ["TINY", "TINY_DEFAULT"];
 }
 
-function riskLanes(features) {
-  const ids = [];
-  const add = (id) => { if (!ids.includes(id)) ids.push(id); };
-  if (features.riskFlags.includes("SECURITY")) add("security-review");
-  if (features.riskFlags.includes("INVARIANT_DELETION")) add("invariant-deletion-review");
-  if (features.riskFlags.includes("COMPLIANCE")) add("compliance-review");
-  if (features.riskFlags.includes("ACCESSIBILITY")) add("accessibility-review");
-  if (features.riskFlags.includes("CSS_CONSISTENCY")) add("css-consistency-review");
-  if (features.riskFlags.includes("AGENT_CONTRACT")) add("agent-contract-review");
-  if (features.riskFlags.includes("RELIABILITY")) add("reliability-review");
-  if (features.riskFlags.includes("SCHEMA_COMPATIBILITY")) add("schema-compatibility-review");
-  if (features.riskFlags.includes("ORLEANS")) add("orleans-review");
-  if (features.riskFlags.includes("NSCRIPT")) add("nscript-review");
-  if (features.riskFlags.includes("FEATURE_FLAG")) add("feature-flag-reviewer");
-  if (features.riskFlags.includes("EUII")) add("euii-leak-detector");
-  if (features.riskFlags.includes("EXCEPTION_HANDLING")) add("exception-handling-review");
-  if (features.riskFlags.includes("PERFORMANCE")) add("performance-review");
-  return ids;
-}
-
-function buildPlan(tier, features) {
-  const lanes = [lane("correctness-review"), lane("temp-code-review")];
-  const add = (id, overrides = {}) => { if (!lanes.some((item) => item.id === id)) lanes.push(lane(id, overrides)); };
-  const requiredGuides = [];
-  if (features.riskFlags.includes("SECURITY")) requiredGuides.push("security-checklist");
-
-  if (tier !== "TINY" && !features.allFilesNew) add("history-context-review");
-  for (const id of riskLanes(features)) add(id);
-  if (tier !== "TINY" && features.behaviorChanged) add("test-coverage-review");
-  if (features.architectureChange || features.newProjectOrModule) add("architecture-review");
-
-  let reasoningAgents;
-  if (tier === "TINY") {
-    reasoningAgents = [lane("review-grader", { when: "HIGH_OR_CRITICAL_SURVIVES" })];
-  } else if (tier === "SMALL") {
-    reasoningAgents = [lane("review-grader", { when: "ALWAYS", modelIntelligence: 4 })];
-  } else if (tier === "MEDIUM") {
-    reasoningAgents = [
-      lane("review-grader", { when: "ALWAYS" }),
-      lane("root-cause-synthesizer", { when: "FOUR_OR_MORE_VERIFIED_FINDINGS", effort: "medium" }),
-      lane("remediation-planner", { when: "REQUEST_CHANGES_AND_THREE_BLOCKERS_OR_TWO_CLUSTERS", modelIntelligence: 4, effort: "medium" }),
-      lane("review-adjudicator", { when: "CONTESTED_FINDING", modelIntelligence: 5, effort: "high" }),
-    ];
-  } else {
-    reasoningAgents = [
-      lane("review-grader", { when: "ALWAYS" }),
-      lane("root-cause-synthesizer", { when: "FOUR_OR_MORE_VERIFIED_FINDINGS" }),
-      lane("remediation-planner", { when: "REQUEST_CHANGES_AND_THREE_BLOCKERS_OR_TWO_CLUSTERS" }),
-      lane("review-adjudicator", { when: "CONTESTED_FINDING" }),
-    ];
-  }
-  if (!reasoningAgents.some(({ id }) => id === "review-adjudicator")) {
-    reasoningAgents.push(lane("review-adjudicator", { when: "CONTESTED_FINDING" }));
-  }
-
+function costGuidance(tier) {
   const focus = {
     TINY: ["GOAL", "CHANGED_LINE_CORRECTNESS", "BOUNDARIES", "REGRESSION_TEST", "TEMP_ARTIFACTS"],
     SMALL: ["GOAL", "CORRECTNESS", "CHANGED_SIGNATURE_CALLERS", "CHANGED_DEFAULT_CONSUMERS", "HISTORY", "TESTS"],
@@ -383,21 +292,6 @@ function buildPlan(tier, features) {
   return {
     workspaceMode: tier === "LARGE" ? "DEEP" : "LIGHTWEIGHT",
     focus,
-    lanes,
-    requiredGuides,
-    nonRiskDomainLaneLimit: tier === "TINY" ? 0 : tier === "SMALL" ? 2 : null,
-    externalAgentLimit: tier === "TINY" || tier === "SMALL" ? 0 : tier === "MEDIUM" ? 2 : null,
-    // The orchestrator may split independent questions; size alone cannot split a causal trace.
-    splitCorrectnessByArea: false,
-    verification: {
-      firstLens: lane("finding-verifier", { when: tier === "TINY" ? "MEDIUM_OR_HIGHER" : "EVERY_SURVIVING_FINDING" }),
-      secondLens: {
-        when: "HIGH_OR_CRITICAL",
-        high: { modelIntelligence: 3, effort: "medium" },
-        critical: { modelIntelligence: 4, effort: "high" },
-      },
-    },
-    reasoningAgents,
   };
 }
 
@@ -414,15 +308,15 @@ export function classifyReview(input) {
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     tier,
     triggeringRule,
     signals: features,
-    plan: buildPlan(tier, features),
+    costGuidance: costGuidance(tier),
     escalation: {
       direction: "UP_ONLY",
       trigger: "SURVIVING_HIGH_OR_CRITICAL_FINDING",
-      action: "APPLY_NEXT_TIER_PLAN_AND_RUN_NEWLY_REQUIRED_WORK",
+      action: "REASSESS_SCOUT_SELECTION_AND_APPLY_WORKFLOW_GATES",
     },
   };
 }
@@ -436,7 +330,7 @@ export function main(argv) {
   const explicitDiffPath = option("diff");
   const outPath = option("out");
   if (!contextPath) {
-    console.error("usage: classify-review.mjs --context <context.json> [--diff <diff.patch>] [--out <plan.json>]");
+    console.error("usage: classify-review.mjs --context <context.json> [--diff <diff.patch>] [--out <signals.json>]");
     return 2;
   }
 
@@ -472,8 +366,8 @@ export function main(argv) {
     }
   }
 
-  // Coverage is checked only when a diff is supplied; without one the plan is
-  // built from changedFiles alone.
+  // Coverage is checked only when a diff is supplied; without one classification uses
+  // changedFiles alone. No specialist coverage can be inferred from it.
   if (configuredDiffPath) {
     const coverage = validateDiffCoverage({ ...contextPack, diffText });
     if (!coverage.complete) {

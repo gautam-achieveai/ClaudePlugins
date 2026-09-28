@@ -37,6 +37,16 @@ research missing context read-only instead of refetching unchanged setup data.
 Preserve authoritative snapshot facts and report conflicting newer evidence as
 drift with both values and citations.
 
+For re-review dispatches, the controller supplies the established `reviewBase`,
+delta paths, prior sourced context and changed discussion/closure obligations.
+Treat those delta files as the active review scope throughout this workflow.
+Reuse valid intent/history/answers with their original citations; refresh only
+facts affected by the delta or new evidence. Skip unchanged hierarchy discovery.
+Do not refetch the full PR diff, restore its file groups, or repeat all prior
+questions. Record scoped exceptions and stale facts. An empty delta calls for
+changed-state context only, with no code scout; unavailable baseline is a gap,
+not permission to invent one. Offline/daemon restrictions still apply.
+
 In a direct dispatch explicitly requesting deterministic-offline, use only the
 supplied payload and render Step 6 / Output Format; skip Steps 0-5 and all live
 research. Missing or empty payloads fail closed; incomplete data stays Unknown,
@@ -205,6 +215,14 @@ Without an outer `## Daemon-Supplied Context` block, ignore this section. Follow
 the parsed context mode above; in enrichment run Steps 0-6, reusing setup facts.
 
 ## Workflow
+
+For an enrichment **review-controller request** with `reviewSignalsPath`, a
+hierarchy/linkage instruction below to "stop" ends that lookup, not planning.
+Report absent/unavailable linked items and continue Step 5a from local code,
+known intent and accessible history. Standalone hierarchy requests retain their
+stop behavior. Daemon/offline source restrictions and schema remain unchanged.
+Scout-requested prior bugs/commits/PRs belong in the source/request ledger; they
+need not be inserted into the work-item hierarchy to inform selection.
 
 ### Step 0: Build the Sourced Context Manifest
 
@@ -455,23 +473,38 @@ For the PR's directly linked items, note any Related links (not parent/child):
 - Fetch related items — ADO `getWorkItemById`; GitHub `gh issue view <id>` for cross-referenced issues — to get their type and title
 - Limit to 5 related items per item
 
-### Step 5a: Scout Planned Lanes
+### Step 5a: Scout-Owned Selection and Targeted Context
 
 Only in default enrichment for a review-controller dispatch that supplies a
-`review-plan.json` path. Skip it in Review Daemon, deterministic-offline, and
+`review-signals.json` path. Skip the nested scout in Review Daemon, deterministic-offline, and
 `## Daemon-Supplied Context` modes, or when `.code-reviewer.yml` sets
-`lane_scout: false`; there, omit the Specialist Start Map. Run it once per
-review: a follow-up dispatch reuses the saved map and never re-runs the scout.
+`lane_scout: false`; there, omit the optional Specialist Start Map. The review
+controller still ensures selection through the mode-specific planning role in
+`${CLAUDE_PLUGIN_ROOT}/skills/pr-review/reference/scout-planning.md` (read it now).
+In normal enrichment with the scout disabled, perform selection inline and label
+it `inline-scout`; do not treat the missing subagent as missing review coverage.
 
 After intent and file groups are drafted, dispatch exactly one
 `code-reviewer:lane-scout` with the patch path, changed-file list, source root,
-head/base SHAs, `review-plan.json` path, draft intent, and file groups. This is
+head/base SHAs, `review-signals.json` path, draft intent, file groups, available
+specialist catalog and source/access ledger. The scout selects the reviewers;
+there is no input reviewer roster. This is
 the only agent you dispatch; never dispatch any other. If the host cannot spawn
 a nested agent, run the scout pass inline under `lane-scout.md`'s rules and
 budget, and say so in the Common Orientation. If the scout errors, times out,
-or omits a planned lane's block or `### Unexplored`, keep your intent and file
-groups, omit the affected `### Lane:` sections (never write them yourself as the
-scout's), and record `Scout: failed` with the reason and affected lane ids.
+or omits selection, quality coverage, a selected lane's block or `### Unexplored`,
+keep your intent and file groups and record the failure. Complete planning
+inline under the same rules, labelled as your work, or report incomplete planning;
+never fabricate scout output or default to a classifier-selected roster.
+
+Answer the scout's specific context requests using scoped source reads, prior
+bugs, commits and related PRs. Return citations/revisions and access failures,
+then resume the same scout for at most two targeted follow-up rounds per snapshot.
+Reuse already-read sources; do not rerun hierarchy discovery or the initial scan.
+Stop when selection is supported or the round limit is reached; retain exact
+unresolved facts and their impact on scope. Standalone hierarchy-only requests
+do not launch planning. For a review-controller request, absent linked work items
+do not prevent local code/history-based planning; preserve unknown intent.
 
 Use its result to add sourced Open Activation Questions and fill context gaps.
 Cite or flag, never resolve: a contradiction closes only with a cited source that
@@ -479,7 +512,10 @@ settles it (commit, code, or work item); otherwise it stays open with both sides
 cited, because a wrong resolution here propagates to every lane. Scout leads
 are pointers, not findings: never turn one into a finding, severity, or verdict.
 Carry the scout's `### Unexplored` list into the Start Map unchanged.
-Specialists verify independently and may go beyond the map.
+Preserve Review Selection, Quality Triage, Context Requests and Coverage unchanged
+as top-level sections of the context report, including for inline planning.
+Specialists verify independently and may go beyond the map. The controller
+validates and captures selection; you do not dispatch its selected reviewers.
 
 ### Step 6: Build the Context Tree
 
@@ -581,13 +617,29 @@ access or discovery gaps in the Sourced Context Manifest.
 - How complete the parent work item is (X of Y children done)
 - Any notable sibling items that are still open (potential follow-up PRs)
 
+## Review Selection
+<scout or explicitly labelled inline selection; state, exact specialist IDs,
+questions, file scopes, evidence, expected outcomes and stop conditions>
+
+## Quality Triage
+<per-language/component screen, sourced leads, unknowns and unexamined scope>
+
+## Context Requests
+<stable IDs, questions, source scopes, selection impact, results and citations;
+follow-up rounds used; none when no decision-relevant request remains>
+
+## Coverage
+<every file group, risk signal and baseline question: owner, sourced exclusion,
+or unresolved gap; do not claim completeness from absence of findings>
+
 ## Specialist Start Map
 
-<Step 5a only; omit in other modes. Tag interpretation (inferred), gaps (unknown).>
+<Step 5a only; optional when the scout subagent is disabled. The selection above
+is still required for review planning. Tag interpretation (inferred), gaps (unknown).>
 
 ### Common Orientation
 - Identity: <repo> | source root `<path>` vs workspace root `<path>` | head `<sha>` | base `<sha>`
-- Paths: patch `<path>` | changed files `<path>` | review plan `<path>` (concrete; no `...`)
+- Paths: patch `<path>` | changed files `<path>` | review signals `<path>` (concrete; no `...`)
 - Intent: <intent with evidence>; contradictions: <both sides cited, or none>
 - Lane map: <component> -> <changed files> -> <agent-ids>
 - Search/access ledger: <query, scope, revision, result or bounded failure; denial is not empty>
