@@ -161,11 +161,23 @@ authorship or add another parallel reviewer; intelligence and routing are unchan
 Run `/code-reviewer:repo-onboarding` to learn a repository before reviewing it,
 or to refresh stale context. The [workflow](skills/repo-onboarding/SKILL.md)
 dispatches the [onboarding agent](agents/repo-onboarding.md) across system/skill
-mapping, coding culture/language adoption, and PR history/evolution.
+mapping, coding culture, user problems, production topology, and component history.
 
-Independent research nodes launch concurrently, then their evidence is reconciled
-and follow-up questions deduplicated. Investigations recursively follow those
-questions. Ordinary agent dispatch is the default; the host's `Workflow` facility
+```mermaid
+flowchart TD
+Tools["Discover tools and knowledge sources"] --> Map["1. Map components and styles"]
+Map --> Investigate["2. Investigate components and history"]
+Investigate --> Connect["3. Connect journeys and constraints"]
+Connect --> Answers["4. Organize answers for reviewers"]
+```
+
+Each pass validates its findings before creating the next agent hierarchy.
+Independent nodes fan out within a pass; shared follow-up questions are deduplicated.
+Tools and skills can route research to relevant knowledge bases, connected drives,
+tickets, incidents, logs, and deployment records. Searches are scoped and read-only;
+advertised tools are not proof of access or permission to crawl unrelated data.
+
+Ordinary agent dispatch is the default; the host's `Workflow` facility
 requires separate explicit user opt-in. Defaults are 12
 research invocations, 3 concurrent workers across the tree, and logical depth 3.
 Hosts without nested agents dispatch child requests from the main session.
@@ -175,7 +187,8 @@ partial results with a resumable frontier, not claims of exhaustive coverage.
 The final response explains **How it works**, **What we learned**, and **Next
 questions**, with source links and disagreements kept explicit. This briefing
 comes before execution counts and paths, including when coverage is partial.
-A scratchpad `reviewer-onboarding/index.md` links the detailed scoped notes:
+A scratchpad `reviewer-onboarding/index.md` routes changed paths, symbols, journeys,
+and review concerns to answer-first notes with evidence and refresh routes:
 what the system does, which skills to use when, conventions and version-aware
 language guidance, undocumented PR rationale, and ongoing versus proposed work.
 Verified non-obvious lessons reuse `docs/superpowers/learnings/` and its existing
@@ -185,8 +198,9 @@ repository policy, or remote systems. New language features are context, not
 automatic requirements.
 
 [Offline evaluation scenarios](skills/repo-onboarding/evals/evals.json) cover
-recursive handoffs, incomplete access, conflicting historical advice, refresh,
-parallel dispatch evidence, source-linked briefings, and serial-host fallback.
+sequential gates, evidence-driven hierarchies, recursive handoffs, external-source
+discovery, incomplete access, conflicting history, refresh, cold reviewer lookup,
+parallel dispatch evidence, and serial-host/budget fallback.
 Contract tests check discovery and integration; they do not prove live provider
 access or exhaustive knowledge collection.
 

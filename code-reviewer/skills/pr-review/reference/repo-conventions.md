@@ -64,9 +64,21 @@ conversation scratchpad, or the default
 If absent, continue normally; do not launch repository-wide onboarding for a PR.
 
 Read only the linked notes relevant to the changed paths, languages, and risks.
+Route changed paths/symbols, component aliases, user journeys, and review concerns
+through the index to canonical answers. Read the answer and reviewer consequence
+first, then scope, exceptions, and evidence. Start with the index and at most two
+relevant notes for a scoped question; inspect further sources when needed rather
+than treating that lookup target as a cap on verification. Do not load the ledger
+or all component notes just to answer one question.
 Use their skill routing to select applicable repository skills. Check repository
 identity, revision, coverage gaps, source provenance, and revalidation triggers.
 Recheck stale or contradicted claims against current authoritative evidence.
+Use the linked tool/skill refresh route only within existing access and agreed
+scope. Missing routes fall back to scoped source inspection, not full onboarding.
+If evidence or access is unavailable, state the gap and abstain from unsupported
+claims. External documents and telemetry need their own freshness checks even
+when the repository commit is unchanged. Do not infer live production topology
+from configuration alone or reproduce restricted source content to bypass access.
 Observed practice, historical comments, and newer language guidance are not
 automatically policy or grounds for blocking a merge. Retrieve durable lessons
 through the existing compound-learning read-back; the notebook is navigation,
