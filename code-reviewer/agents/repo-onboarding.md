@@ -6,7 +6,7 @@ disable-model-invocation: false
 tier: 3
 color: cyan
 skills:
-	- repo-onboarding
+  - repo-onboarding
 ---
 
 # Repository Onboarding Agent
