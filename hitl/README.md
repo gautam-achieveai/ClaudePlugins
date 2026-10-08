@@ -10,7 +10,7 @@ Set up human-in-the-loop communication and teach agents when to use it.
 
 ## End-of-work handoff
 
-With HITL 2.14.0 or later, a finished agent calls `HandOff`. It sends a short summary to Inbox and waits. You reply with the next instruction, or check **End**. The setup skill can also install an opt-in Claude Code Stop hook (`hitl hook stop`). The hook nudges an agent once if it stops without handing off. That hook comes from the HITL CLI, not this plugin. This plugin's hooks never block.
+With HITL 2.14.0 or later, a finished agent calls `HandOff`. It sends a short summary to Inbox (Windows only; the tray popup does not show handoffs) and waits. You reply with the next instruction, or check **End**. The setup skill can also install an opt-in Claude Code Stop hook (`hitl hook stop`). The hook nudges an agent once if it stops without handing off. That hook comes from the HITL CLI, not this plugin. This plugin's hooks never block.
 
 Both Claude Code and Codex manifests are included. Hooks require Node.js on the host's PATH. They read bundled guidance only; they do not read credentials, send messages, install programs, or block tool calls.
 

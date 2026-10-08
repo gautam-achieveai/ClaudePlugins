@@ -50,7 +50,7 @@ When the requested work is done, call `HandOff` instead of ending the turn. The 
 - The result has `action`. `continue` carries `instructions`: treat them as the human's next request, do the work, then hand off again. `end` may carry a `note`: reply with one line and stop.
 - A handoff reply is a new request, not blanket approval. Actions that need explicit authorization still need it.
 - Don't hand off mid-task, to ask a question (use `AskUserQuestion`), or in unattended runs (`-p`, SDK, CI) where no human is waiting. Don't also send a Notify for the same completion.
-- `HandOff` needs HITL 2.14.0 or later, plus a current Inbox. Older Inboxes and the tray popup drop handoff messages. If the tool is missing, send a completion Notify and end the turn as usual.
+- `HandOff` needs HITL 2.14.0 or later, plus a current Inbox. Inbox ships for Windows only. Older Inboxes and the tray popup drop handoff messages. If the tool is missing, send a completion Notify and end the turn as usual.
 
 **Stop hook.** Setup can install an optional Claude Code Stop hook (`hitl hook stop`). If you did work in the turn and try to stop without handing off, the hook blocks once. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, stop; the hook does not block twice. `HITL_HANDOFF=0` disables it for a session.
 

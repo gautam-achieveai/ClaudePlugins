@@ -127,7 +127,7 @@ Install it only when the user asks for it. It changes global host settings, so e
 3. Don't also add it to project settings. Two copies make the agent see two nudges.
 4. Remove it by deleting that entry. To skip one session, start it with `HITL_HANDOFF=0`.
 
-Handoffs need a receiver that understands them: a current Inbox. The tray popup and older Inboxes silently drop them, and the agent then waits until the host timeout.
+Handoffs need a receiver that understands them: a current Inbox. Inbox ships for Windows only. The tray popup and older Inboxes silently drop them, and the agent then waits until the host timeout. On a machine without Inbox (macOS, Linux), do not install the hook, and set `HITL_HANDOFF=0` if it is already installed.
 
 ## 4. Enable Inbox or tray client
 
