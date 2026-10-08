@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -8,6 +8,67 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const plugin = path.join(root, "hitl");
+
+function codexStop(entries, input = {}, env = {}) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "hitl codex test "));
+  try {
+    const transcript = path.join(dir, "rollout.jsonl");
+    writeFileSync(transcript, entries.map(e => JSON.stringify(e)).join("\n"));
+    const result = spawnSync(process.execPath, [path.join(plugin, "hooks/codex-stop.mjs")], {
+      input: JSON.stringify({ transcript_path: transcript, turn_id: "turn-1", ...input }),
+      encoding: "utf8", env: { ...process.env, HITL_HANDOFF: "1", ...env }, timeout: 5000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  } finally {
+    assert.equal(path.dirname(path.resolve(dir)), path.resolve(os.tmpdir()));
+    assert.ok(path.basename(dir).startsWith("hitl codex test "));
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const turnStart = { type: "event_msg", payload: { type: "task_started", turn_id: "turn-1" } };
+const call = (name, extra = {}) => ({ type: "response_item", payload: { type: "function_call", name, call_id: "call-1", ...extra } });
+const result = output => ({ type: "response_item", payload: { type: "function_call_output", call_id: "call-1", output } });
+
+test("Codex nudges once after tools, but allows idle, disabled, unknown and continued turns", () => {
+  assert.equal(codexStop([turnStart, call("exec_command")]).decision, "block");
+  assert.match(codexStop([turnStart, call("exec_command")]).reason, /\[hitl-handoff\].*HandOff/);
+  assert.deepEqual(codexStop([turnStart]), {});
+  assert.deepEqual(codexStop([call("exec_command")]), {});
+  assert.deepEqual(codexStop([turnStart, call("exec_command")], { stop_hook_active: true }), {});
+  assert.deepEqual(codexStop([turnStart, call("exec_command")], {}, { HITL_HANDOFF: "0" }), {});
+  assert.deepEqual(codexStop([turnStart, call("exec_command")], { turn_id: "other" }), {});
+});
+
+test("Codex honours HandOff End, allows errors and nudges after Continue", () => {
+  const handoff = call("mcp__hitl__HandOff");
+  assert.deepEqual(codexStop([turnStart, handoff, result('{"action":"end"}')]), {});
+  assert.equal(codexStop([turnStart, handoff, result('{"action":"continue","instructions":"Next task"}')]).decision, "block");
+  assert.deepEqual(codexStop([turnStart, handoff, result('{"isError":true}')]), {});
+  assert.deepEqual(codexStop([turnStart, handoff, result('unreadable')]), {});
+  assert.equal(codexStop([turnStart, call("exec_command"), result('{"action":"end"}')]).decision, "block");
+});
+
+test("Codex recognises code-mode HandOff and custom tool outputs", () => {
+  const handoff = { type: "response_item", payload: { type: "custom_tool_call", name: "exec", call_id: "call-1", input: 'text(await tools.mcp__hitl__HandOff({summary:"Done"}));' } };
+  const output = { type: "response_item", payload: { type: "custom_tool_call_output", call_id: "call-1", output: JSON.stringify({ content: [{ type: "text", text: '{"action":"end"}' }] }) } };
+  assert.deepEqual(codexStop([turnStart, handoff, output]), {});
+  assert.equal(codexStop([turnStart, handoff]).decision, "block");
+  const mention = { ...handoff, payload: { ...handoff.payload, input: 'text(await tools.exec_command({cmd: "echo tools.mcp__hitl__HandOff({})"}));' } };
+  assert.equal(codexStop([turnStart, mention, output]).decision, "block", "a quoted mention is not a handoff");
+  const wrapped = { ...output, payload: { ...output.payload, output: 'Script completed\nOutput:\n' + JSON.stringify({ content: [{ type: "text", text: '{"action":"continue"}' }] }) } };
+  assert.equal(codexStop([turnStart, handoff, wrapped]).decision, "block");
+  const arrayOutput = { ...wrapped, payload: { ...wrapped.payload, output: [{ type: "text", text: "Script completed" }, { type: "text", text: wrapped.payload.output }] } };
+  assert.equal(codexStop([turnStart, handoff, arrayOutput]).decision, "block");
+  const arrayEnd = { ...output, payload: { ...output.payload, output: [{ type: "text", text: output.payload.output }] } };
+  assert.deepEqual(codexStop([turnStart, handoff, arrayEnd]), {});
+});
+
+test("Codex fails open for unreadable transcripts and excludes subagents", () => {
+  assert.deepEqual(codexStop([turnStart], { transcript_path: "missing-file.jsonl" }), {});
+  assert.deepEqual(codexStop([{ type: "session_meta", payload: { source: { subagent: "worker" } } }, turnStart, call("exec_command")]), {});
+});
 
 function runHook(event, options = {}) {
   return spawnSync(process.execPath, [path.join(options.plugin ?? plugin, "hooks", "inject-context.mjs"), event], {

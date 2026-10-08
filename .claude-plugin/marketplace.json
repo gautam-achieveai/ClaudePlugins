@@ -270,7 +270,7 @@
       "name": "hitl",
       "source": "./hitl",
       "description": "Install and configure HITL, connect Inbox or the tray client, and guide cross-device questions, plan reviews, end-of-work handoffs, notifications, and durable progress through automatic usage hooks.",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "category": "productivity",
       "tags": [
         "hitl",

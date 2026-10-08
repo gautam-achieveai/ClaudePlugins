@@ -129,6 +129,28 @@ Install it only when the user asks for it. It changes global host settings, so e
 
 Handoffs need a receiver that understands them: a current Inbox. Inbox ships for Windows only. The tray popup and older Inboxes silently drop them, and the agent then waits until the host timeout. On a machine without Inbox (macOS, Linux), do not install the hook, and set `HITL_HANDOFF=0` if it is already installed.
 
+### Optional: end-of-work Stop hook (Codex)
+
+Install when requested and a current Windows Inbox is available. Do not copy `hitl hook stop`: HITL 2.14.1's CLI reads Claude transcripts only. Use the plugin's `hooks/codex-stop.mjs` instead.
+
+1. Locate the installed plugin's absolute directory. Confirm `hooks/codex-stop.mjs` exists. A development checkout can also supply the script; keep that directory available.
+2. Inspect `~/.codex/hooks.json` and inline `[hooks]` in `~/.codex/config.toml`. Preserve existing hooks and unrelated settings. Back up any existing file before editing; prefer one hook representation per config layer.
+3. Merge one Stop handler into the existing representation. Replace the placeholder with the verified absolute script path (JSON Windows paths can use forward slashes):
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "node \"<absolute-plugin-path>/hooks/codex-stop.mjs\"", "timeout": 30 } ] }
+    ]
+  }
+}
+```
+
+4. Do not add a second project/plugin copy. Start a fresh Codex session. Use `/hooks` to review and trust this exact definition. Never write trust hashes yourself or bypass hook trust.
+5. Verify a real Codex transcript with `turn_id` and `transcript_path` on stdin: work without HandOff returns `decision: block`. `stop_hook_active: true`, `HITL_HANDOFF=0`, End, failed handoffs, idle turns, unreadable input and subagents return `{}`. Continue requests another handoff, but only the first Stop continuation per turn can be enforced. Direct calls and immediate code-mode results are recognized. Yielded code-mode results returned by a separate wait call and calls inside JavaScript template expressions are not recognized reliably; their unknown results fail open. The script reads Codex rollout records; their format is not stable, so unknown input fails open.
+6. Remove only this Stop entry to uninstall. `HITL_HANDOFF=0` skips it for one session. Restart/reconnect the MCP host if `HandOff` is absent; a successful plugin refresh alone does not refresh an existing chat's tools.
+
 ## 4. Enable Inbox or tray client
 
 ### Inbox
@@ -153,7 +175,7 @@ If the binary is missing, inspect the package's supported platform and official 
 - Confirm the host exposes the selected HITL tools after restart.
 - Send one labeled setup test via Notify, then an AskUserQuestion with `context` and one single-choice acknowledgement. A returned successful answer establishes the round trip; publishing alone does not.
 - If verifying a second device, have the user answer there and inspect `respondedFrom`. Do not infer delivery to every device.
-- If the Stop hook was installed, run it once against a real transcript: pipe `{"transcript_path":"<a recent session .jsonl>"}` to the configured command. A session that did work without a handoff prints a `decision: block` with `[hitl-handoff]`. The same input with `HITL_HANDOFF=0` prints nothing. Sessions without the `HandOff` tool still get one nudge and then stop, so restart running sessions to give them the tool.
+- If the Stop hook was installed, run it once against a real transcript. Claude uses `{"transcript_path":"<a recent session .jsonl>"}` and prints nothing when disabled. Codex also requires the matching `turn_id` and prints `{}` when disabled. Work without a handoff prints a `decision: block` with `[hitl-handoff]`. Sessions without the `HandOff` tool still get one nudge and then stop, so restart running sessions to give them the tool.
 - Confirm plugin hooks appear in the host. In Codex, review/trust the hook definition through `/hooks`; installation alone does not trust it. Never bypass hook trust. Start a fresh session to exercise SessionStart, then a new turn for the reminder.
 - Report exact checks, selected client, version, nonsecret config path, and anything pending restart or user response.
 

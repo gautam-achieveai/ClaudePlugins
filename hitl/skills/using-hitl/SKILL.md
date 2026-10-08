@@ -52,7 +52,7 @@ When the requested work is done, call `HandOff` instead of ending the turn. The 
 - Don't hand off mid-task, to ask a question (use `AskUserQuestion`), or in unattended runs (`-p`, SDK, CI) where no human is waiting. Don't also send a Notify for the same completion.
 - `HandOff` needs HITL 2.14.0 or later, plus a current Inbox. Inbox ships for Windows only. Older Inboxes and the tray popup drop handoff messages. If the tool is missing, send a completion Notify and end the turn as usual.
 
-**Stop hook.** Setup can install an optional Claude Code Stop hook (`hitl hook stop`). If you did work in the turn and try to stop without handing off, the hook blocks once. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, stop; the hook does not block twice. `HITL_HANDOFF=0` disables it for a session.
+**Stop hook.** Setup can install the host-specific reminder when requested: Claude Code uses `hitl hook stop`; Codex uses `hooks/codex-stop.mjs`. If you did work in the turn and try to stop without handing off, the hook nudges you. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, send a completion Notify and stop. Codex allows stopping after one continuation so it cannot loop; subsequent handoff cycles rely on these usage instructions. `HITL_HANDOFF=0` disables it for a session.
 
 ## Living progress
 
