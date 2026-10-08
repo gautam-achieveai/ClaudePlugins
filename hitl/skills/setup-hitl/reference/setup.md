@@ -1,6 +1,6 @@
 # HITL installation and recovery
 
-Read only the sections needed for the selected host and receiver. These instructions were checked against the HITL 2.13 source; installed packages and desktop releases may differ. Inspect actual versions and callable schemas.
+Read only the sections needed for the selected host and receiver. These instructions were checked against the HITL 2.14 source; installed packages and desktop releases may differ. Inspect actual versions and callable schemas.
 
 ## 1. Inventory and choose a configuration
 
@@ -89,7 +89,7 @@ An explicit alternative without global installation is command `npx` with args `
 
 On Windows, some hosts cannot launch `.cmd` shims directly. Prefer `node` with the verified absolute installed `dist/mcp-server.js` path (find the package directory with `npm root -g`), or the host's documented Windows shim handling. Do not guess or embed machine-specific paths in the plugin. Forward slashes are valid in JSON Windows paths.
 
-Restart/reconnect the host after registration or environment changes. Discover `AskUserQuestion`, `ReviewPlan`, `Notify`, `UpdateWork`, `ReadWork`, and `setup`; older versions may expose fewer tools. Report missing capabilities instead of fabricating tool calls.
+Restart/reconnect the host after registration or environment changes. Discover `AskUserQuestion`, `ReviewPlan`, `HandOff`, `Notify`, `UpdateWork`, `ReadWork`, and `setup`; older versions may expose fewer tools (`HandOff` arrived in 2.14.0). Report missing capabilities instead of fabricating tool calls.
 
 ### Human wait settings
 
@@ -103,6 +103,31 @@ Current question/review tools have no tool-level timeout argument; the wait limi
 Never pass the timeout as a tool argument.
 
 For Claude Code, the source recommends `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS=0` in the **host process** environment to prevent automatic backgrounding of human waits. A server-only env entry does not change the parent host. Explain this change and its global effect before modifying host settings, preserve unrelated keys, and restart the host. `hitl claude-code install` also registers the server and changes a global host setting; don't run it blindly after manual registration. The `setup` tool diagnoses this guard but does not apply the setting.
+
+### Optional: end-of-work Stop hook (Claude Code)
+
+With `HandOff`, a finished agent sends its summary to Inbox and waits for the next instruction. The Stop hook enforces this: if an interactive session did work and tries to stop without handing off, the hook blocks once and tells the agent to call `HandOff`. It never blocks twice. It allows `-p`, SDK, and other `sdk*` entrypoints, turns with no tool use, and sessions started with `HITL_HANDOFF=0`. It reads only the transcript path that Claude Code passes on stdin, and it fails open.
+
+Install it only when the user asks for it. It changes global host settings, so explain the change first and back up the file.
+
+1. Verify the installed CLI has the command: `echo '{}' | hitl hook stop` must print nothing. Versions before 2.14.0 print the CLI help instead (still exit 0); stop there and upgrade first.
+2. Merge this into `~/.claude/settings.json`. Keep any existing `Stop` entries and every unrelated key:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "hitl hook stop", "timeout": 30 } ] }
+    ]
+  }
+}
+```
+
+   If the host can't run the `hitl` shim (some Windows setups), use `node "<absolute-path>/dist/cli.js" hook stop` with the verified installed package path. A local source build uses `<checkout>/hitl-mcp-server/server/dist/cli.js`.
+3. Don't also add it to project settings. Two copies make the agent see two nudges.
+4. Remove it by deleting that entry. To skip one session, start it with `HITL_HANDOFF=0`.
+
+Handoffs need a receiver that understands them: a current Inbox. The tray popup and older Inboxes silently drop them, and the agent then waits until the host timeout.
 
 ## 4. Enable Inbox or tray client
 
@@ -128,6 +153,7 @@ If the binary is missing, inspect the package's supported platform and official 
 - Confirm the host exposes the selected HITL tools after restart.
 - Send one labeled setup test via Notify, then an AskUserQuestion with `context` and one single-choice acknowledgement. A returned successful answer establishes the round trip; publishing alone does not.
 - If verifying a second device, have the user answer there and inspect `respondedFrom`. Do not infer delivery to every device.
+- If the Stop hook was installed, run it once against a real transcript: pipe `{"transcript_path":"<a recent session .jsonl>"}` to the configured command. A session that did work without a handoff prints a `decision: block` with `[hitl-handoff]`. The same input with `HITL_HANDOFF=0` prints nothing. Sessions without the `HandOff` tool still get one nudge and then stop, so restart running sessions to give them the tool.
 - Confirm plugin hooks appear in the host. In Codex, review/trust the hook definition through `/hooks`; installation alone does not trust it. Never bypass hook trust. Start a fresh session to exercise SessionStart, then a new turn for the reminder.
 - Report exact checks, selected client, version, nonsecret config path, and anything pending restart or user response.
 

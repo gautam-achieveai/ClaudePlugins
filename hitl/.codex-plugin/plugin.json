@@ -1,7 +1,7 @@
 {
   "name": "hitl",
-  "version": "1.1.0",
-  "description": "Set up HITL and use cross-device questions, plan reviews, notifications, and durable progress with automatic usage reminders.",
+  "version": "1.2.0",
+  "description": "Set up HITL and use cross-device questions, plan reviews, end-of-work handoffs, notifications, and durable progress with automatic usage reminders.",
   "author": {
     "name": "Gautam Bhakar"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "HITL",
     "shortDescription": "Human input and progress across devices.",
-    "longDescription": "Install and configure HITL, connect Inbox or the tray client, and guide agents to use questions, plan reviews, notifications, and durable progress at the right time.",
+    "longDescription": "Install and configure HITL, connect Inbox or the tray client, and guide agents to use questions, plan reviews, end-of-work handoffs, notifications, and durable progress at the right time.",
     "developerName": "Gautam Bhakar",
     "category": "Productivity",
     "capabilities": [],

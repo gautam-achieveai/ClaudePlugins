@@ -98,6 +98,21 @@ test("both hosts discover the same bounded hooks and skill package", () => {
   }
 });
 
+test("finished work is handed off, with the Stop hook opt-in rather than shipped", () => {
+  const reminder = JSON.parse(runHook("UserPromptSubmit").stdout).hookSpecificOutput.additionalContext;
+  assert.match(reminder, /HandOff/);
+  const usage = readFileSync(path.join(plugin, "skills/using-hitl/SKILL.md"), "utf8");
+  assert.match(usage, /\| `HandOff` \|/);
+  for (const contract of [/`continue`/, /`end`/, /1200 characters/, /\[hitl-handoff\]/, /HITL_HANDOFF=0/]) {
+    assert.match(usage, contract);
+  }
+  const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
+  assert.match(setup, /"command": "hitl hook stop"/);
+  assert.match(setup, /`HandOff`, `Notify`/);
+  const { hooks } = JSON.parse(readFileSync(path.join(plugin, "hooks/hooks.json"), "utf8"));
+  assert.equal(hooks.Stop, undefined, "the blocking hook belongs to the HITL CLI, installed by setup on request");
+});
+
 test("setup registers every documented host with a six-hour wait and never a tool argument", () => {
   const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
   const rows = Object.fromEntries(setup.split(/\r?\n/)

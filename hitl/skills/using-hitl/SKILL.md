@@ -1,6 +1,6 @@
 ---
 name: using-hitl
-description: Use at session start and when asking a human, reviewing a plan, reporting a result or blocker, or tracking ongoing work through HITL. Guides cross-device communication without interrupting routine authorized work.
+description: Use at session start and when asking a human, reviewing a plan, handing off finished work, reporting a result or blocker, or tracking ongoing work through HITL. Guides cross-device communication without interrupting routine authorized work.
 ---
 
 # Using HITL
@@ -19,7 +19,8 @@ If unavailable, report that briefly and use chat for necessary input. Load **hit
 | --- | --- | --- |
 | Missing preference, material ambiguity, blocker, or necessary approval | `AskUserQuestion` | Set project/work `context`; batch up to 4 related questions. Give short options and a recommendation. |
 | Review a concrete Markdown plan or spec | `ReviewPlan` | Write the file first; pass `filePath`, `context`, and a short `summary`. |
-| One-off result: task done, build/test finished, blocker, long job started | `Notify` | Short title; outcome, evidence, and next action if needed. Returns without waiting. |
+| Your work is finished and you would otherwise end the turn | `HandOff` | Summary of what was done; wait for the next instruction or End. See below. |
+| One-off result: build/test finished, blocker, long job started; task done when `HandOff` is unavailable | `Notify` | Short title; outcome, evidence, and next action if needed. Returns without waiting. |
 | Multi-step or team work, milestones, changing status | `UpdateWork` | Maintain one living document for the goal; quiet routine updates, alert for meaningful changes. |
 | Resume tracked work or resolve revision conflict | `ReadWork` | Read stored state before replacing a task report. |
 | Requested setup or client repair | `setup` | After config exists and MCP connects; inspect returned steps. It normally launches the tray client, not Inbox. |
@@ -40,6 +41,19 @@ Use a new file for each distinct plan. Revise the same file for subsequent revie
 
 Read `verdict`, `overallFeedback`, and `inlineComments`. Apply requested changes and resubmit the same file when review is required. Only `approved` establishes plan approval; `skipped`, `cancelled`, `rejected`, and `changes_requested` do not. Continue independent safe work while a necessary decision is pending.
 
+## Hand off finished work
+
+When the requested work is done, call `HandOff` instead of ending the turn. The human reads the summary in Inbox and sends the next instruction from there. Only the lead agent hands off; subagents report to their lead.
+
+- Pass `title` (the outcome in a few words), `context` (project and goal), and `summary` (Markdown, at most 1200 characters). Write the summary for a dyslexic, ADHD reader: short sentences, bullets, no preamble. Use this order and drop empty parts: **Outcome**, **Did**, **Not done / risks**, **Needs you**.
+- Report evidence, not hopes: name the checks that ran and their results. Say what was skipped.
+- The result has `action`. `continue` carries `instructions`: treat them as the human's next request, do the work, then hand off again. `end` may carry a `note`: reply with one line and stop.
+- A handoff reply is a new request, not blanket approval. Actions that need explicit authorization still need it.
+- Don't hand off mid-task, to ask a question (use `AskUserQuestion`), or in unattended runs (`-p`, SDK, CI) where no human is waiting. Don't also send a Notify for the same completion.
+- `HandOff` needs HITL 2.14.0 or later, plus a current Inbox. Older Inboxes and the tray popup drop handoff messages. If the tool is missing, send a completion Notify and end the turn as usual.
+
+**Stop hook.** Setup can install an optional Claude Code Stop hook (`hitl hook stop`). If you did work in the turn and try to stop without handing off, the hook blocks once. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, stop; the hook does not block twice. `HITL_HANDOFF=0` disables it for a session.
+
 ## Living progress
 
 Use a stable `workId` for the goal and stable task IDs. Create the root with `parentTaskId: null`, `expectedRevision: 0`, a title, and goal. Child reports link to an existing parent. Keep work on the same coordinating host/topic; separate machines do not automatically share the saved store.
@@ -52,6 +66,6 @@ Give each new logical update a new `updateId`. Retry identical input with the sa
 
 ## Keep communication useful
 
-Send one update per meaningful change. Prefer UpdateWork to repeated Notify messages for the same ongoing goal; a completion update with an alert can serve as the completion notification. For a one-off task, Notify is enough. Do not claim passing checks without results or hide delivery failures.
+Send one update per meaningful change. Prefer UpdateWork to repeated Notify messages for the same ongoing goal. When the goal is complete, mark the work completed, then `HandOff`. Without HandOff, a completion update with an alert can serve as the completion notification. Do not claim passing checks without results or hide delivery failures.
 
-Never send encryption keys, raw config, credentials, or unnecessary private logs through questions, reviews, notifications, or progress reports. Hooks supply guidance only: they do not grant permissions, contact the human, or change configuration.
+Never send encryption keys, raw config, credentials, or unnecessary private logs through questions, reviews, handoffs, notifications, or progress reports. This plugin's hooks supply guidance only: they do not grant permissions, contact the human, or change configuration. The optional HITL Stop hook only asks you to hand off.
