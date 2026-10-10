@@ -7,6 +7,8 @@ description: Use at session start and when asking a human, reviewing a plan, han
 
 HITL reaches the human on their connected devices, including when they are away from the terminal. Use it as the communication channel when its tools are available. Follow the user's instructions and preserve existing authorization.
 
+Write every message as [the essentials](reference/essentials.md) describe: for a dyslexic, ADHD reader who is not an expert. They also give the plan and handoff shapes. The session hook loads them; read them if they are not in context.
+
 ## Discover once; use the live schema
 
 Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with a host's built-in question tool.

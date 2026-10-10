@@ -5,12 +5,16 @@ const event = process.argv[2];
 let context;
 
 if (event === "SessionStart") {
-  const skill = readFileSync(new URL("../skills/using-hitl/SKILL.md", import.meta.url), "utf8");
-  context = `HITL usage guidance (hitl:using-hitl):\n\n${skill.trim()}`;
+  // The essentials, not the whole skill: hosts cut hook context near 10,000 characters.
+  const essentials = readFileSync(new URL("../skills/using-hitl/reference/essentials.md", import.meta.url), "utf8");
+  context = `HITL usage guidance (hitl:using-hitl):\n\n${essentials.trim()}`;
 } else if (event === "UserPromptSubmit") {
-  context = "Use hitl:using-hitl for human interaction. When HITL is available, ask necessary questions with AskUserQuestion (context; up to 4 questions), review plan files with ReviewPlan, and use Notify for one-off blocker/build messages. When the work is done, call HandOff with a short summary instead of ending the turn; on continue do its instructions, on end reply in one line and stop. Use UpdateWork for ongoing progress and ReadWork on resume/conflict. Discover actual tool names and schemas; never pass a timeout argument; the host's per-server timeout (6 hours from setup) governs waits. Preserve existing authorization; silence, timeout, or skipped review is not approval. If HITL is unavailable, explain and use chat for needed input; use hitl:setup-hitl when setup is requested. Do not interrupt routine authorized work or repeat notifications.";
+  context = "Use hitl:using-hitl for human interaction. When HITL is available, ask necessary questions with AskUserQuestion (context; up to 4 questions), review plan files with ReviewPlan, and use Notify for one-off blocker/build messages. When the work is done, call HandOff with a short summary instead of ending the turn; on continue do its instructions, on end reply in one line and stop. Use UpdateWork for ongoing progress and ReadWork on resume/conflict. Discover actual tool names and schemas; never pass a timeout argument; the host's per-server timeout (6 hours from setup) governs waits. Preserve existing authorization; silence, timeout, or skipped review is not approval. Write every HITL message for a dyslexic, ADHD, non-expert reader: outcome first, short sentences, bullets, plain words, complex ideas explained. If HITL is unavailable, explain and use chat for needed input; use hitl:setup-hitl when setup is requested. Do not interrupt routine authorized work or repeat notifications.";
 }
 
-process.stdout.write(JSON.stringify(context
-  ? { hookSpecificOutput: { hookEventName: event, additionalContext: context } }
-  : {}) + "\n");
+// Copilot CLI reads a top-level additionalContext and sets COPILOT_PLUGIN_ROOT for plugin hooks;
+// Claude Code and Codex read hookSpecificOutput.
+const copilot = Boolean(process.env.COPILOT_PLUGIN_ROOT);
+process.stdout.write(JSON.stringify(!context ? {}
+  : copilot ? { additionalContext: context }
+  : { hookSpecificOutput: { hookEventName: event, additionalContext: context } }) + "\n");
