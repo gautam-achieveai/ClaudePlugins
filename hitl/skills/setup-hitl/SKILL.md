@@ -1,6 +1,6 @@
 ---
 name: setup-hitl
-description: Install, connect, or repair the HITL MCP server and its receiving apps. Use when asked to set up HITL, initialize or reuse .hitl configuration, copy settings to another device, install HITL Inbox, enable the tray client, or install the end-of-work handoff Stop hook.
+description: Install, connect, or repair the HITL MCP server and its receiving apps. Use when asked to set up HITL, initialize or reuse .hitl configuration, copy settings to another device, install HITL Inbox, enable the tray client, install the end-of-work handoff Stop hook, or turn on agent memory sync between machines.
 ---
 
 # Set up HITL
@@ -13,7 +13,8 @@ Deliver a working MCP connection and a receiving app on the same topic/key. Foll
 4. **Install and configure within scope.** Select the published package or a verified local build. Initialize privately only if config is absent, or securely copy from an authorized path. Merge one MCP entry using the host's supported method (Claude Code, Codex, Copilot CLI, Gemini CLI, VS Code, or a generic `mcpServers` host) with a 6-hour per-server timeout where the host supports one; preserve unrelated settings. Explain concrete global settings changes before applying them and obtain authorization if outside the request.
 5. **Enable a receiver.** Launch Inbox separately or enable the bundled tray client. `setup` does not install Inbox. Verify both use the same config location; configure Inbox-only mode when requested and supported.
 6. **Handoff hook when requested.** Install the host-specific Stop reminder: Claude Code uses `hitl hook stop` (HITL 2.14.0+); Codex uses the bundled `hooks/codex-stop.mjs`. It nudges an agent to call `HandOff` before stopping. Back up existing global hook settings, merge one entry, and verify as the reference describes. The user's request to install the hook authorizes this change; do not ask again. Other plugin users enable it explicitly because a current Windows Inbox is required.
-7. **Prove the connection.** Restart/reconnect the MCP host when required; list tools. Send one clearly labeled test notification and one short test question during requested setup. Success means a human response returned, not just a running process or accepted publish. Check hooks are loaded/trusted and a fresh session receives the usage guidance.
+7. **Memory sync between machines when requested.** Call the connected `setup` tool with `{"memoryRemote": true}` (HITL 2.15.0+). No `hitl` CLI or PATH is needed. Do it once on each machine that should sync. It refuses without an `encryptionKey`; every machine must share the same topic and key. Restart HITL sessions afterwards. `{"memoryRemote": false}` turns it off. See the reference for checks and the CLI fallback.
+8. **Prove the connection.** Restart/reconnect the MCP host when required; list tools. Send one clearly labeled test notification and one short test question during requested setup. Success means a human response returned, not just a running process or accepted publish. Check hooks are loaded/trusted and a fresh session receives the usage guidance.
 
 Keep config copying and installer execution out of hooks. Before replacing credentials or an existing host entry, explain the affected path and retain a recoverable backup; conflicting configuration requires the user's decision. Installation alone does not authorize overwriting a working identity.
 

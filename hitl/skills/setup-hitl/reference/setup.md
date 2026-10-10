@@ -170,6 +170,19 @@ Run `hitl client`, or call the connected MCP `setup` tool with `{}`. Examine eac
 
 If the binary is missing, inspect the package's supported platform and official release assets. From a source checkout, `npm run build:client` builds the tray client. Do not claim `hitl client` launches Inbox. Start background helpers hidden on Windows; use a visible window only for the receiving UI the user needs to control.
 
+## Optional: memory sync between machines
+
+HITL 2.15.0+ keeps each repo's agent memory in step across Claude Code, Codex and Copilot on one machine. That part is on by default (`HITL_MEMORY_SYNC=0` turns it off). Syncing with the user's **other machines** is opt-in, per machine, because it sends memory (encrypted) through their ntfy server on `<topicId>-memory`.
+
+Turn it on only when the user asks:
+
+1. Check that the connected `setup` tool's schema has a `memoryRemote` property. If not, the server is older than 2.15.0; upgrade first.
+2. Call `setup` with `{"memoryRemote": true}`. Read the `memory-remote` step: `ok` means saved; `error` usually means no `encryptionKey`. Fix the key by copying a working config (section 1), never by rerunning `hitl init` over it.
+3. Repeat on every machine that should sync. All of them need identical `ntfyUrl`, `topicId` and `encryptionKey`.
+4. Restart HITL sessions (reconnect the MCP host) so the syncer picks the setting up.
+
+`{"memoryRemote": false}` turns it off. Without MCP, the CLI does the same: `hitl memory remote on|off`, and `hitl memory remote` prints the state (use `node "<absolute-path>/dist/cli.js"` when `hitl` is not on PATH). `HITL_MEMORY_REMOTE=0` or `1` in the server env overrides the config for that process. Files that look like they hold a secret stay on their machine, and the user gets one notification.
+
 ## 5. Verify and hand off
 
 - Confirm the host exposes the selected HITL tools after restart.

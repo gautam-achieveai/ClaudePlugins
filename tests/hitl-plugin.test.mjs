@@ -174,6 +174,14 @@ test("finished work is handed off, with the Stop hook opt-in rather than shipped
   assert.equal(hooks.Stop, undefined, "the blocking hook belongs to the HITL CLI, installed by setup on request");
 });
 
+test("setup turns on memory sync between machines through the setup tool, never by default", () => {
+  const skill = readFileSync(path.join(plugin, "skills/setup-hitl/SKILL.md"), "utf8");
+  const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
+  for (const text of [skill, setup]) assert.match(text, /\{"memoryRemote": true\}/);
+  assert.match(setup, /`hitl memory remote on\|off`/);
+  assert.match(setup, /opt-in, per machine/);
+});
+
 test("setup registers every documented host with a six-hour wait and never a tool argument", () => {
   const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
   const rows = Object.fromEntries(setup.split(/\r?\n/)
