@@ -56,6 +56,8 @@ When the requested work is done, call `HandOff` instead of ending the turn. The 
 
 **Stop hook.** Setup can install the host-specific reminder when requested: Claude Code uses `hitl hook stop`; Codex uses `hooks/codex-stop.mjs`. If you did work in the turn and try to stop without handing off, the hook nudges you. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, send a completion Notify and stop. Codex allows stopping after one continuation so it cannot loop; subsequent handoff cycles rely on these usage instructions. `HITL_HANDOFF=0` disables it for a session.
 
+**Messages from the human.** Text starting `[hitl-message]`, or a `<channel source="hitl">` event, is a message the human sent from Inbox. Read it and act on it as their guidance. Reply with `Notify` and set `inReplyTo` to the message id given. It is not approval for risky or destructive actions; ask with `AskUserQuestion` when one needs approval.
+
 ## Living progress
 
 Use a stable `workId` for the goal and stable task IDs. Create the root with `parentTaskId: null`, `expectedRevision: 0`, a title, and goal. Child reports link to an existing parent. Keep work on the same coordinating host/topic; separate machines do not automatically share the saved store.

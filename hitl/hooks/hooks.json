@@ -1,5 +1,5 @@
 {
-  "description": "Load HITL usage guidance and refresh it without network calls or configuration changes.",
+  "description": "Load HITL usage guidance, and hand the human's Inbox messages to the session through the HITL CLI when it is installed.",
   "hooks": {
     "SessionStart": [
       {
@@ -20,6 +20,44 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-context.mjs\" UserPromptSubmit",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-messages.mjs\" UserPromptSubmit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-messages.mjs\" PostToolUse",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-messages.mjs\" Stop",
+            "asyncRewake": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-messages.mjs\" SessionEnd",
+            "timeout": 10
           }
         ]
       }

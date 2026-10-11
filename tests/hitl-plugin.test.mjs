@@ -164,13 +164,24 @@ test("both hosts discover the same bounded hooks and skill package", () => {
     assert.equal(manifest.mcpServers, undefined, "setup must not duplicate an existing MCP registration");
   }
   const { hooks } = JSON.parse(readFileSync(path.join(plugin, "hooks/hooks.json"), "utf8"));
-  assert.deepEqual(Object.keys(hooks).sort(), ["SessionStart", "UserPromptSubmit"]);
-  for (const event of Object.keys(hooks)) {
+  assert.deepEqual(Object.keys(hooks).sort(), ["PostToolUse", "SessionEnd", "SessionStart", "Stop", "UserPromptSubmit"]);
+  for (const event of ["SessionStart", "UserPromptSubmit"]) {
     const handler = hooks[event][0].hooks[0];
     assert.equal(handler.type, "command");
     assert.ok(handler.timeout <= 10);
     assert.match(handler.command, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/inject-context\.mjs"/);
     assert.ok(handler.command.endsWith(event));
+  }
+  // Every other handler delivers the human's Inbox messages, and nothing else.
+  for (const [event, groups] of Object.entries(hooks)) {
+    for (const handler of groups.flatMap(group => group.hooks)) {
+      if (handler.command.includes("inject-context")) continue;
+      assert.match(handler.command, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/agent-messages\.mjs"/);
+      assert.ok(handler.command.endsWith(event));
+      // Stop waits in the background (asyncRewake); the others are bounded.
+      if (event === "Stop") assert.equal(handler.asyncRewake, true);
+      else assert.ok(handler.timeout <= 10);
+    }
   }
   for (const source of ["startup", "resume", "clear", "compact"]) {
     assert.ok(new RegExp(hooks.SessionStart[0].matcher).test(source));
@@ -189,7 +200,11 @@ test("finished work is handed off, with the Stop hook opt-in rather than shipped
   assert.match(setup, /"command": "hitl hook stop"/);
   assert.match(setup, /`HandOff`, `Notify`/);
   const { hooks } = JSON.parse(readFileSync(path.join(plugin, "hooks/hooks.json"), "utf8"));
-  assert.equal(hooks.Stop, undefined, "the blocking hook belongs to the HITL CLI, installed by setup on request");
+  // The plugin's Stop hook only delivers messages; the handoff reminder belongs
+  // to the HITL CLI and is installed by setup on request.
+  for (const handler of (hooks.Stop ?? []).flatMap(group => group.hooks)) {
+    assert.doesNotMatch(handler.command, /hook stop|codex-stop/);
+  }
 });
 
 test("setup turns on memory sync between machines through the setup tool, never by default", () => {
