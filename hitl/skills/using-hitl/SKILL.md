@@ -19,6 +19,7 @@ If unavailable, report that briefly and use chat for necessary input. Load **hit
 
 | Situation | Tool | Required behavior |
 | --- | --- | --- |
+| Session start, before any other HITL message; your objective changed | `NameSession` | 2-5 word `name` for the work (not the repo or branch) and a one-sentence `objective`. See below. |
 | Missing preference, material ambiguity, blocker, or necessary approval | `AskUserQuestion` | Set project/work `context`; batch up to 4 related questions. Give short options and a recommendation. |
 | Review a concrete Markdown plan or spec | `ReviewPlan` | Write the file first; pass `filePath`, `context`, and a short `summary`. |
 | Your work is finished and you would otherwise end the turn | `HandOff` | Summary of what was done; wait for the next instruction or End. See below. |
@@ -28,6 +29,17 @@ If unavailable, report that briefly and use chat for necessary input. Load **hit
 | Requested setup or client repair | `setup` | After config exists and MCP connects; inspect returned steps. It normally launches the tray client, not Inbox. |
 
 Don't ask for facts you can inspect. Continue routine, reversible work within the user's request. Ask only when an answer changes the result, a consequential choice belongs to the human, or required input/authorization is missing. Short sentences and concrete choices reduce interruption cost.
+
+## Name the session
+
+The human runs several agents at once and tells them apart by name. Call `NameSession` before your first HITL message. Every later message carries the name and objective, and Inbox lists the session under it.
+
+- `name`: what you are doing, in 2-5 words ("Inbox repaint fix"). The human already sees the repo and branch.
+- `objective`: one sentence on the goal and what done looks like.
+- Call it again when the work changes direction, such as a HandOff `continue` that starts different work. Inbox keeps earlier names as "Formerly".
+- A `[hitl-message]` asking you to rename the session is the human renaming it from Inbox: call `NameSession` with that name.
+- Until the session is named, HITL tool results end with a reminder. A HandOff result reminds you of the current name, so you can rename if the next work differs.
+- `NameSession` needs HITL 2.16.0 or later. If it is missing, skip naming; do not block on it.
 
 ## Questions and decisions
 

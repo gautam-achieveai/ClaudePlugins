@@ -88,6 +88,10 @@ Build a **Feature → PR mapping**: group PRs by their parent Feature/Epic. This
 
 **ALWAYS gather context BEFORE making any judgments.**
 
+If this session has no HITL name yet, call `mcp__hitl__NameSession` first
+(for example `Perf review <period>`, with a one-sentence objective) so the
+manager knows which session is asking.
+
 Use `mcp__hitl__AskUserQuestion` to ask the manager:
 1. Satisfaction with specific features delivered (reference work item hierarchy from Phase 1C)
 2. Known production incidents or rollbacks during the review period

@@ -4,6 +4,7 @@ HITL reaches the human on every device, even when they are away from the termina
 
 ## Which tool
 
+- **NameSession**: call it first, before any other HITL message. Give a 2-5 word `name` for what you are doing (not the repo or branch) and a one-sentence `objective`. Call it again when the objective changes, such as when a HandOff `continue` starts different work. The human tells agents apart by this name.
 - **AskUserQuestion**: a decision, a missing preference, a blocker or an approval. Never the host's built-in question tool. Batch up to 4 related questions. Always set `context`. Give each question its reason. Never leave a question open in chat.
 - **ReviewPlan**: a plan or spec. Write it to a Markdown file first. A new plan gets a new file; a revision reuses the file, so the human sees a diff.
 - **HandOff**: the work is finished. Call it instead of ending the turn. `continue`: do its instructions, then hand off again. `end`: reply in one line and stop.

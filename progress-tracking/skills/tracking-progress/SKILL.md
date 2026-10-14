@@ -33,7 +33,7 @@ Every agent brief includes the resolved absolute paths to this plugin's `scripts
 
 ## Host integration
 
-Use `mcp__hitl__ReadWork` before resuming an existing living report and `mcp__hitl__UpdateWork` to publish its current view when available. Reuse the same work ID. Respect task revisions and distinguish saved from published. These are projections; they do not replace local evidence.
+Before the first HITL message, call `NameSession` if available (for example `Track <work ID>`, with the goal as the objective) so the human knows which work these reports belong to. Use `mcp__hitl__ReadWork` before resuming an existing living report and `mcp__hitl__UpdateWork` to publish its current view when available. Reuse the same work ID. Respect task revisions and distinguish saved from published. These are projections; they do not replace local evidence.
 
 Without those tools, give the user the local report path and concise result. Agent tools differ by host: use the discovered send-message capability; no external email/chat service is implied.
 

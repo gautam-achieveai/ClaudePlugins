@@ -188,6 +188,20 @@ test("both hosts discover the same bounded hooks and skill package", () => {
   }
 });
 
+test("agents name the session first and rename it when the objective changes", () => {
+  const start = JSON.parse(runHook("SessionStart").stdout).hookSpecificOutput.additionalContext;
+  const reminder = JSON.parse(runHook("UserPromptSubmit").stdout).hookSpecificOutput.additionalContext;
+  for (const text of [start, reminder]) {
+    assert.match(text, /NameSession/);
+    assert.match(text, /objective changed|objective changes/);
+  }
+  // Every prompt: only when unnamed or the objective moved, so agents do not rename each turn.
+  assert.match(reminder, /no HITL name yet or its objective changed/);
+  const usage = readFileSync(path.join(plugin, "skills/using-hitl/SKILL.md"), "utf8");
+  assert.match(usage, /\| `NameSession` \|/);
+  assert.match(usage, /rename the session is the human renaming it from Inbox/);
+});
+
 test("finished work is handed off, with the Stop hook opt-in rather than shipped", () => {
   const reminder = JSON.parse(runHook("UserPromptSubmit").stdout).hookSpecificOutput.additionalContext;
   assert.match(reminder, /HandOff/);

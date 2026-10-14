@@ -12,7 +12,7 @@ Add the marketplace to Claude Code:
 
 ## Available Plugins
 
-### hitl (v1.1.0)
+### hitl (v1.5.0)
 
 Set up HITL MCP and connect Inbox or the tray client. Skills guide agents through private configuration reuse, cross-device questions, plan reviews, notifications, and durable progress. Session and turn hooks inject usage guidance. Includes Claude Code and Codex manifests.
 
@@ -20,7 +20,7 @@ Set up HITL MCP and connect Inbox or the tray client. Skills guide agents throug
 
 See [HITL setup and usage](hitl/README.md).
 
-### progress-tracking (v1.1.0)
+### progress-tracking (v1.1.1)
 
 Durable tracking for large work items and agent teams. Each refresh highlights verified progress, unchanged workstreams, blockers, and stale sources. Tracks worker nudges and generates Markdown, Mermaid, and accessible HTML reports. Integrates with `development:agile-development`.
 
@@ -40,7 +40,7 @@ GitHub integration — issue/project management, PR publishing, iterative PR ten
 
 **Skills**: `gh-work-on`, `gh-publish-pr`, `gh-babysit-pr`, `gh-work-my-backlog`, `gh-pr-tender`
 
-### development (v2.1.0)
+### development (v2.1.1)
 
 Development methodology toolkit — Agile team delivery for large features, thin end-to-end slices, durable long-horizon progress, design-first brainstorming, autonomous design, scenario-driven development as the default testing flow (manual testing from the first runnable slice → regression tests for observed bugs → behavioral tests for material acceptance contracts → coverage-guided tests after all scenarios pass; TDD as an explicit opt-in), manual and automated verification, parallel subagent execution, review gates, course-correction when fixes stack, compound-learning lessons read back at plan time, and provider-agnostic work-item implementation. Ships two hooks: a PreToolUse guard that blocks git hook and signing bypasses, and a Stop gate that blocks ending a turn when code changed after the last test run (`DEVELOPMENT_HOOKS=off` disables it).
 
@@ -56,7 +56,7 @@ Code review toolkit with specialized agents for duplicate detection, EUII leak s
 
 **Agents**: `code-reviewer` plus specialized architecture, quality, compatibility, performance, and risk reviewers
 
-### developer-performance-review (v1.2.1)
+### developer-performance-review (v1.2.2)
 
 Evidence-based developer performance reviews over weeks/months. Analyzes git history, PRs, ADO work item context, bug patterns, and code quality. Auto-detects primary branch, two-dataset model (all work vs landed work), 6-dimension assessment framework.
 

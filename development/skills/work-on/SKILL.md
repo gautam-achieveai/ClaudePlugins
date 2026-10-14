@@ -349,6 +349,12 @@ Post as a NEW comment (Azure DevOps: `addWorkItemComment`):
 After posting the plan, the agent **MUST** pause and wait for user feedback.
 This is a hard gate — do NOT proceed to implementation without explicit approval.
 
+0. **Name the session** before the first HITL message, if HITL offers
+   `NameSession`: a 2-5 word name led by the work item (`#<id> <short title>`)
+   and a one-sentence objective. Humans tell sessions apart by this name. Call
+   it again when the objective changes (planning → implementing, or a new work
+   item). See `hitl:using-hitl`.
+
 1. **Notify** the user via HITL (push notification to all devices):
    ```
    "Plan posted to #<id>. Please review and provide feedback."

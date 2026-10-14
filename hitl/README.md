@@ -14,6 +14,10 @@ With HITL 2.14.0 or later, a finished agent calls `HandOff`. It sends a short su
 
 Claude Code, Codex and GitHub Copilot CLI all run these hooks. Copilot CLI reads the `.claude-plugin` manifest and `hooks/hooks.json`; the hook answers it in the top-level shape Copilot reads. Hooks require Node.js on the host's PATH. Automatic hooks read bundled guidance only. The optional Codex Stop script also reads the host-provided transcript. No hook reads credentials, sends messages, installs programs, or blocks tool calls.
 
+## Session names
+
+With HITL 2.16.0 or later, an agent calls `NameSession` before its first HITL message: a 2-5 word name and a one-sentence objective. Inbox, dialogs and plan reviews then show that name instead of the branch and id. When the work moves to a new objective, the agent calls it again; Inbox keeps the old names as "Formerly". The hooks and `using-hitl` tell agents to do this. Until a session is named, HITL tool results end with a reminder. The **Rename** button in Inbox sends the agent a rename request; the agent renames itself.
+
 ## Messages from you to an agent
 
 Type a message in Inbox under any message from a session. The `agent-messages.mjs` hook hands it to that session through `hitl hook messages`:
