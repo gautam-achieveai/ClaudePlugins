@@ -20,7 +20,7 @@ With HITL 2.16.0 or later, an agent calls `NameSession` before its first HITL me
 
 ## Messages from you to an agent
 
-Type a message in Inbox under any message from a session. The `agent-messages.mjs` hook hands it to that session through `hitl hook messages`:
+Pick an agent in Inbox's agent list, then type in the box under its messages. The `agent-messages.mjs` hook hands it to that session through `hitl hook messages`:
 
 - after a tool call, or at your next prompt (all three hosts);
 - in Claude Code, a background Stop hook waits and wakes an idle session;
