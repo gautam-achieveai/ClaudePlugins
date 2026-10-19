@@ -151,6 +151,23 @@ Install when requested and a current Windows Inbox is available. Do not copy `hi
 5. Verify a real Codex transcript with `turn_id` and `transcript_path` on stdin: work without HandOff returns `decision: block`. `stop_hook_active: true`, `HITL_HANDOFF=0`, End, failed handoffs, idle turns, unreadable input and subagents return `{}`. Continue requests another handoff, but only the first Stop continuation per turn can be enforced. Direct calls and immediate code-mode results are recognized. Yielded code-mode results returned by a separate wait call and calls inside JavaScript template expressions are not recognized reliably; their unknown results fail open. The script reads Codex rollout records; their format is not stable, so unknown input fails open.
 6. Remove only this Stop entry to uninstall. `HITL_HANDOFF=0` skips it for one session. Restart/reconnect the MCP host if `HandOff` is absent; a successful plugin refresh alone does not refresh an existing chat's tools.
 
+### Chat questions go through HITL
+
+Agents should ask through HITL, never the host's built-in question tool, which only reaches the chat window. Two layers do this:
+
+1. **Setup turns the built-in tools off, always.** It is a required step of every setup, not an option. With HITL 2.17.0 or later, the MCP `setup` tool and `hitl claude-code install` do it; `hitl chat-questions off` does it alone. Only hosts installed on this machine are touched. Each changed file is backed up (`*.bak-<time>`) first, and every other setting is kept. The desktop apps read the same files: the Claude desktop Code tab and the Codex app.
+
+   | Host | Tool | File | Setting |
+   |---|---|---|---|
+   | Claude Code | `AskUserQuestion` | `~/.claude/settings.json` (`CLAUDE_CONFIG_DIR`) | `permissions.deny` has `"AskUserQuestion"` |
+   | Codex | `request_user_input` | `~/.codex/config.toml` (`CODEX_HOME`) | `[tools.experimental_request_user_input]` `enabled = false` |
+   | Copilot CLI | `ask_user` | `~/.copilot/settings.json` (`COPILOT_HOME`) | `"askUser": false` |
+
+   Read the `chat-questions` step. A `warning` names a file it would not change (for example Copilot settings with comments); set that line by hand. `hitl chat-questions status` shows each host; `hitl chat-questions on` undoes it. Restart host sessions afterwards.
+2. **This plugin's PreToolUse hook blocks them.** It is the safety net for a host or machine where setup did not hide the tool. When `~/.hitl/config.json` (or `$HITL_HOME/config.json`) exists, it blocks the built-in tool and tells the agent to use HITL's `AskUserQuestion`. `HITL_ASK=0` turns it off for one session. In Codex, trust it in `/hooks` like the other plugin hooks.
+
+The Claude desktop chat (not its Code tab) and VS Code agent mode have no such setting; the skills still tell agents to use HITL there.
+
 ## 4. Enable Inbox or tray client
 
 ### Inbox
@@ -189,6 +206,7 @@ Turn it on only when the user asks:
 - Send one labeled setup test via Notify, then an AskUserQuestion with `context` and one single-choice acknowledgement. A returned successful answer establishes the round trip; publishing alone does not.
 - If verifying a second device, have the user answer there and inspect `respondedFrom`. Do not infer delivery to every device.
 - If the Stop hook was installed, run it once against a real transcript. Claude uses `{"transcript_path":"<a recent session .jsonl>"}` and prints nothing when disabled. Codex also requires the matching `turn_id` and prints `{}` when disabled. Work without a handoff prints a `decision: block` with `[hitl-handoff]`. Sessions without the `HandOff` tool still get one nudge and then stop, so restart running sessions to give them the tool.
+- Run `hitl chat-questions status`: each installed host should say `off`. Report any host it could not change.
 - Confirm plugin hooks appear in the host. In Codex, review/trust the hook definition through `/hooks`; installation alone does not trust it. Never bypass hook trust. Start a fresh session to exercise SessionStart, then a new turn for the reminder.
 - Report exact checks, selected client, version, nonsecret config path, and anything pending restart or user response.
 

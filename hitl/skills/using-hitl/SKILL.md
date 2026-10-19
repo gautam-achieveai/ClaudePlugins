@@ -11,7 +11,7 @@ Write every message as [the essentials](reference/essentials.md) describe: for a
 
 ## Discover once; use the live schema
 
-Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with a host's built-in question tool.
+Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with a host's built-in one: Claude Code `AskUserQuestion` (no `mcp__` prefix), Codex `request_user_input`, Copilot `ask_user`. Those only reach the chat window, so never use them while HITL is available. Once HITL is set up, setup turns them off and this plugin's hook blocks them, saying to use HITL's tool instead.
 
 If unavailable, report that briefly and use chat for necessary input. Load **hitl:setup-hitl** when setup is requested. Do not block unrelated work, repeatedly attempt missing tools, or silently install software to answer an ordinary question. A hook loading this skill does not prove the MCP connection or receiving client works.
 

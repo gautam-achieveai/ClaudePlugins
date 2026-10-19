@@ -6,13 +6,20 @@ Set up human-in-the-loop communication and teach agents when to use it.
 
 - **setup-hitl** — install/register the MCP server, privately initialize or copy configuration, install/open Inbox or enable the tray client, and verify a reply.
 - **using-hitl** — questions, plan reviews, end-of-work handoffs, one-off notifications, ongoing progress, and recovery from missing tools or delivery failures.
-- **Hooks** — load the HITL essentials (which tool when, and how to write for a dyslexic, ADHD, non-expert reader) on startup, resume, clear, and compaction; add a short reminder on each user turn. The essentials stay under the hosts' ~10,000-character hook limit; the full rules load with `using-hitl`.
+- **Hooks** — load the HITL essentials (which tool when, and how to write for a dyslexic, ADHD, non-expert reader) on startup, resume, clear, and compaction; add a short reminder on each user turn; send the host's built-in chat question tool to HITL's `AskUserQuestion`. The essentials stay under the hosts' ~10,000-character hook limit; the full rules load with `using-hitl`.
 
 ## End-of-work handoff
 
 With HITL 2.14.0 or later, a finished agent calls `HandOff`. It sends a short summary to Inbox (Windows only; the tray popup does not show handoffs) and waits. You reply with the next instruction, or check **End**. Setup can install a Stop reminder when requested: Claude Code uses `hitl hook stop`; Codex uses this plugin's `hooks/codex-stop.mjs`. Both nudge an agent that worked without handing off. Codex nudges once per turn and allows the continuation to stop, preventing loops. Automatic guidance hooks never block; the Stop reminder is installed separately.
 
-Claude Code, Codex and GitHub Copilot CLI all run these hooks. Copilot CLI reads the `.claude-plugin` manifest and `hooks/hooks.json`; the hook answers it in the top-level shape Copilot reads. Hooks require Node.js on the host's PATH. Automatic hooks read bundled guidance only. The optional Codex Stop script also reads the host-provided transcript. No hook reads credentials, sends messages, installs programs, or blocks tool calls.
+Claude Code, Codex and GitHub Copilot CLI all run these hooks. Copilot CLI reads the `.claude-plugin` manifest and `hooks/hooks.json`; the hook answers it in the top-level shape Copilot reads. Hooks require Node.js on the host's PATH. Automatic hooks read bundled guidance only. The optional Codex Stop script also reads the host-provided transcript. No hook reads credentials, sends messages or installs programs. The only hook that blocks a tool call is the chat-question guard below.
+
+## Chat questions go through HITL
+
+Each host has its own question tool that only reaches the chat window: Claude Code `AskUserQuestion`, Codex `request_user_input`, Copilot `ask_user`. With HITL set up, agents ask through HITL instead:
+
+- **Setup hides them.** HITL 2.17.0's `setup` tool and `hitl claude-code install` turn them off in each installed host's user config, with a backup. The Claude desktop Code tab and the Codex app read the same files. `hitl chat-questions status` shows them; `hitl chat-questions on` undoes it.
+- **The `ask-guard.mjs` hook blocks them** if one is still offered. It tells the agent to use HITL's `AskUserQuestion`. It acts only when `~/.hitl/config.json` exists; `HITL_ASK=0` turns it off.
 
 ## Session names
 

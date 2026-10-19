@@ -12,9 +12,9 @@ Add the marketplace to Claude Code:
 
 ## Available Plugins
 
-### hitl (v1.5.0)
+### hitl (v1.6.0)
 
-Set up HITL MCP and connect Inbox or the tray client. Skills guide agents through private configuration reuse, cross-device questions, plan reviews, notifications, and durable progress. Session and turn hooks inject usage guidance. Includes Claude Code and Codex manifests.
+Set up HITL MCP and connect Inbox or the tray client. Skills guide agents through private configuration reuse, cross-device questions, plan reviews, notifications, and durable progress. Session and turn hooks inject usage guidance; a tool hook sends the built-in chat question tool to HITL. Includes Claude Code and Codex manifests.
 
 **Skills**: `setup-hitl`, `using-hitl`
 

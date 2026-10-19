@@ -1,5 +1,5 @@
 {
-  "description": "Load HITL usage guidance, and hand the human's Inbox messages to the session through the HITL CLI when it is installed.",
+  "description": "Load HITL usage guidance, send the built-in chat question tool to HITL's AskUserQuestion, and hand the human's Inbox messages to the session through the HITL CLI when it is installed.",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,18 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/inject-context.mjs\" SessionStart",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion|request_user_input|request_user_input_async|ask_user",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ask-guard.mjs\"",
             "timeout": 5
           }
         ]

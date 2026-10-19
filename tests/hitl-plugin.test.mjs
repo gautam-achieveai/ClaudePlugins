@@ -164,7 +164,7 @@ test("both hosts discover the same bounded hooks and skill package", () => {
     assert.equal(manifest.mcpServers, undefined, "setup must not duplicate an existing MCP registration");
   }
   const { hooks } = JSON.parse(readFileSync(path.join(plugin, "hooks/hooks.json"), "utf8"));
-  assert.deepEqual(Object.keys(hooks).sort(), ["PostToolUse", "SessionEnd", "SessionStart", "Stop", "UserPromptSubmit"]);
+  assert.deepEqual(Object.keys(hooks).sort(), ["PostToolUse", "PreToolUse", "SessionEnd", "SessionStart", "Stop", "UserPromptSubmit"]);
   for (const event of ["SessionStart", "UserPromptSubmit"]) {
     const handler = hooks[event][0].hooks[0];
     assert.equal(handler.type, "command");
@@ -175,7 +175,7 @@ test("both hosts discover the same bounded hooks and skill package", () => {
   // Every other handler delivers the human's Inbox messages, and nothing else.
   for (const [event, groups] of Object.entries(hooks)) {
     for (const handler of groups.flatMap(group => group.hooks)) {
-      if (handler.command.includes("inject-context")) continue;
+      if (handler.command.includes("inject-context") || handler.command.includes("ask-guard")) continue;
       assert.match(handler.command, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/agent-messages\.mjs"/);
       assert.ok(handler.command.endsWith(event));
       // Stop waits in the background (asyncRewake); the others are bounded.
@@ -185,6 +185,73 @@ test("both hosts discover the same bounded hooks and skill package", () => {
   }
   for (const source of ["startup", "resume", "clear", "compact"]) {
     assert.ok(new RegExp(hooks.SessionStart[0].matcher).test(source));
+  }
+});
+
+function askGuard(toolName, { config = true, env = {} } = {}) {
+  const home = mkdtempSync(path.join(os.tmpdir(), "hitl ask guard "));
+  try {
+    if (config) writeFileSync(path.join(home, "config.json"), "{}");
+    const input = typeof toolName === "string" ? JSON.stringify({ tool_name: toolName, tool_input: {} })
+      : toolName ? JSON.stringify(toolName) : "not json";
+    const vars = { ...process.env, HITL_HOME: home, ...env };
+    delete vars.HITL_ASK;
+    if (!env.COPILOT_PLUGIN_ROOT) delete vars.COPILOT_PLUGIN_ROOT;
+    return spawnSync(process.execPath, [path.join(plugin, "hooks/ask-guard.mjs")], {
+      input, encoding: "utf8", env: { ...vars, ...env }, timeout: 5000,
+    });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+}
+
+test("the built-in chat question tool of every host is sent to HITL's AskUserQuestion", () => {
+  for (const tool of ["AskUserQuestion", "request_user_input", "request_user_input_async", "ask_user"]) {
+    const result = askGuard(tool);
+    assert.equal(result.status, 2, tool);
+    assert.match(result.stderr, /HITL AskUserQuestion tool/);
+    assert.match(result.stderr, /mcp__hitl__AskUserQuestion/);
+    assert.equal(result.stdout, "");
+  }
+  // Copilot CLI also reads the decision on stdout.
+  const copilot = askGuard("ask_user", { env: { COPILOT_PLUGIN_ROOT: plugin } });
+  assert.equal(copilot.status, 2);
+  assert.equal(askGuard({ toolName: "ask_user", toolArgs: {} }).status, 2, "Copilot's own payload shape");
+  const decision = JSON.parse(copilot.stdout);
+  assert.equal(decision.permissionDecision, "deny");
+  assert.match(decision.permissionDecisionReason, /HITL AskUserQuestion tool/);
+
+  const { hooks } = JSON.parse(readFileSync(path.join(plugin, "hooks/hooks.json"), "utf8"));
+  const [group] = hooks.PreToolUse;
+  assert.deepEqual(group.matcher.split("|").sort(), ["AskUserQuestion", "ask_user", "request_user_input", "request_user_input_async"]);
+  assert.match(group.hooks[0].command, /node "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/ask-guard\.mjs"/);
+  assert.ok(group.hooks[0].timeout <= 10);
+});
+
+test("the question guard allows HITL's own tool, other tools, and fails open", () => {
+  for (const tool of ["mcp__hitl__AskUserQuestion", "mcp__plugin_hitl_hitl__AskUserQuestion", "Bash", "askuserquestion"]) {
+    assert.equal(askGuard(tool).status, 0, tool);
+  }
+  assert.equal(askGuard("AskUserQuestion", { config: false }).status, 0, "HITL not set up");
+  assert.equal(askGuard("AskUserQuestion", { env: { HITL_ASK: "0" } }).status, 0, "turned off");
+  assert.equal(askGuard(null).status, 0, "bad input");
+});
+
+test("skills name each host's built-in question tool and the way to turn it off", () => {
+  const essentials = readFileSync(path.join(plugin, "skills/using-hitl/reference/essentials.md"), "utf8");
+  const usage = readFileSync(path.join(plugin, "skills/using-hitl/SKILL.md"), "utf8");
+  for (const text of [essentials, usage]) {
+    for (const tool of ["`AskUserQuestion`", "`request_user_input`", "`ask_user`"]) assert.ok(text.includes(tool), tool);
+  }
+  // Setup always does it, so every new machine gets it.
+  const setupSkill = readFileSync(path.join(plugin, "skills/setup-hitl/SKILL.md"), "utf8");
+  assert.match(setupSkill, /Turn chat questions off, always/);
+  assert.match(setupSkill, /^description:.*built-in chat question tools/m);
+  assert.match(setupSkill, /reference\/setup\.md#chat-questions-go-through-hitl/);
+  const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
+  for (const contract of [/hitl chat-questions off/, /hitl chat-questions on/, /hitl chat-questions status/, /HITL_ASK=0/,
+    /\[tools\.experimental_request_user_input\]/, /"askUser": false/]) {
+    assert.match(setup, contract);
   }
 });
 
