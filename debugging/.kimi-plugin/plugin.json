@@ -1,0 +1,14 @@
+{
+  "name": "debugging",
+  "version": "1.6.0",
+  "description": "Log-first debugging methodology using structured JSONL logs queried with DuckDB. Includes debugging workflows, logging enablement for codebases, logging compliance review with calibrated Trace-coverage recommendations for AI-assisted debugging, and systematic root-cause debugging.",
+  "author": {
+    "name": "Gautam Bhakar"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Debugging",
+    "shortDescription": "Log-first debugging with structured JSONL and DuckDB.",
+    "developerName": "Gautam Bhakar"
+  }
+}

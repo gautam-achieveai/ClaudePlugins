@@ -112,6 +112,23 @@ Keep concise (~120 lines max) to avoid context dilution.
 The root `.Codex-plugin/marketplace.json` registers all plugins with metadata:
 - `name`, `source`, `description`, `version`, `category`, `tags`, `keywords`
 
+Kimi Code (CLI and Desktop) reads the root `.kimi-plugin/marketplace.json` instead, in Kimi
+marketplace v2 format (`version: "2"`, entries with `id`, `displayName`, `description`,
+`version`, `source`). Each plugin also carries a Kimi manifest at
+`<plugin>/.kimi-plugin/plugin.json` (name/version/description plus `skills`/`commands`
+paths and inline `hooks` as applicable). Load it with `/plugins marketplace <repo>/.kimi-plugin/marketplace.json`,
+then `/plugins reload`; Desktop reads the same `~/.kimi-code` plugin files as the CLI.
+
+The Claude manifests are the source of truth for `name`/`version`/`description`; host manifests
+must stay in sync: `.kimi-plugin/plugin.json` + root `.kimi-plugin/marketplace.json` (Kimi Code),
+`.codex-plugin/plugin.json` (OpenAI Codex), while Copilot CLI reads the `.claude-plugin` manifest
+and `hooks/hooks.json` directly. After changing a plugin's version or description, run
+`node scripts/sync-host-manifests.mjs` (preserves host-specific fields like `interface`/`hooks`;
+`--check` verifies; `tests/host-manifest-sync.test.mjs` gates it). Enforcement: the
+`.githooks/pre-commit` hook re-syncs and blocks the commit (enable once with
+`git config core.hooksPath .githooks`), and GitHub Actions (`.github/workflows/ci.yml`) runs
+`--check` plus the full test suite on every push and PR.
+
 ## Key Principles
 
 - **Skills vs Agents**: Skills are reusable instruction workflows. Agents are specialized personas with their own tools and context windows.

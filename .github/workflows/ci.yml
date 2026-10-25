@@ -1,0 +1,19 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check host manifest sync
+        run: node scripts/sync-host-manifests.mjs --check
+      - name: Run test suite
+        run: node --test tests/*.test.mjs

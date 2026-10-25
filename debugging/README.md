@@ -18,6 +18,25 @@ A log-first debugging methodology plugin for Claude Code. Gives AI full visibili
 
 - **DuckDB** (`@nickcdryan/duckdb-mcp-server`) — Query JSONL log files directly with SQL via `read_json_auto()`
 
+**Kimi Code:** Kimi does not read plugin-level `.mcp.json`, so the DuckDB server needs one manual
+registration in `~/.kimi-code/mcp.json` (user-level, shared across projects), or run `/mcp-config`
+and add it interactively:
+
+```json
+{
+  "mcpServers": {
+    "duckdb": {
+      "command": "npx",
+      "args": ["@nickcdryan/duckdb-mcp-server"]
+    }
+  }
+}
+```
+
+Kimi also supports `"deferred": true` on the entry to load tools on demand (experimental; requires
+the `tool-select` experimental flag). Claude Code and Copilot pick the server up from this
+plugin's `.mcp.json` automatically.
+
 ## Supported Languages
 
 | Language | Test Frameworks | Production Libraries |

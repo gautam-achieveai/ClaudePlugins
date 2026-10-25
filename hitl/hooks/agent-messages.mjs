@@ -5,15 +5,17 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 // Hand the human's Inbox messages to this session through the HITL CLI (`hitl hook messages`).
-// One hooks.json serves three hosts, so the host is read from the environment:
-// Copilot sets COPILOT_PLUGIN_ROOT, Codex sets PLUGIN_ROOT, Claude Code sets neither.
+// One hooks.json serves several hosts, so the host is read from the environment:
+// Copilot sets COPILOT_PLUGIN_ROOT, Codex sets PLUGIN_ROOT, Kimi Code sets KIMI_PLUGIN_ROOT,
+// Claude Code sets neither.
 // Without the HITL CLI on PATH this does nothing: messages are an optional HITL feature.
 const event = process.argv[2];
-const host = process.env.COPILOT_PLUGIN_ROOT ? "copilot" : process.env.PLUGIN_ROOT ? "codex" : "claude";
+const host = process.env.COPILOT_PLUGIN_ROOT ? "copilot" : process.env.PLUGIN_ROOT ? "codex"
+  : process.env.KIMI_PLUGIN_ROOT ? "kimi" : "claude";
 
 // Claude Code runs Stop as a background (asyncRewake) hook that waits for a message and
-// wakes the idle session. Codex and Copilot cannot be woken: their Stop checks once and
-// holds the agent only while a message waits.
+// wakes the idle session. Codex, Copilot and Kimi cannot be woken: their Stop checks once
+// and holds the agent only while a message waits.
 let hitlEvent = event;
 if (event === "Stop" && host === "claude") hitlEvent = "wait";
 if (event === "SessionEnd" && host !== "claude") process.exit(0);

@@ -73,6 +73,8 @@ test("Codex fails open for unreadable transcripts and excludes subagents", () =>
 function runHook(event, options = {}) {
   const env = { ...process.env, ...options.env };
   if (!options.env?.COPILOT_PLUGIN_ROOT) delete env.COPILOT_PLUGIN_ROOT;
+  if (!options.env?.KIMI_PLUGIN_ROOT) delete env.KIMI_PLUGIN_ROOT;
+  if (!options.env?.PLUGIN_ROOT) delete env.PLUGIN_ROOT;
   return spawnSync(process.execPath, [path.join(options.plugin ?? plugin, "hooks", "inject-context.mjs"), event], {
     cwd: os.tmpdir(),
     env,
@@ -95,6 +97,23 @@ test("session hook loads the installed usage skill, independently of working dir
     assert.match(output.additionalContext, rule);
   }
   assert.ok(!result.stdout.includes("SECRET_SENTINEL"));
+});
+
+test("Notify carries separate one-off news while UpdateWork carries goal-changing findings", () => {
+  const start = JSON.parse(runHook("SessionStart").stdout).hookSpecificOutput.additionalContext;
+  const reminder = JSON.parse(runHook("UserPromptSubmit").stdout).hookSpecificOutput.additionalContext;
+  assert.match(start, /Notify\*?\*?: one-off news separate from a tracked goal/);
+  assert.match(start, /UpdateWork \/ ReadWork\*?\*?: ongoing or multi-step work/);
+  assert.match(start, /findings, blockers, or next steps change the goal/);
+  assert.match(start, /Alert for meaningful milestones/);
+  assert.match(reminder, /Notify only for one-off news separate from tracked work/);
+  assert.match(reminder, /UpdateWork when a finding changes the goal/);
+
+  const usage = readFileSync(path.join(plugin, "skills/using-hitl/SKILL.md"), "utf8");
+  assert.match(usage, /Route discoveries by effect/);
+  assert.match(usage, /one-off news separate from every tracked goal/);
+  assert.match(usage, /changes a goal's state, learnings, blockers, remaining work, or next steps/);
+  assert.match(usage, /alert for meaningful changes/);
 });
 
 test("Copilot CLI gets the same context at the top level, where it reads it", () => {
@@ -197,6 +216,8 @@ function askGuard(toolName, { config = true, env = {} } = {}) {
     const vars = { ...process.env, HITL_HOME: home, ...env };
     delete vars.HITL_ASK;
     if (!env.COPILOT_PLUGIN_ROOT) delete vars.COPILOT_PLUGIN_ROOT;
+    if (!env.KIMI_PLUGIN_ROOT) delete vars.KIMI_PLUGIN_ROOT;
+    if (!env.PLUGIN_ROOT) delete vars.PLUGIN_ROOT;
     return spawnSync(process.execPath, [path.join(plugin, "hooks/ask-guard.mjs")], {
       input, encoding: "utf8", env: { ...vars, ...env }, timeout: 5000,
     });
@@ -309,4 +330,111 @@ test("setup registers every documented host with a six-hour wait and never a too
   const reminder = JSON.parse(runHook("UserPromptSubmit").stdout).hookSpecificOutput.additionalContext;
   assert.match(reminder, /never pass a timeout argument/i);
   assert.doesNotMatch(readFileSync(path.join(plugin, "skills/using-hitl/SKILL.md"), "utf8"), /timeout: 300000/);
+});
+
+
+test("Kimi marketplace entry resolves to the plugin and a matching manifest", () => {
+  const marketplace = JSON.parse(readFileSync(path.join(root, ".kimi-plugin/marketplace.json"), "utf8"));
+  assert.equal(marketplace.version, "2");
+  const entries = marketplace.plugins.filter((entry) => entry.id === "hitl");
+  assert.equal(entries.length, 1);
+  assert.equal(path.resolve(root, entries[0].source), plugin);
+  const manifest = JSON.parse(readFileSync(path.join(plugin, ".kimi-plugin/plugin.json"), "utf8"));
+  assert.equal(manifest.name, "hitl");
+  const claudeEntry = JSON.parse(readFileSync(path.join(root, ".claude-plugin/marketplace.json"), "utf8"))
+    .plugins.find((entry) => entry.name === "hitl");
+  assert.equal(manifest.version, claudeEntry.version);
+  assert.equal(manifest.mcpServers, undefined, "setup must not duplicate an existing MCP registration");
+});
+
+test("Kimi manifest declares the same bounded hooks with plugin-root commands", () => {
+  const { hooks } = JSON.parse(readFileSync(path.join(plugin, ".kimi-plugin/plugin.json"), "utf8"));
+  const byEvent = {};
+  for (const hook of hooks) {
+    for (const key of Object.keys(hook)) assert.ok(["event", "matcher", "command", "timeout"].includes(key), key);
+    assert.match(hook.command, /^node \.\/hooks\/[\w-]+\.mjs( \w+)?$/);
+    assert.ok(hook.timeout >= 1 && hook.timeout <= 600, "Kimi hook timeouts are seconds, capped at 600");
+    (byEvent[hook.event] ??= []).push(hook);
+  }
+  assert.deepEqual(Object.keys(byEvent).sort(), ["PostToolUse", "PreToolUse", "SessionStart", "Stop", "UserPromptSubmit"]);
+  assert.equal(byEvent.SessionStart[0].command, "node ./hooks/inject-context.mjs SessionStart");
+  for (const source of ["startup", "resume"]) assert.ok(new RegExp(byEvent.SessionStart[0].matcher).test(source));
+  assert.deepEqual(byEvent.UserPromptSubmit.map((hook) => hook.command).sort(),
+    ["node ./hooks/agent-messages.mjs UserPromptSubmit", "node ./hooks/inject-context.mjs UserPromptSubmit"]);
+  assert.equal(byEvent.PostToolUse[0].command, "node ./hooks/agent-messages.mjs PostToolUse");
+  assert.equal(byEvent.Stop[0].command, "node ./hooks/agent-messages.mjs Stop");
+  const guard = byEvent.PreToolUse[0];
+  assert.equal(guard.command, "node ./hooks/ask-guard.mjs");
+  const matcher = new RegExp(guard.matcher);
+  for (const tool of ["AskUserQuestion", "request_user_input", "request_user_input_async", "ask_user"]) assert.ok(matcher.test(tool), tool);
+  for (const tool of ["mcp__hitl__AskUserQuestion", "askuserquestion", "Bash"]) assert.ok(!matcher.test(tool), tool);
+});
+
+function kimiHook(script, args = [], input = "", env = {}) {
+  return spawnSync(process.execPath, [path.join(plugin, "hooks", script), ...args], {
+    cwd: os.tmpdir(),
+    env: {
+      PATH: process.env.PATH, TEMP: process.env.TEMP, TMPDIR: process.env.TMPDIR,
+      SystemRoot: process.env.SystemRoot, ELECTRON_RUN_AS_NODE: process.env.ELECTRON_RUN_AS_NODE,
+      KIMI_PLUGIN_ROOT: plugin, ...env,
+    },
+    input, encoding: "utf8", timeout: 5000,
+  });
+}
+
+test("Kimi Code receives plain context text, not a JSON wrapper", () => {
+  const start = kimiHook("inject-context.mjs", ["SessionStart"], "{}");
+  assert.equal(start.status, 0, start.stderr);
+  assert.ok(start.stdout.startsWith("HITL usage guidance"));
+  assert.ok(!start.stdout.trimStart().startsWith("{"));
+  const essentials = readFileSync(path.join(plugin, "skills/using-hitl/reference/essentials.md"), "utf8");
+  assert.ok(start.stdout.includes(essentials.trim()));
+  assert.ok(start.stdout.length < 8000, `${start.stdout.length} characters`);
+  const reminder = kimiHook("inject-context.mjs", ["UserPromptSubmit"], "{}");
+  assert.equal(reminder.status, 0, reminder.stderr);
+  assert.ok(!reminder.stdout.trimStart().startsWith("{"));
+  assert.ok(reminder.stdout.length < 1200 && reminder.stdout.length > 50);
+  assert.match(reminder.stdout, /never the host's built-in question tool/i);
+  const unknown = kimiHook("inject-context.mjs", ["NotAnEvent"], "{}");
+  assert.equal(unknown.status, 0, unknown.stderr);
+  assert.equal(unknown.stdout, "");
+});
+
+test("Kimi question guard blocks the built-in, trusts the anchored matcher, and fails open", () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), "hitl kimi ask guard "));
+  try {
+    writeFileSync(path.join(home, "config.json"), "{}");
+    const blocked = kimiHook("ask-guard.mjs", [], JSON.stringify({ tool_name: "AskUserQuestion" }), { HITL_HOME: home });
+    assert.equal(blocked.status, 2);
+    assert.match(blocked.stderr, /HITL AskUserQuestion tool/);
+    assert.equal(blocked.stdout, "", "Kimi reads the block reason from stderr, not a JSON decision");
+    const matcherOnly = kimiHook("ask-guard.mjs", [], JSON.stringify({ tool_input: {} }), { HITL_HOME: home });
+    assert.equal(matcherOnly.status, 2, "the anchored manifest matcher already proved the tool is a built-in");
+    assert.equal(kimiHook("ask-guard.mjs", [], JSON.stringify({ tool_name: "mcp__hitl__AskUserQuestion" }), { HITL_HOME: home }).status, 0);
+    assert.equal(kimiHook("ask-guard.mjs", [], JSON.stringify({ tool_name: "AskUserQuestion" }), { HITL_HOME: home, HITL_ASK: "0" }).status, 0);
+    const noConfig = mkdtempSync(path.join(os.tmpdir(), "hitl kimi no config "));
+    try {
+      assert.equal(kimiHook("ask-guard.mjs", [], JSON.stringify({ tool_name: "AskUserQuestion" }), { HITL_HOME: noConfig }).status, 0);
+    } finally {
+      rmSync(noConfig, { recursive: true, force: true });
+    }
+  } finally {
+    assert.ok(path.basename(home).startsWith("hitl kimi ask guard "));
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("setup reference registers Kimi Code with a six-hour wait, a deny rule, and no Stop hook", () => {
+  const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
+  const row = setup.split(/\r?\n/).find((line) => /^\| Kimi Code/.test(line)) ?? "";
+  assert.match(row, /toolTimeoutMs.*21600000/);
+  assert.match(row, /~\/\.kimi-code\/mcp\.json/);
+  assert.match(setup, /decision = "deny"/);
+  assert.match(setup, /pattern = "AskUserQuestion"/);
+  assert.match(setup, /~\/\.kimi-code\/config\.toml/);
+  assert.match(setup, /does not cover Kimi Code/);
+  assert.match(setup, /Kimi Code hooks receive no transcript path/);
+  assert.match(setup, /--host kimi/);
+  const skill = readFileSync(path.join(plugin, "skills/setup-hitl/SKILL.md"), "utf8");
+  assert.match(skill, /Kimi Code/);
 });

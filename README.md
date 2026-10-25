@@ -10,6 +10,21 @@ Add the marketplace to Claude Code:
 /install-plugin https://github.com/gautam-achieveai/ClaudePlugins.git
 ```
 
+For Kimi Code (CLI or Desktop), the same plugins ship a Kimi-format marketplace at
+`.kimi-plugin/marketplace.json`:
+
+```
+/plugins marketplace <repo>/.kimi-plugin/marketplace.json
+```
+
+Install the plugins you want, then run `/plugins reload` or start a new session.
+
+Kimi notes: the `debugging` plugin's DuckDB MCP server does not auto-register on Kimi (Kimi does
+not read plugin-level `.mcp.json`) — add it once to `~/.kimi-code/mcp.json` as described in
+[debugging/README.md](debugging/README.md#mcp-server). The `development` enforcement hooks
+(git-bypass guard and test stop-gate) run on Kimi through its Kimi manifest; all other plugins
+need no extra steps.
+
 ## Available Plugins
 
 ### hitl (v1.6.0)

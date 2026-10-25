@@ -70,6 +70,7 @@ Register under the name `hitl` with a **6-hour tool timeout** (see Human wait se
 | GitHub Copilot CLI | `copilot mcp add --timeout 21600000 hitl -- hitl-mcp-server` | `--timeout`, ms | `~/.copilot/mcp-config.json` |
 | Gemini CLI | `gemini mcp add --scope user hitl hitl-mcp-server` | `"timeout": 21600000` on `mcpServers.hitl`, ms; default 600000. The CLI `--timeout` flag is documented as a connection timeout, so set the field directly | `~/.gemini/settings.json` |
 | VS Code (Copilot Chat) | `code --add-mcp '{"name":"hitl","type":"stdio","command":"hitl-mcp-server","args":[]}'` | none documented; add none | user `mcp.json` (`MCP: Open User Configuration`) |
+| Kimi Code (CLI and Desktop) | merge into user `~/.kimi-code/mcp.json` (`$KIMI_CODE_HOME/mcp.json`), or run `/mcp-config` in the TUI | `"toolTimeoutMs": 21600000` on `mcpServers.hitl`, ms | `~/.kimi-code/mcp.json` |
 
 Quoting: in PowerShell the single-quoted JSON works as shown; in `cmd.exe`, escape inner quotes (`"{\"name\":...}"`). VS Code uses a `servers` key, not `mcpServers`.
 
@@ -98,6 +99,7 @@ Current question/review tools have no tool-level timeout argument; the wait limi
 - **Claude Code:** per-server `timeout` in ms. It is a hard wall-clock limit and also a floor on the idle timeout. Without it, stdio calls that go 30 minutes without a response or progress message abort (v2.1.203+). `MCP_TOOL_TIMEOUT` is global; do not change it for HITL.
 - **Codex:** per-server `tool_timeout_sec` in seconds. The default is 60, which is too short for any human wait.
 - **Copilot CLI, Gemini CLI:** per-server `timeout` in ms. Gemini defaults to 10 minutes.
+- **Kimi Code:** per-server `toolTimeoutMs` in ms (1–2147483647) in `mcp.json`. The global `[mcp] tool_timeout_ms` / `KIMI_MCP_TOOL_TIMEOUT_MS` change every server; do not set them for HITL.
 - **Hosts with no documented per-server timeout (VS Code):** set nothing; report that the host decides the limit.
 
 Never pass the timeout as a tool argument.
@@ -151,6 +153,10 @@ Install when requested and a current Windows Inbox is available. Do not copy `hi
 5. Verify a real Codex transcript with `turn_id` and `transcript_path` on stdin: work without HandOff returns `decision: block`. `stop_hook_active: true`, `HITL_HANDOFF=0`, End, failed handoffs, idle turns, unreadable input and subagents return `{}`. Continue requests another handoff, but only the first Stop continuation per turn can be enforced. Direct calls and immediate code-mode results are recognized. Yielded code-mode results returned by a separate wait call and calls inside JavaScript template expressions are not recognized reliably; their unknown results fail open. The script reads Codex rollout records; their format is not stable, so unknown input fails open.
 6. Remove only this Stop entry to uninstall. `HITL_HANDOFF=0` skips it for one session. Restart/reconnect the MCP host if `HandOff` is absent; a successful plugin refresh alone does not refresh an existing chat's tools.
 
+### Optional: end-of-work Stop hook (Kimi Code)
+
+There is none. Kimi Code hooks receive no transcript path, so a script cannot tell work-without-handoff from an idle turn. Do not install a Kimi Stop hook that nudges unconditionally; it would nag after every handed-off turn too. The usage guidance and the `hitl:using-hitl` skill carry the handoff rule for Kimi Code sessions.
+
 ### Chat questions go through HITL
 
 Agents should ask through HITL, never the host's built-in question tool, which only reaches the chat window. Two layers do this:
@@ -162,9 +168,10 @@ Agents should ask through HITL, never the host's built-in question tool, which o
    | Claude Code | `AskUserQuestion` | `~/.claude/settings.json` (`CLAUDE_CONFIG_DIR`) | `permissions.deny` has `"AskUserQuestion"` |
    | Codex | `request_user_input` | `~/.codex/config.toml` (`CODEX_HOME`) | `[tools.experimental_request_user_input]` `enabled = false` |
    | Copilot CLI | `ask_user` | `~/.copilot/settings.json` (`COPILOT_HOME`) | `"askUser": false` |
+   | Kimi Code | `AskUserQuestion` | `~/.kimi-code/config.toml` (`KIMI_CODE_HOME`) | `[[permission.rules]]` with `decision = "deny"` and `pattern = "AskUserQuestion"` |
 
-   Read the `chat-questions` step. A `warning` names a file it would not change (for example Copilot settings with comments); set that line by hand. `hitl chat-questions status` shows each host; `hitl chat-questions on` undoes it. Restart host sessions afterwards.
-2. **This plugin's PreToolUse hook blocks them.** It is the safety net for a host or machine where setup did not hide the tool. When `~/.hitl/config.json` (or `$HITL_HOME/config.json`) exists, it blocks the built-in tool and tells the agent to use HITL's `AskUserQuestion`. `HITL_ASK=0` turns it off for one session. In Codex, trust it in `/hooks` like the other plugin hooks.
+   Read the `chat-questions` step. A `warning` names a file it would not change (for example Copilot settings with comments); set that line by hand. `hitl chat-questions status` shows each host; `hitl chat-questions on` undoes it. `hitl chat-questions` does not cover Kimi Code yet: append the deny rule to `~/.kimi-code/config.toml` by hand, preserving every existing line, and back up the file first. The pattern matches the built-in tool's exact name only, so the HITL server tool `mcp__hitl__AskUserQuestion` stays allowed; verify that with one real HITL question during setup. The Kimi Code desktop app reads the same `~/.kimi-code` files as the CLI. Restart host sessions afterwards.
+2. **This plugin's PreToolUse hook blocks them.** It is the safety net for a host or machine where setup did not hide the tool. When `~/.hitl/config.json` (or `$HITL_HOME/config.json`) exists, it blocks the built-in tool and tells the agent to use HITL's `AskUserQuestion`. `HITL_ASK=0` turns it off for one session. In Codex, trust it in `/hooks` like the other plugin hooks; in Kimi Code plugin hooks run while the plugin is enabled and need no trust step.
 
 The Claude desktop chat (not its Code tab) and VS Code agent mode have no such setting; the skills still tell agents to use HITL there.
 
@@ -206,8 +213,9 @@ Turn it on only when the user asks:
 - Send one labeled setup test via Notify, then an AskUserQuestion with `context` and one single-choice acknowledgement. A returned successful answer establishes the round trip; publishing alone does not.
 - If verifying a second device, have the user answer there and inspect `respondedFrom`. Do not infer delivery to every device.
 - If the Stop hook was installed, run it once against a real transcript. Claude uses `{"transcript_path":"<a recent session .jsonl>"}` and prints nothing when disabled. Codex also requires the matching `turn_id` and prints `{}` when disabled. Work without a handoff prints a `decision: block` with `[hitl-handoff]`. Sessions without the `HandOff` tool still get one nudge and then stop, so restart running sessions to give them the tool.
-- Run `hitl chat-questions status`: each installed host should say `off`. Report any host it could not change.
-- Confirm plugin hooks appear in the host. In Codex, review/trust the hook definition through `/hooks`; installation alone does not trust it. Never bypass hook trust. Start a fresh session to exercise SessionStart, then a new turn for the reminder.
+- Run `hitl chat-questions status`: each installed host it covers should say `off`. Report any host it could not change; for Kimi Code, confirm the deny rule is present in `~/.kimi-code/config.toml` instead (there is no status command yet).
+- Confirm plugin hooks appear in the host. In Codex, review/trust the hook definition through `/hooks`; installation alone does not trust it. In Kimi Code, install or enable the plugin, then run `/plugins reload` or start a new session: plugin hooks run while the plugin is enabled and have no trust step. Check `/plugins info hitl` for manifest diagnostics. Never bypass hook trust. Start a fresh session to exercise SessionStart, then a new turn for the reminder.
+- Kimi Code delivers Inbox messages only when the installed `hitl` CLI accepts `--host kimi` (see `hitl hook messages --help`; current CLIs list `claude|codex|copilot`). Until a supporting CLI release, the plugin's message hooks fail open and Inbox-to-agent messages do not reach Kimi sessions; say so plainly instead of implying delivery.
 - Report exact checks, selected client, version, nonsecret config path, and anything pending restart or user response.
 
 ## Sources
@@ -216,3 +224,7 @@ Turn it on only when the user asks:
 - [HITL releases](https://github.com/achieveai/HumanInTheLoop/releases)
 - [Claude Code hooks](https://code.claude.com/docs/en/hooks)
 - [Codex hooks and trust](https://learn.chatgpt.com/docs/hooks)
+- [Kimi Code plugins](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/plugins.html)
+- [Kimi Code hooks](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/hooks.html)
+- [Kimi Code MCP](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/mcp.html)
+- [Kimi Code Desktop settings and extensions](https://www.kimi.com/code/docs/en/kimi-code-desktop/settings-and-extensions.html)

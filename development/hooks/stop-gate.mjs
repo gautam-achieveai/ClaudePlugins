@@ -3,6 +3,9 @@
 //   node stop-gate.mjs log   — PostToolUse: append one line per code edit or test run
 //   node stop-gate.mjs stop  — Stop: block once if the last edit is newer than the last test run
 //
+// Block protocol: Claude/Copilot read a {decision:"block"} JSON line on stdout; Kimi Code
+// (KIMI_PLUGIN_ROOT set) blocks on exit code 2 with the reason on stderr instead.
+//
 // Per-session log lives in DEVELOPMENT_HOOKS_DIR (default: <tmpdir>/claude-development-hooks).
 // Allows on: DEVELOPMENT_HOOKS=off, stop_hook_active (never loops), no log, no recognizable
 // test command in the repo, docs-only edits, or any error. A block is logged as a `gate` line
@@ -82,10 +85,14 @@ function stop(input) {
   if (!repoHasTests(input.cwd)) return;
   const edited = lines[lastEdit].split("\t")[2];
   append(input.session_id, "gate", "blocked once; yields until the next code edit");
-  process.stdout.write(JSON.stringify({
-    decision: "block",
-    reason: `Code changed after the last test run (${edited}). Run the project's tests and report the result by name, or say why they cannot run. This gate yields after one block.`,
-  }) + "\n");
+  const reason = `Code changed after the last test run (${edited}). Run the project's tests and report the result by name, or say why they cannot run. This gate yields after one block.`;
+  if (process.env.KIMI_PLUGIN_ROOT) {
+    // Kimi Code blocks on exit code 2 with the reason on stderr; Claude/Copilot read the
+    // JSON decision line on stdout instead.
+    process.stderr.write(reason + "\n");
+    process.exit(2);
+  }
+  process.stdout.write(JSON.stringify({ decision: "block", reason }) + "\n");
 }
 
 try {

@@ -1,0 +1,49 @@
+{
+  "name": "hitl",
+  "version": "1.6.1",
+  "description": "Set up HITL and use cross-device questions, plan reviews, end-of-work handoffs, notifications, and durable progress with automatic usage reminders.",
+  "author": {
+    "name": "Gautam Bhakar"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "HITL",
+    "shortDescription": "Human input and progress across devices.",
+    "longDescription": "Install and configure HITL, connect Inbox or the tray client, and guide agents to use questions, plan reviews, end-of-work handoffs, notifications, and durable progress at the right time.",
+    "developerName": "Gautam Bhakar"
+  },
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "matcher": "startup|resume",
+      "command": "node ./hooks/inject-context.mjs SessionStart",
+      "timeout": 5
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "^(AskUserQuestion|request_user_input|request_user_input_async|ask_user)$",
+      "command": "node ./hooks/ask-guard.mjs",
+      "timeout": 5
+    },
+    {
+      "event": "UserPromptSubmit",
+      "command": "node ./hooks/inject-context.mjs UserPromptSubmit",
+      "timeout": 5
+    },
+    {
+      "event": "UserPromptSubmit",
+      "command": "node ./hooks/agent-messages.mjs UserPromptSubmit",
+      "timeout": 10
+    },
+    {
+      "event": "PostToolUse",
+      "command": "node ./hooks/agent-messages.mjs PostToolUse",
+      "timeout": 10
+    },
+    {
+      "event": "Stop",
+      "command": "node ./hooks/agent-messages.mjs Stop",
+      "timeout": 10
+    }
+  ]
+}

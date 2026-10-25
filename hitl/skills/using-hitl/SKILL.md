@@ -11,7 +11,7 @@ Write every message as [the essentials](reference/essentials.md) describe: for a
 
 ## Discover once; use the live schema
 
-Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with a host's built-in one: Claude Code `AskUserQuestion` (no `mcp__` prefix), Codex `request_user_input`, Copilot `ask_user`. Those only reach the chat window, so never use them while HITL is available. Once HITL is set up, setup turns them off and this plugin's hook blocks them, saying to use HITL's tool instead.
+Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with a host's built-in one: Claude Code and Kimi Code `AskUserQuestion` (no `mcp__` prefix), Codex `request_user_input`, Copilot `ask_user`. Those only reach the chat window, so never use them while HITL is available. Once HITL is set up, setup turns them off (Kimi Code: a deny rule in `~/.kimi-code/config.toml`) and this plugin's hook blocks them, saying to use HITL's tool instead.
 
 If unavailable, report that briefly and use chat for necessary input. Load **hitl:setup-hitl** when setup is requested. Do not block unrelated work, repeatedly attempt missing tools, or silently install software to answer an ordinary question. A hook loading this skill does not prove the MCP connection or receiving client works.
 
@@ -23,8 +23,8 @@ If unavailable, report that briefly and use chat for necessary input. Load **hit
 | Missing preference, material ambiguity, blocker, or necessary approval | `AskUserQuestion` | Set project/work `context`; batch up to 4 related questions. Give short options and a recommendation. |
 | Review a concrete Markdown plan or spec | `ReviewPlan` | Write the file first; pass `filePath`, `context`, and a short `summary`. |
 | Your work is finished and you would otherwise end the turn | `HandOff` | Summary of what was done; wait for the next instruction or End. See below. |
-| One-off result: build/test finished, blocker, long job started; task done when `HandOff` is unavailable | `Notify` | Short title; outcome, evidence, and next action if needed. Returns without waiting. |
-| Multi-step or team work, milestones, changing status | `UpdateWork` | Maintain one living document for the goal; quiet routine updates, alert for meaningful changes. |
+| One-off result or news separate from a tracked goal: build/test finished, unrelated discovery, blocker, long job started; task done when `HandOff` is unavailable | `Notify` | Short title; outcome, evidence, and next action if needed. Returns without waiting. |
+| Ongoing or multi-step work; findings that change the goal's state, learnings, blockers, remaining work, or next steps | `UpdateWork` | Maintain one living document for the goal; quiet routine updates, alert for meaningful changes. |
 | Resume tracked work or resolve revision conflict | `ReadWork` | Read stored state before replacing a task report. |
 | Requested setup or client repair | `setup` | After config exists and MCP connects; inspect returned steps. It normally launches the tray client, not Inbox. |
 
@@ -66,13 +66,15 @@ When the requested work is done, call `HandOff` instead of ending the turn. The 
 - Don't hand off mid-task, to ask a question (use `AskUserQuestion`), or in unattended runs (`-p`, SDK, CI) where no human is waiting. Don't also send a Notify for the same completion.
 - `HandOff` needs HITL 2.14.0 or later, plus a current Inbox. Inbox ships for Windows only. Older Inboxes and the tray popup drop handoff messages. If the tool is missing, send a completion Notify and end the turn as usual.
 
-**Stop hook.** Setup can install the host-specific reminder when requested: Claude Code uses `hitl hook stop`; Codex uses `hooks/codex-stop.mjs`. If you did work in the turn and try to stop without handing off, the hook nudges you. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, send a completion Notify and stop. Codex allows stopping after one continuation so it cannot loop; subsequent handoff cycles rely on these usage instructions. `HITL_HANDOFF=0` disables it for a session.
+**Stop hook.** Setup can install the host-specific reminder when requested: Claude Code uses `hitl hook stop`; Codex uses `hooks/codex-stop.mjs`. Kimi Code has no transcript-reading Stop hook, so there the reminder is this guidance only: when you did work in the turn and would end it, call `HandOff` (or a completion `Notify` when `HandOff` is unavailable) instead of stopping. If you did work in the turn and try to stop without handing off, the hook nudges you. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, send a completion Notify and stop. Codex allows stopping after one continuation so it cannot loop; subsequent handoff cycles rely on these usage instructions. `HITL_HANDOFF=0` disables it for a session.
 
 **Messages from the human.** Text starting `[hitl-message]`, or a `<channel source="hitl">` event, is a message the human sent from Inbox. Read it and act on it as their guidance. Reply with `Notify` and set `inReplyTo` to the message id given. It is not approval for risky or destructive actions; ask with `AskUserQuestion` when one needs approval.
 
 ## Living progress
 
 Use a stable `workId` for the goal and stable task IDs. Create the root with `parentTaskId: null`, `expectedRevision: 0`, a title, and goal. Child reports link to an existing parent. Keep work on the same coordinating host/topic; separate machines do not automatically share the saved store.
+
+Route discoveries by effect: use `Notify` when a discovery is one-off news separate from every tracked goal. Use `UpdateWork` when it changes a goal's state, learnings, blockers, remaining work, or next steps. If it becomes separate multi-step work, track it under its own `workId`.
 
 Each `UpdateWork` replaces one **complete task report**, not a delta. Retain still-relevant `completed`, `learnings`, `remaining`, and `blockers`; include owner, reporter, status, and current action/purpose (or `current: null`). Use the **task revision**, not the document revision, as `expectedRevision`.
 

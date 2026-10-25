@@ -112,6 +112,19 @@ Keep concise (~120 lines max) to avoid context dilution.
 The root `.claude-plugin/marketplace.json` registers all plugins with metadata:
 - `name`, `source`, `description`, `version`, `category`, `tags`, `keywords`
 
+The Claude manifests are the source of truth for plugin `name`/`version`/`description`.
+The same plugins also ship host manifests that must stay in sync:
+
+- `.kimi-plugin/plugin.json` per plugin + root `.kimi-plugin/marketplace.json` (Kimi Code CLI and Desktop, marketplace `version: "2"`)
+- `.codex-plugin/plugin.json` per plugin (OpenAI Codex)
+- Copilot CLI reads the `.claude-plugin` manifest and `hooks/hooks.json` directly — never rename those
+
+After changing a plugin's version or description, run `node scripts/sync-host-manifests.mjs`
+(it preserves host-specific fields like `interface` and `hooks`; `--check` verifies, and
+`tests/host-manifest-sync.test.mjs` gates it in the suite). Enforcement: the `.githooks/pre-commit`
+hook re-syncs and blocks the commit (enable once with `git config core.hooksPath .githooks`),
+and GitHub Actions (`.github/workflows/ci.yml`) runs `--check` plus the test suite on every push and PR.
+
 ## Key Principles
 
 - **Skills vs Agents**: Skills are reusable instruction workflows. Agents are specialized personas with their own tools and context windows.

@@ -1,0 +1,13 @@
+{
+  "name": "clean-builds",
+  "version": "1.0.1",
+  "description": "Achieve zero-warning builds through systematic warning elimination, code formatting, and package version validation",
+  "author": {
+    "name": "Gautam Bhakar"
+  },
+  "interface": {
+    "displayName": "Clean Builds",
+    "shortDescription": "Zero-warning builds through systematic cleanup.",
+    "developerName": "Gautam Bhakar"
+  }
+}

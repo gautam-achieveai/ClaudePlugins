@@ -46,6 +46,30 @@ test("hooks.json declares the bypass guard and the stop gate in the plugin wrapp
   }
 });
 
+test("Kimi manifest wires the same enforcement hooks for Kimi Code", () => {
+  const manifest = JSON.parse(read("development/.kimi-plugin/plugin.json"));
+  const hooks = manifest.hooks ?? [];
+
+  const pre = hooks.find((rule) => rule.event === "PreToolUse");
+  assert.ok(pre, "PreToolUse rule present");
+  assert.equal(pre.matcher, "Bash|PowerShell");
+  assert.equal(pre.command, "node ./hooks/guard-bypass.mjs");
+
+  const post = hooks.find((rule) => rule.event === "PostToolUse");
+  assert.ok(post, "PostToolUse rule present");
+  assert.match(post.matcher, /Edit\|Write\|MultiEdit\|NotebookEdit\|Bash\|PowerShell/);
+  assert.equal(post.command, "node ./hooks/stop-gate.mjs log");
+
+  const stopRule = hooks.find((rule) => rule.event === "Stop");
+  assert.ok(stopRule, "Stop rule present");
+  assert.equal(stopRule.command, "node ./hooks/stop-gate.mjs stop");
+
+  for (const rule of hooks) {
+    assert.equal(rule.timeout, 5);
+    assert.doesNotMatch(rule.command, /CLAUDE_PLUGIN_ROOT/, "Kimi hooks run with the plugin root as cwd, so paths are relative");
+  }
+});
+
 test("guard-bypass blocks hook and signing bypasses and allows everything else", () => {
   const bash = (command) => ({ tool_name: "Bash", tool_input: { command } });
   const pwsh = (command) => ({ tool_name: "PowerShell", tool_input: { command } });
@@ -163,6 +187,35 @@ test("stop-gate blocks once when code changed after the last test run, and fails
   assert.equal(runHook(gateScript, ["stop"], "garbage", env).status, 0, "fails open");
 });
 
+test("stop-gate blocks on Kimi via exit code 2 with the reason on stderr", () => {
+  const logDir = mkdtempSync(path.join(os.tmpdir(), "dev-hooks-kimi-"));
+  const cwd = mkdtempSync(path.join(os.tmpdir(), "dev-hooks-kimi-repo-"));
+  writeFileSync(path.join(cwd, "package.json"), JSON.stringify({ scripts: { test: "node --test" } }));
+  const kimiEnv = { DEVELOPMENT_HOOKS_DIR: logDir, KIMI_PLUGIN_ROOT: dev("") };
+  const session = "k1";
+  const log = (tool_name, tool_input) =>
+    runHook(gateScript, ["log"], { session_id: session, cwd, tool_name, tool_input, hook_event_name: "PostToolUse" }, kimiEnv);
+  const stop = (extraEnv = {}) =>
+    runHook(gateScript, ["stop"], { session_id: session, cwd, hook_event_name: "Stop" }, { ...kimiEnv, ...extraEnv });
+
+  assert.equal(stop().status, 0, "no log yet: allow");
+
+  log("Edit", { file_path: path.join(cwd, "src", "a.js") });
+  const blocked = stop();
+  assert.equal(blocked.status, 2);
+  assert.match(blocked.stderr, /Code changed after the last test run/);
+  assert.doesNotMatch(blocked.stdout, /"decision"/, "Kimi path must not emit the Claude JSON decision line");
+
+  assert.equal(stop().status, 0, "yields after one block until the next code edit");
+
+  log("Edit", { file_path: path.join(cwd, "src", "a.js") });
+  assert.equal(stop({ DEVELOPMENT_HOOKS: "off" }).status, 0, "opt-out works on Kimi too");
+
+  log("Edit", { file_path: path.join(cwd, "src", "a.js") });
+  log("Bash", { command: "npm test" });
+  assert.equal(stop().status, 0, "verified after the edit");
+});
+
 test("course-correction skill carries the freeze, snapshot, tripwires, patch-then-revert, and plan gate", () => {
   const skill = read("development/skills/course-correction/SKILL.md");
   assert.match(skill, /^name: course-correction$/m);
@@ -224,11 +277,11 @@ test("wave 3 closes the four advisories and keeps release metadata current", () 
   assert.doesNotMatch(read("development/skills/receiving-code-review/SKILL.md"), /human partner/i);
 
   const plugin = JSON.parse(read("development/.claude-plugin/plugin.json"));
-  assert.equal(plugin.version, "2.0.0");
+  assert.equal(plugin.version, "2.1.1");
   const marketplace = JSON.parse(read(".claude-plugin/marketplace.json"));
   const entry = marketplace.plugins.find((p) => p.name === "development");
-  assert.equal(entry.version, "2.0.0");
-  assert.match(read("README.md"), /development \(v2\.0\.0\)/);
+  assert.equal(entry.version, "2.1.1");
+  assert.match(read("README.md"), /development \(v2\.1\.1\)/);
   for (const keyword of ["course-correction", "compound-learning"]) assert.ok(entry.keywords.includes(keyword));
   assert.match(read("README.md"), /hook/i);
   assert.ok(existsSync(dev("hooks/hooks.json")));

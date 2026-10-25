@@ -5,11 +5,11 @@ HITL reaches the human on every device, even when they are away from the termina
 ## Which tool
 
 - **NameSession**: call it first, before any other HITL message. Give a 2-5 word `name` for what you are doing (not the repo or branch) and a one-sentence `objective`. Call it again when the objective changes, such as when a HandOff `continue` starts different work. The human tells agents apart by this name.
-- **AskUserQuestion**: a decision, a missing preference, a blocker or an approval. Never the host's built-in question tool (Claude Code `AskUserQuestion`, Codex `request_user_input`, Copilot `ask_user`); it only reaches the chat window. If one is blocked, ask the same question with HITL's. Batch up to 4 related questions. Always set `context`. Give each question its reason. Never leave a question open in chat.
+- **AskUserQuestion**: a decision, a missing preference, a blocker or an approval. Never the host's built-in question tool (Claude Code and Kimi Code `AskUserQuestion`, Codex `request_user_input`, Copilot `ask_user`); it only reaches the chat window. If one is blocked, ask the same question with HITL's. Batch up to 4 related questions. Always set `context`. Give each question its reason. Never leave a question open in chat.
 - **ReviewPlan**: a plan or spec. Write it to a Markdown file first. A new plan gets a new file; a revision reuses the file, so the human sees a diff.
 - **HandOff**: the work is finished. Call it instead of ending the turn. `continue`: do its instructions, then hand off again. `end`: reply in one line and stop.
-- **Notify**: one-off news, such as build or tests finished, a blocker, or a long job started. It does not wait.
-- **UpdateWork / ReadWork**: long or multi-step work. Keep one living report per goal; use ReadWork to resume.
+- **Notify**: one-off news separate from a tracked goal, such as build or tests finished, an unrelated discovery, a blocker, or a long job started. It does not wait.
+- **UpdateWork / ReadWork**: ongoing or multi-step work. Update the living report when progress, findings, blockers, or next steps change the goal; use ReadWork to resume. Alert for meaningful milestones.
 - **setup**: only when setup or a repair is asked for.
 
 Never pass a `timeout` argument; the host's server timeout (6 hours) governs waits. Silence, a timeout, a skipped review or a failed call is not approval. Don't ask for facts you can look up. Don't interrupt routine, reversible work the human already asked for. Never send keys, config or credentials.
@@ -44,6 +44,6 @@ Put the detail under a `## Reference` heading at the end. Add a small diagram on
 - **Did:** 3-5 bullets
 - **Not done / risks:** and **Needs you:**, dropped when empty
 
-**Notify and UpdateWork.** The title says what happened. The body gives the result, the evidence and the next step. Send one message per real change.
+**Notify and UpdateWork.** Use Notify for one-off news separate from tracked work. Use UpdateWork when a finding changes the goal's state, learnings, blockers, remaining work, or next step. The title says what happened; the body gives the result, evidence and next step.
 
 **Evidence.** Say what you ran and what you saw. Never claim a check passed without its result. Say what you skipped.

@@ -1,0 +1,27 @@
+#!/bin/sh
+# Keep host-specific plugin manifests (Kimi, Codex) in sync with the Claude
+# source manifests before every commit. The sync script rewrites out-of-sync
+# files and then fails this hook, so the commit only proceeds once the
+# re-synced files are staged.
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found; skipping manifest sync check" >&2
+  exit 0
+fi
+
+output="$(node scripts/sync-host-manifests.mjs)"
+status=$?
+printf '%s\n' "$output"
+
+if [ "$status" -ne 0 ]; then
+  echo "pre-commit: manifest sync failed; fix the errors above" >&2
+  exit 1
+fi
+
+case "$output" in
+  *"synced: "*)
+    echo "pre-commit: host manifests were re-synced; stage the updated files and commit again" >&2
+    exit 1
+    ;;
+esac
+
+exit 0

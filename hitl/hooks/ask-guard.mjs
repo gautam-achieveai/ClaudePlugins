@@ -1,6 +1,6 @@
 // PreToolUse hook: when HITL is set up, block the host's built-in chat question tool
 // and tell the agent to ask through HITL's AskUserQuestion instead.
-// Claude Code calls it AskUserQuestion, Codex request_user_input, Copilot CLI ask_user.
+// Claude Code and Kimi Code call it AskUserQuestion, Codex request_user_input, Copilot CLI ask_user.
 // Exit 2 with the reason on stderr blocks the call; anything else allows it.
 // Fails open: no HITL config, HITL_ASK=0, bad input or any error exits 0.
 //
@@ -22,9 +22,14 @@ const REASON =
 try {
   const input = JSON.parse(readFileSync(0, "utf8"));
   const home = process.env.HITL_HOME || path.join(os.homedir(), ".hitl");
-  // Claude-format hooks send tool_name; Copilot's own format sends toolName.
-  if (BUILT_IN.has(input.tool_name ?? input.toolName) && process.env.HITL_ASK !== "0" && existsSync(path.join(home, "config.json"))) {
-    // Copilot CLI reads a decision on stdout; Claude Code and Codex read stderr with exit 2.
+  // Kimi Code names MCP tools mcp__<server>__<tool> like Claude Code; its PreToolUse payload
+  // field for the tool name is tool_name, and the anchored plugin matcher already guarantees
+  // the call is a built-in question tool, so a missing field still blocks there.
+  const kimi = Boolean(process.env.KIMI_PLUGIN_ROOT);
+  const name = input.tool_name ?? input.toolName;
+  const builtIn = BUILT_IN.has(name) || (kimi && name === undefined);
+  if (builtIn && process.env.HITL_ASK !== "0" && existsSync(path.join(home, "config.json"))) {
+    // Copilot CLI reads a decision on stdout; Claude Code, Codex and Kimi Code read stderr with exit 2.
     if (process.env.COPILOT_PLUGIN_ROOT) {
       process.stdout.write(JSON.stringify({ permissionDecision: "deny", permissionDecisionReason: REASON }) + "\n");
     }

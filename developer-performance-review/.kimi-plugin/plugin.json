@@ -1,0 +1,14 @@
+{
+  "name": "developer-performance-review",
+  "version": "1.2.2",
+  "description": "Developer performance review skill for analyzing work over time (weeks/months)",
+  "author": {
+    "name": "Gautam Bhakar"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Developer Performance Review",
+    "shortDescription": "Analyze developer work over weeks and months.",
+    "developerName": "Gautam Bhakar"
+  }
+}
