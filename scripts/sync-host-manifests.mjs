@@ -121,7 +121,10 @@ const kimiMarketplace = {
         description: entry.description,
         version: entry.version,
         category: entry.category,
-        source: entry.source,
+        source: path
+          .relative(path.join(root, '.kimi-plugin'), path.resolve(root, entry.source))
+          .split(path.sep)
+          .join('/'),
       };
     },
   ),

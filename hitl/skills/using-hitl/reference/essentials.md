@@ -5,12 +5,14 @@ HITL reaches the human on every device, even when they are away from the termina
 ## Which tool
 
 - **NameSession**: call it first, before any other HITL message. Give a 2-5 word `name` for what you are doing (not the repo or branch) and a one-sentence `objective`. Call it again when the objective changes, such as when a HandOff `continue` starts different work. The human tells agents apart by this name.
-- **AskUserQuestion**: a decision, a missing preference, a blocker or an approval. Never the host's built-in question tool (Claude Code and Kimi Code `AskUserQuestion`, Codex `request_user_input`, Copilot `ask_user`); it only reaches the chat window. If one is blocked, ask the same question with HITL's. Batch up to 4 related questions. Always set `context`. Give each question its reason. Never leave a question open in chat.
+- **AskUserQuestion**: a decision, a missing preference, a blocker or an approval. Never the current host's built-in question tool (`AskUserQuestion`, `request_user_input`, or `ask_user`, depending on the host); it only reaches the chat window. If one is blocked, ask the same question with HITL's. Batch up to 4 related questions. Always set `context`. Give each question its reason. Never leave a question open in chat.
 - **ReviewPlan**: a plan or spec. Write it to a Markdown file first. A new plan gets a new file; a revision reuses the file, so the human sees a diff.
 - **HandOff**: the work is finished. Call it instead of ending the turn. `continue`: do its instructions, then hand off again. `end`: reply in one line and stop.
 - **Notify**: one-off news separate from a tracked goal, such as build or tests finished, an unrelated discovery, a blocker, or a long job started. It does not wait.
-- **UpdateWork / ReadWork**: ongoing or multi-step work. Update the living report when progress, findings, blockers, or next steps change the goal; use ReadWork to resume. Alert for meaningful milestones.
+- **UpdateWork / ReadWork**: ongoing or multi-step work. Only the lead agent updates the living report; subagents report to their lead. Update when progress, findings, blockers, or next steps change the goal, and when a `[hitl-progress]` reminder arrives; use ReadWork to resume. Alert for meaningful milestones.
 - **setup**: only when setup or a repair is asked for.
+
+HITL tool names differ by host: on MCP hosts the callable looks like `mcp__hitl__<Tool>` (for example `mcp__hitl__AskUserQuestion`); on Codex it looks like `hitl.<Tool>` (for example `hitl.AskUserQuestion`). Find the HITL tools in the host's tool catalog, including deferred tools, and use the exact callable name rather than guessing.
 
 Never pass a `timeout` argument; the host's server timeout (6 hours) governs waits. Silence, a timeout, a skipped review or a failed call is not approval. Don't ask for facts you can look up. Don't interrupt routine, reversible work the human already asked for. Never send keys, config or credentials.
 

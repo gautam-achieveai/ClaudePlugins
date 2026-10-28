@@ -61,7 +61,7 @@ Use `node <absolute-path>/server/dist/mcp-server.js` in the host and `node <abso
 
 Initialize/reuse config **before** starting the server. Its entry point loads config before exposing `setup`, so `setup` cannot bootstrap a missing-config connection.
 
-Register under the name `hitl` with a **6-hour tool timeout** (see Human wait settings). Identify the host, run its `--help` for the command below, and add only if no `hitl` entry exists. A working entry without a timeout is repaired by adding the field, not by re-registering. Preserve every unrelated key.
+Register under the name `hitl` with a **6-hour tool timeout** (see Human wait settings). Identify the current host by name when possible; otherwise treat it as `the current host` and use the generic schema below. Run the matching command's `--help`, and add only if no `hitl` entry exists. A working entry without a timeout is repaired by adding the field, not by re-registering. Preserve every unrelated key.
 
 | Host | Register | Timeout (6 h) | Config file |
 |---|---|---|---|
@@ -215,7 +215,7 @@ Turn it on only when the user asks:
 - If the Stop hook was installed, run it once against a real transcript. Claude uses `{"transcript_path":"<a recent session .jsonl>"}` and prints nothing when disabled. Codex also requires the matching `turn_id` and prints `{}` when disabled. Work without a handoff prints a `decision: block` with `[hitl-handoff]`. Sessions without the `HandOff` tool still get one nudge and then stop, so restart running sessions to give them the tool.
 - Run `hitl chat-questions status`: each installed host it covers should say `off`. Report any host it could not change; for Kimi Code, confirm the deny rule is present in `~/.kimi-code/config.toml` instead (there is no status command yet).
 - Confirm plugin hooks appear in the host. In Codex, review/trust the hook definition through `/hooks`; installation alone does not trust it. In Kimi Code, install or enable the plugin, then run `/plugins reload` or start a new session: plugin hooks run while the plugin is enabled and have no trust step. Check `/plugins info hitl` for manifest diagnostics. Never bypass hook trust. Start a fresh session to exercise SessionStart, then a new turn for the reminder.
-- Kimi Code delivers Inbox messages only when the installed `hitl` CLI accepts `--host kimi` (see `hitl hook messages --help`; current CLIs list `claude|codex|copilot`). Until a supporting CLI release, the plugin's message hooks fail open and Inbox-to-agent messages do not reach Kimi sessions; say so plainly instead of implying delivery.
+- Kimi Code delivers Inbox messages only when the installed `hitl` CLI accepts `--host kimi` (see `hitl hook messages --help`; current CLIs list `claude|codex|copilot`). Until a supporting CLI release, the plugin's message hooks fail open and Inbox-to-agent messages do not reach Kimi sessions; say so plainly instead of implying delivery. On Cursor CLI the hook sends `--host claude` (Cursor is Claude-compatible), which current CLIs accept.
 - Report exact checks, selected client, version, nonsecret config path, and anything pending restart or user response.
 
 ## Sources

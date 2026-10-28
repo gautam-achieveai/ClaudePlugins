@@ -11,7 +11,9 @@ Write every message as [the essentials](reference/essentials.md) describe: for a
 
 ## Discover once; use the live schema
 
-Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with a host's built-in one: Claude Code and Kimi Code `AskUserQuestion` (no `mcp__` prefix), Codex `request_user_input`, Copilot `ask_user`. Those only reach the chat window, so never use them while HITL is available. Once HITL is set up, setup turns them off (Kimi Code: a deny rule in `~/.kimi-code/config.toml`) and this plugin's hook blocks them, saying to use HITL's tool instead.
+Find the HITL tools in the host's tool catalog, including deferred tools if supported. Names may be `mcp__hitl__AskUserQuestion` or plugin-prefixed; identify the server and exact callable name rather than guessing. Do not confuse HITL's question tool with the current host's built-in one (`AskUserQuestion`, `request_user_input`, or `ask_user`, depending on the host). Those only reach the chat window, so never use them while HITL is available. Once HITL is set up, setup turns off the matching host's built-in tool and this plugin's hook blocks it, saying to use HITL's tool instead.
+
+Name the detected current agent when it is known; otherwise call it `the current agent` or `this host`, not a specific product.
 
 If unavailable, report that briefly and use chat for necessary input. Load **hitl:setup-hitl** when setup is requested. Do not block unrelated work, repeatedly attempt missing tools, or silently install software to answer an ordinary question. A hook loading this skill does not prove the MCP connection or receiving client works.
 
@@ -66,11 +68,15 @@ When the requested work is done, call `HandOff` instead of ending the turn. The 
 - Don't hand off mid-task, to ask a question (use `AskUserQuestion`), or in unattended runs (`-p`, SDK, CI) where no human is waiting. Don't also send a Notify for the same completion.
 - `HandOff` needs HITL 2.14.0 or later, plus a current Inbox. Inbox ships for Windows only. Older Inboxes and the tray popup drop handoff messages. If the tool is missing, send a completion Notify and end the turn as usual.
 
-**Stop hook.** Setup can install the host-specific reminder when requested: Claude Code uses `hitl hook stop`; Codex uses `hooks/codex-stop.mjs`. Kimi Code has no transcript-reading Stop hook, so there the reminder is this guidance only: when you did work in the turn and would end it, call `HandOff` (or a completion `Notify` when `HandOff` is unavailable) instead of stopping. If you did work in the turn and try to stop without handing off, the hook nudges you. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, send a completion Notify and stop. Codex allows stopping after one continuation so it cannot loop; subsequent handoff cycles rely on these usage instructions. `HITL_HANDOFF=0` disables it for a session.
+**Stop hook.** Setup can install the current host's reminder when one exists: Claude Code uses `hitl hook stop`; Codex uses `hooks/codex-stop.mjs`. When the current host has no transcript-reading Stop hook (currently Kimi Code and GitHub Copilot CLI — Cursor CLI is assumed Claude-compatible and unverified), this guidance is the reminder: when you did work in the turn and would end it, call `HandOff` (or a completion `Notify` when `HandOff` is unavailable) instead of stopping. If you did work in the turn and try to stop without handing off, the hook nudges you. Its reason starts with `[hitl-handoff]`. Respond by calling `HandOff`. If `HandOff` is not available, send a completion Notify and stop. Codex allows stopping after one continuation so it cannot loop; subsequent handoff cycles rely on these usage instructions. `HITL_HANDOFF=0` disables it for a session.
 
 **Messages from the human.** Text starting `[hitl-message]`, or a `<channel source="hitl">` event, is a message the human sent from Inbox. Read it and act on it as their guidance. Reply with `Notify` and set `inReplyTo` to the message id given. It is not approval for risky or destructive actions; ask with `AskUserQuestion` when one needs approval.
 
 ## Living progress
+
+Only the lead agent calls `UpdateWork`; subagents report their results to the lead, and the lead incorporates them into the shared report. Any agent may ask the human through HITL `AskUserQuestion` when needed.
+
+The plugin's `[hitl-progress]` hook reminder asks the lead for an update after 30 minutes without a successful lead `UpdateWork`. Respond with current evidence and next steps, or mark completed work and hand off. It nudges at most once per interval and stops after completed work, `HandOff` End, or session end. `HITL_UPDATE_NUDGE_MINUTES` changes the interval (for example `15`); `HITL_UPDATE_NUDGE=off` disables it. There is no recurring timer: hosts without MCP channel support deliver the reminder with a later main-agent hook event.
 
 Use a stable `workId` for the goal and stable task IDs. Create the root with `parentTaskId: null`, `expectedRevision: 0`, a title, and goal. Child reports link to an existing parent. Keep work on the same coordinating host/topic; separate machines do not automatically share the saved store.
 

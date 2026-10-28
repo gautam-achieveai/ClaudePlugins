@@ -22,7 +22,7 @@ for (const claudeEntry of claudeMarketplace.plugins) {
   test(`Kimi entry and manifest for ${id} resolve and stay in sync with the Claude marketplace`, () => {
     const entries = marketplace.plugins.filter((entry) => entry.id === id);
     assert.equal(entries.length, 1, `${id} must appear exactly once`);
-    assert.equal(path.resolve(root, entries[0].source), path.join(root, id));
+    assert.equal(path.resolve(root, '.kimi-plugin', entries[0].source), path.join(root, id));
     assert.equal(entries[0].version, claudeEntry.version);
 
     const manifestPath = path.join(root, id, '.kimi-plugin', 'plugin.json');
@@ -47,9 +47,13 @@ for (const claudeEntry of claudeMarketplace.plugins) {
   });
 }
 
+test('Kimi marketplace catalog is not also a plugin root', () => {
+  assert.equal(existsSync(path.join(root, '.kimi-plugin', 'plugin.json')), false);
+});
+
 test('Kimi manifests do not duplicate existing MCP registrations or unsupported runtime fields', () => {
   for (const entry of marketplace.plugins) {
-    const manifest = JSON.parse(read(path.join(entry.source, '.kimi-plugin', 'plugin.json')));
+    const manifest = JSON.parse(read(path.join('.kimi-plugin', entry.source, '.kimi-plugin', 'plugin.json')));
     assert.equal(manifest.mcpServers, undefined, `${entry.id} must not duplicate the project-level .mcp.json registration`);
     for (const unsupported of ['tools', 'apps', 'inject', 'configFile']) {
       assert.equal(manifest[unsupported], undefined, `${entry.id} sets unsupported field ${unsupported}`);

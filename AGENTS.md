@@ -116,7 +116,7 @@ Kimi Code (CLI and Desktop) reads the root `.kimi-plugin/marketplace.json` inste
 marketplace v2 format (`version: "2"`, entries with `id`, `displayName`, `description`,
 `version`, `source`). Each plugin also carries a Kimi manifest at
 `<plugin>/.kimi-plugin/plugin.json` (name/version/description plus `skills`/`commands`
-paths and inline `hooks` as applicable). Load it with `/plugins marketplace <repo>/.kimi-plugin/marketplace.json`,
+paths and inline `hooks` as applicable). Load the catalog with `/plugins marketplace <repo>/.kimi-plugin/marketplace.json`,
 then `/plugins reload`; Desktop reads the same `~/.kimi-code` plugin files as the CLI.
 
 The Claude manifests are the source of truth for `name`/`version`/`description`; host manifests
