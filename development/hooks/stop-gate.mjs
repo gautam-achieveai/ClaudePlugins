@@ -85,10 +85,13 @@ function stop(input) {
   if (!repoHasTests(input.cwd)) return;
   const edited = lines[lastEdit].split("\t")[2];
   append(input.session_id, "gate", "blocked once; yields until the next code edit");
-  const reason = `Code changed after the last test run (${edited}). Run the project's tests and report the result by name, or say why they cannot run. This gate yields after one block.`;
+  const agent = process.env.KIMI_PLUGIN_ROOT ? "Kimi Code"
+    : process.env.COPILOT_PLUGIN_ROOT ? "GitHub Copilot CLI"
+    : "the current agent";
+  const reason = `Code changed after the last test run (${edited}). Run the project's tests and report the result by name, or say why they cannot run. This gate yields after one block. Current agent: ${agent}.`;
   if (process.env.KIMI_PLUGIN_ROOT) {
-    // Kimi Code blocks on exit code 2 with the reason on stderr; Claude/Copilot read the
-    // JSON decision line on stdout instead.
+    // This host reads the block reason from stderr and exit code 2; other hooked hosts read
+    // the JSON decision line on stdout instead.
     process.stderr.write(reason + "\n");
     process.exit(2);
   }

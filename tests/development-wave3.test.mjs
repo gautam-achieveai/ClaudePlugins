@@ -139,6 +139,7 @@ test("stop-gate blocks once when code changed after the last test run, and fails
   assert.equal(blocked.status, 0);
   assert.equal(decision(blocked.stdout), "block");
   assert.match(JSON.parse(blocked.stdout).reason, /test/i);
+  assert.match(JSON.parse(blocked.stdout).reason, /Current agent: the current agent\./);
 
   assert.equal(decision(stop({ stop_hook_active: true }).stdout), "allow", "never loops");
   assert.equal(decision(stop({}, { DEVELOPMENT_HOOKS: "off" }).stdout), "allow", "opt-out");
@@ -204,6 +205,7 @@ test("stop-gate blocks on Kimi via exit code 2 with the reason on stderr", () =>
   const blocked = stop();
   assert.equal(blocked.status, 2);
   assert.match(blocked.stderr, /Code changed after the last test run/);
+  assert.match(blocked.stderr, /Current agent: Kimi Code\./);
   assert.doesNotMatch(blocked.stdout, /"decision"/, "Kimi path must not emit the Claude JSON decision line");
 
   assert.equal(stop().status, 0, "yields after one block until the next code edit");
