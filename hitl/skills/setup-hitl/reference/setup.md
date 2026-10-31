@@ -48,6 +48,13 @@ npm install -g @achieveai/hitl-mcp-server
 
 Record the installed version; check the package's current source/release notes if a needed feature is absent. The npm package bundles platform tray-client binaries when the release workflow includes them. It does not install Inbox.
 
+Global installation is the standard: registration and the `hitl` CLI both use the installed package. Before registering, resolve the package directory and verify the compiled server entry point exists:
+
+```sh
+npm root -g
+# <global-node-modules>/@achieveai/hitl-mcp-server/dist/mcp-server.js must exist
+```
+
 For an authorized local source build, from `<checkout>/hitl-mcp-server`:
 
 ```sh
@@ -61,43 +68,48 @@ Use `node <absolute-path>/server/dist/mcp-server.js` in the host and `node <abso
 
 Initialize/reuse config **before** starting the server. Its entry point loads config before exposing `setup`, so `setup` cannot bootstrap a missing-config connection.
 
-Register under the name `hitl` with a **6-hour tool timeout** (see Human wait settings). Identify the current host by name when possible; otherwise treat it as `the current host` and use the generic schema below. Run the matching command's `--help`, and add only if no `hitl` entry exists. A working entry without a timeout is repaired by adding the field, not by re-registering. Preserve every unrelated key.
+Register under the name `hitl` with a **7-day tool timeout** (see Human wait settings). Identify the current host by name when possible; otherwise treat it as `the current host` and use the generic schema below. Run the matching command's `--help`, and add only if no `hitl` entry exists. A working entry is repaired in place, not re-registered: set `command`/`args` to `node` plus the verified `<pkg>/dist/mcp-server.js` when the command is the bare `hitl-mcp-server` shim, `npx`, or a relative path; set the timeout when it is missing or below 7 days. Preserve every unrelated key.
 
-| Host | Register | Timeout (6 h) | Config file |
+Register the server as `node` running the installed package's compiled entry point: `"command": "node"` with `"args": ["<pkg>/dist/mcp-server.js"]`, where `<pkg>` is the absolute package directory holding `dist/` — the `npm root -g` result plus `/@achieveai/hitl-mcp-server` for a global install, or `<checkout>/hitl-mcp-server/server` for a verified local source build. Put any further server args after the script path (for example `--no-auto-launch-client`). Do not register the bare `hitl-mcp-server` shim: `node` plus an absolute path launches on every OS and avoids `.cmd` shim failures on Windows. Forward slashes are valid in JSON Windows paths.
+
+| Host | Register | Timeout (7 d) | Config file |
 |---|---|---|---|
-| Claude Code | `claude mcp add-json --scope user hitl '{"type":"stdio","command":"hitl-mcp-server","args":[],"timeout":21600000}'` | `timeout`, ms: in the JSON | `~/.claude.json` |
-| Codex | `codex mcp add hitl -- hitl-mcp-server` | `tool_timeout_sec = 21600` under `[mcp_servers.hitl]` | `~/.codex/config.toml` |
-| GitHub Copilot CLI | `copilot mcp add --timeout 21600000 hitl -- hitl-mcp-server` | `--timeout`, ms | `~/.copilot/mcp-config.json` |
-| Gemini CLI | `gemini mcp add --scope user hitl hitl-mcp-server` | `"timeout": 21600000` on `mcpServers.hitl`, ms; default 600000. The CLI `--timeout` flag is documented as a connection timeout, so set the field directly | `~/.gemini/settings.json` |
-| VS Code (Copilot Chat) | `code --add-mcp '{"name":"hitl","type":"stdio","command":"hitl-mcp-server","args":[]}'` | none documented; add none | user `mcp.json` (`MCP: Open User Configuration`) |
-| Kimi Code (CLI and Desktop) | merge into user `~/.kimi-code/mcp.json` (`$KIMI_CODE_HOME/mcp.json`), or run `/mcp-config` in the TUI | `"toolTimeoutMs": 21600000` on `mcpServers.hitl`, ms | `~/.kimi-code/mcp.json` |
+| Claude Code | `claude mcp add-json --scope user hitl '{"type":"stdio","command":"node","args":["<pkg>/dist/mcp-server.js"],"timeout":604800000}'` | `timeout`, ms: in the JSON | `~/.claude.json` |
+| Codex | `codex mcp add hitl -- node <pkg>/dist/mcp-server.js` | `tool_timeout_sec = 604800` and `startup_timeout_sec = 45` under `[mcp_servers.hitl]` | `~/.codex/config.toml` |
+| GitHub Copilot CLI | `copilot mcp add --timeout 604800000 hitl -- node <pkg>/dist/mcp-server.js` | `--timeout`, ms | `~/.copilot/mcp-config.json` |
+| Gemini CLI | `gemini mcp add --scope user hitl node <pkg>/dist/mcp-server.js` | `"timeout": 604800000` on `mcpServers.hitl`, ms; default 600000. The CLI `--timeout` flag is documented as a connection timeout, so set the field directly | `~/.gemini/settings.json` |
+| VS Code (Copilot Chat) | `code --add-mcp '{"name":"hitl","type":"stdio","command":"node","args":["<pkg>/dist/mcp-server.js"]}'` | none documented; add none | user `mcp.json` (`MCP: Open User Configuration`) |
+| Kimi Code (CLI and Desktop) | merge into user `~/.kimi-code/mcp.json` (`$KIMI_CODE_HOME/mcp.json`), or run `/mcp-config` in the TUI | `"command": "node"`, `"args": ["<pkg>/dist/mcp-server.js"]`, `"toolTimeoutMs": 604800000` on `mcpServers.hitl`, ms | `~/.kimi-code/mcp.json` |
 
 Quoting: in PowerShell the single-quoted JSON works as shown; in `cmd.exe`, escape inner quotes (`"{\"name\":...}"`). VS Code uses a `servers` key, not `mcpServers`.
+
+Codex: `codex mcp add` has no timeout flag. After running it, edit `~/.codex/config.toml` and add `tool_timeout_sec = 604800` and `startup_timeout_sec = 45` under the existing `[mcp_servers.hitl]` table, preserving every unrelated key.
 
 Other hosts: merge this entry using the host's documented schema. Map the timeout to its documented per-server field and unit; omit it if the host documents none, and tell the user long waits may be cut off:
 
 ```json
 {
   "mcpServers": {
-    "hitl": { "command": "hitl-mcp-server", "args": [], "timeout": 21600000 }
+    "hitl": { "command": "node", "args": ["<pkg>/dist/mcp-server.js"], "timeout": 604800000 }
   }
 }
 ```
 
 If needed, set `HITL_HOME=<absolute-directory>` as a server env entry (`"env"` in JSON, `--env` for Codex and Copilot CLI, `-e` for Claude Code and Gemini). Setting it for the MCP process does not configure Inbox; launch the receiver with the same setting.
 
-An explicit alternative without global installation is command `npx` with args `["-y", "--package", "@achieveai/hitl-mcp-server", "hitl-mcp-server"]`. Do not rely on npm guessing between the package's two binaries. Global installation is easier for `hitl init` and `hitl client`.
+The global install is the standard: it also makes `hitl init` and `hitl client` work. Without it, use a verified local source build (section 2) and its absolute `server/dist/mcp-server.js`. Do not register `npx` or the bare `hitl-mcp-server` shim.
 
-On Windows, some hosts cannot launch `.cmd` shims directly. Prefer `node` with the verified absolute installed `dist/mcp-server.js` path (find the package directory with `npm root -g`), or the host's documented Windows shim handling. Do not guess or embed machine-specific paths in the plugin. Forward slashes are valid in JSON Windows paths.
+Resolve `<pkg>` at setup time and verify `<pkg>/dist/mcp-server.js` exists before registering; never guess or embed machine-specific paths in this plugin. For a global install, `<pkg>` is the `npm root -g` result plus `/@achieveai/hitl-mcp-server`. For a verified local source build, `<pkg>` is `<checkout>/hitl-mcp-server/server`.
 
 Restart/reconnect the host after registration or environment changes. Discover `AskUserQuestion`, `ReviewPlan`, `HandOff`, `Notify`, `UpdateWork`, `ReadWork`, and `setup`; older versions may expose fewer tools (`HandOff` arrived in 2.14.0). Report missing capabilities instead of fabricating tool calls.
 
 ### Human wait settings
 
-Current question/review tools have no tool-level timeout argument; the wait limit is a per-server host setting. Default it to **6 hours** (21600000 ms / 21600 s) so a human away from every device can still answer. Raise it if the user asks; do not lower it below 300000 ms.
+Current question/review tools have no tool-level timeout argument; the wait limit is a per-server host setting. Default it to **7 days** (604800000 ms / 604800 s) so a human away from every device can still answer. Raise it if the user asks; do not lower it below 300000 ms.
 
 - **Claude Code:** per-server `timeout` in ms. It is a hard wall-clock limit and also a floor on the idle timeout. Without it, stdio calls that go 30 minutes without a response or progress message abort (v2.1.203+). `MCP_TOOL_TIMEOUT` is global; do not change it for HITL.
 - **Codex:** per-server `tool_timeout_sec` in seconds. The default is 60, which is too short for any human wait.
+- **Codex startup:** per-server `startup_timeout_sec` in seconds (default 10s). Also set it — 45 is a safe value. HITL loads its config before exposing tools, and a slow cold start can pass 10s; the server is then killed before its tools appear. `startup_timeout_ms` is its millisecond alias.
 - **Copilot CLI, Gemini CLI:** per-server `timeout` in ms. Gemini defaults to 10 minutes.
 - **Kimi Code:** per-server `toolTimeoutMs` in ms (1–2147483647) in `mcp.json`. The global `[mcp] tool_timeout_ms` / `KIMI_MCP_TOOL_TIMEOUT_MS` change every server; do not set them for HITL.
 - **Hosts with no documented per-server timeout (VS Code):** set nothing; report that the host decides the limit.

@@ -14,7 +14,7 @@ HITL reaches the human on every device, even when they are away from the termina
 
 HITL tool names differ by host: on MCP hosts the callable looks like `mcp__hitl__<Tool>` (for example `mcp__hitl__AskUserQuestion`); on Codex it looks like `hitl.<Tool>` (for example `hitl.AskUserQuestion`). Find the HITL tools in the host's tool catalog, including deferred tools, and use the exact callable name rather than guessing.
 
-Never pass a `timeout` argument; the host's server timeout (6 hours) governs waits. Silence, a timeout, a skipped review or a failed call is not approval. Don't ask for facts you can look up. Don't interrupt routine, reversible work the human already asked for. Never send keys, config or credentials.
+Never pass a `timeout` argument; the host's server timeout (7 days) governs waits. Silence, a timeout, a skipped review or a failed call is not approval. Don't ask for facts you can look up. Don't interrupt routine, reversible work the human already asked for. Never send keys, config or credentials.
 
 ## Write for the human
 

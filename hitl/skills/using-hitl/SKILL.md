@@ -47,7 +47,7 @@ The human runs several agents at once and tells them apart by name. Call `NameSe
 
 - Use either `question` + `options`, or the `questions` array; never both. Each option has `label` and `value`; `description` and Markdown `preview` are optional. Set `allowMultiple: false` for a single choice; the server default can allow multiple selections.
 - Supply meaningful `context`, so a person answering on another device understands the project, proposed action, and consequence. Use previews only for concrete artifacts that benefit from comparison.
-- Current HITL removed the `timeout` tool argument in 2.10.0. Do not pass `timeout` from older AGENTS.md or CLAUDE.md examples. The wait limit is the host's per-server timeout, which setup sets to 6 hours. If calls end early, repair the registration with `hitl:setup-hitl`; do not add a tool argument.
+- Current HITL removed the `timeout` tool argument in 2.10.0. Do not pass `timeout` from older AGENTS.md or CLAUDE.md examples. The wait limit is the host's per-server timeout, which setup sets to 7 days. If calls end early, repair the registration with `hitl:setup-hitl`; do not add a tool argument.
 - Inspect the returned success state, selected values, and free text. A cancelled/failed call or absent answer is not consent. Do not resend an uncertain request blindly; the original may still be visible.
 - Existing explicit approval remains valid for its scope. Plan approval does not authorize an unrelated deployment, publication, credential change, or destructive operation. A notification is never an approval request.
 

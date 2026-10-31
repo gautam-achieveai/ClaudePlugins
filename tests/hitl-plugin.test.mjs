@@ -413,16 +413,26 @@ test("setup turns on memory sync between machines through the setup tool, never 
   assert.match(setup, /opt-in, per machine/);
 });
 
-test("setup registers every documented host with a six-hour wait and never a tool argument", () => {
+test("setup registers every documented host with a seven-day wait and never a tool argument", () => {
   const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
   const rows = Object.fromEntries(setup.split(/\r?\n/)
     .filter((line) => /^\| (Claude Code|Codex|GitHub Copilot CLI|Gemini CLI|VS Code)/.test(line))
     .map((line) => [line.split("|")[1].trim(), line]));
   for (const host of ["Claude Code", "GitHub Copilot CLI", "Gemini CLI"]) {
-    assert.match(rows[host] ?? "", /21600000/, `${host} must register a 6-hour timeout in ms`);
+    assert.match(rows[host] ?? "", /604800000/, `${host} must register a 7-day timeout in ms`);
   }
-  assert.match(rows.Codex ?? "", /tool_timeout_sec = 21600\b/);
+  assert.match(rows.Codex ?? "", /tool_timeout_sec = 604800\b/);
   assert.match(rows["VS Code (Copilot Chat)"] ?? "", /code --add-mcp/);
+  // The published package ships dist/ at its root under the @achieveai scope;
+  // server/dist belongs only to a local source build's server package directory.
+  for (const [host, row] of Object.entries(rows)) {
+    assert.match(row, /<pkg>\/dist\/mcp-server\.js/, `${host} must register the compiled entry under dist/`);
+  }
+  assert.doesNotMatch(setup, /<pkg>\/server\/dist\/mcp-server\.js/);
+  assert.match(setup, /@achieveai\/hitl-mcp-server\/dist\/mcp-server\.js must exist/);
+  assert.match(setup, /repaired in place/);
+  assert.match(setup, /codex mcp add` has no timeout flag/);
+  assert.match(setup, /`startup_timeout_sec = 45` under the existing `\[mcp_servers\.hitl\]`/);
   const start = JSON.parse(runHook("SessionStart").stdout).hookSpecificOutput.additionalContext;
   assert.match(start, /never pass a `timeout`/i);
   assert.deepEqual(JSON.parse(runHook("UserPromptSubmit").stdout), {});
@@ -531,10 +541,11 @@ test("Kimi question guard blocks the built-in, trusts the anchored matcher, and 
   }
 });
 
-test("setup reference registers Kimi Code with a six-hour wait, a deny rule, and no Stop hook", () => {
+test("setup reference registers Kimi Code with a seven-day wait, a deny rule, and no Stop hook", () => {
   const setup = readFileSync(path.join(plugin, "skills/setup-hitl/reference/setup.md"), "utf8");
   const row = setup.split(/\r?\n/).find((line) => /^\| Kimi Code/.test(line)) ?? "";
-  assert.match(row, /toolTimeoutMs.*21600000/);
+  assert.match(row, /toolTimeoutMs.*604800000/);
+  assert.match(row, /<pkg>\/dist\/mcp-server\.js/);
   assert.match(row, /~\/\.kimi-code\/mcp\.json/);
   assert.match(setup, /decision = "deny"/);
   assert.match(setup, /pattern = "AskUserQuestion"/);

@@ -65,7 +65,7 @@ Devices must share `ntfyUrl`, `topicId`, and `encryptionKey`, with their own `de
 
 Inbox and the tray client are separate apps. `hitl client` and MCP `setup` normally start the tray client; Inbox requires its own executable/installer. The setup skill covers both and Inbox-only mode.
 
-Current HITL tools removed the old `timeout` argument. Setup registers the server in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, VS Code, Kimi Code, or any `mcpServers` host, with a 6-hour per-server timeout where the host supports one (`timeout: 21600000` ms, `tool_timeout_sec = 21600` in Codex, or `toolTimeoutMs: 21600000` in Kimi Code's `mcp.json`). See [the full setup procedure](skills/setup-hitl/reference/setup.md).
+Current HITL tools removed the old `timeout` argument. Setup installs the server globally with npm (latest) and registers it in Claude Code, Codex, GitHub Copilot CLI, Gemini CLI, VS Code, Kimi Code, or any `mcpServers` host as `node` plus the installed package's absolute `dist/mcp-server.js` path, with a 7-day per-server timeout where the host supports one (`timeout: 604800000` ms, `tool_timeout_sec = 604800` in Codex, or `toolTimeoutMs: 604800000` in Kimi Code's `mcp.json`). In Codex, `startup_timeout_sec = 45` too — the 10s startup default can kill a cold start. See [the full setup procedure](skills/setup-hitl/reference/setup.md).
 
 ## Verification
 
