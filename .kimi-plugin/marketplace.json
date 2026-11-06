@@ -3,9 +3,9 @@
   "plugins": [
     {
       "id": "experimentation",
-      "displayName": "Experimentation",
-      "description": "Evidence-driven research over competing ideas: choose experiments, test hypotheses, preserve conditional lessons, and resume studies across product discovery, algorithms, skills, historical strategy, and investment theses.",
-      "version": "1.0.0",
+      "displayName": "Research & Experimentation",
+      "description": "Research and experimentation as distinct phases: investigate competing explanations, choose informative tests, and preserve evidence-linked lessons across product discovery, algorithms, skills, historical strategy, and investment theses.",
+      "version": "1.0.1",
       "category": "productivity",
       "source": "./experimentation"
     },

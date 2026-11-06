@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "A marketplace for custom plugins and skills",
-    "version": "1.24.0"
+    "version": "1.24.1"
   },
   "plugins": [
     {
       "name": "experimentation",
       "source": "./experimentation",
-      "description": "Evidence-driven research over competing ideas: choose experiments, test hypotheses, preserve conditional lessons, and resume studies across product discovery, algorithms, skills, historical strategy, and investment theses.",
-      "version": "1.0.0",
+      "description": "Research and experimentation as distinct phases: investigate competing explanations, choose informative tests, and preserve evidence-linked lessons across product discovery, algorithms, skills, historical strategy, and investment theses.",
+      "version": "1.0.1",
       "category": "productivity",
       "tags": [
         "research",
@@ -28,7 +28,8 @@
         "compression",
         "investment-thesis",
         "external-memory"
-      ]
+      ],
+      "displayName": "Research & Experimentation"
     },
     {
       "name": "progress-tracking",

@@ -27,13 +27,15 @@ need no extra steps.
 
 ## Available Plugins
 
-### experimentation (v1.0.0)
+### Research & Experimentation (v1.0.1)
 
 Evidence-driven research over competing ideas, interacting designs and accumulated learning. Includes a method-selection rubric for compression, agent skills, historical strategy, long-term stock theses and product discovery; portable study records; a Node record utility; and external-memory guidance.
 
 **Skills**: `research`, `research-learning` (automatic selection enabled)
 
-See [Experimentation usage and storage](experimentation/README.md).
+Install ID: `experimentation@gb-plugins-marketplace`.
+
+See [Research & Experimentation usage and storage](experimentation/README.md).
 
 ### hitl (v1.6.0)
 

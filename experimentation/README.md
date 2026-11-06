@@ -1,6 +1,8 @@
-# Experimentation
+# Research & Experimentation
 
-Research competing ideas, choose informative tests, and retain evidence-linked lessons across rounds.
+Research develops explanations and identifies what remains unknown. Experimentation tests those ideas. Both phases share evidence-linked lessons across rounds.
+
+The stable plugin ID remains `experimentation`; existing installs and skill commands continue to work. Additional research skills can be added under this package.
 
 ## Skills
 
