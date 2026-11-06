@@ -2,6 +2,14 @@
   "version": "2",
   "plugins": [
     {
+      "id": "experimentation",
+      "displayName": "Experimentation",
+      "description": "Evidence-driven research over competing ideas: choose experiments, test hypotheses, preserve conditional lessons, and resume studies across product discovery, algorithms, skills, historical strategy, and investment theses.",
+      "version": "1.0.0",
+      "category": "productivity",
+      "source": "./experimentation"
+    },
+    {
       "id": "progress-tracking",
       "displayName": "Progress Tracking",
       "description": "Continuous tracking for large work items and agent teams, with sourced events, durable state, progress and no-progress reports, worker nudges, recovery, and Markdown, Mermaid, and accessible HTML views.",

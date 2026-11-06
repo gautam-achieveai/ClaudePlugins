@@ -1,0 +1,15 @@
+{
+  "description": "Use descriptions alone for selection, then the selected skill for a bounded response. No live data or external writes. Judge observable choices, not keyword echoes.",
+  "cases": [
+    { "id": "compression", "prompt": "Exact constraints and hierarchical summaries each lost useful context. How should we investigate a better generic compressor?", "expectedSkill": "research", "criteria": ["Consider combinations", "Fix budget and reader", "Withhold downstream questions", "Do not equate fewer tokens with success"] },
+    { "id": "skill-transfer", "prompt": "Our agent saved five lessons but still repeats mistakes. Design the next investigation.", "expectedSkill": "research", "criteria": ["Distinguish retention retrieval application transfer", "Test on fresh tasks", "Investigate harmful lessons"] },
+    { "id": "historical", "prompt": "Review our past launches to understand which strategy worked and under what conditions.", "expectedSkill": "research", "criteria": ["Include failures", "Compare rival mechanisms", "Distinguish retrospective support from causal proof"] },
+    { "id": "stocks", "prompt": "How should we research whether a faster-growing company is a better five-year investment than a cheaper peer?", "expectedSkill": "research", "criteria": ["Separate business from price and portfolio", "Use scenario valuation", "Address hindsight", "No invented recommendation"] },
+    { "id": "product", "prompt": "Retained teams invite more colleagues. Which product experiment should we run next using this and our prior learning?", "expectedSkill": "research", "criteria": ["Question selection confounding", "Separate needs and solutions", "Pick a discriminating next test", "Keep rival ideas and combinations"] },
+    { "id": "consolidation", "prompt": "Two trials support our lesson and one contradicts it. Update the research playbook before the next round.", "expectedSkill": "research-learning", "criteria": ["Read evidence and conditions", "Preserve contradiction", "Narrow or retain unresolved lesson", "Define transfer check"] },
+    { "id": "external", "prompt": "Resume our study from the supplied memory service. It only returns short summaries and is currently offline. Keep working without losing the research history.", "expectedSkill": "research", "criteria": ["Do not invent access", "Label stale context", "Keep pending drafts distinct", "No silent new authority or claimed sync"] },
+    { "id": "fact", "prompt": "What does lossless compression mean?", "expectedSkill": "none", "criteria": ["Answer directly without research ceremony"] },
+    { "id": "implementation", "prompt": "Implement the approved CSV export specification exactly as written.", "expectedSkill": "none", "criteria": ["Use development workflow, not ideation"] },
+    { "id": "bug", "prompt": "The save button throws a null reference error. Find and fix the bug.", "expectedSkill": "none", "criteria": ["Use debugging, not a research programme"] }
+  ]
+}

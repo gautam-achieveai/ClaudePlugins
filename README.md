@@ -27,6 +27,14 @@ need no extra steps.
 
 ## Available Plugins
 
+### experimentation (v1.0.0)
+
+Evidence-driven research over competing ideas, interacting designs and accumulated learning. Includes a method-selection rubric for compression, agent skills, historical strategy, long-term stock theses and product discovery; portable study records; a Node record utility; and external-memory guidance.
+
+**Skills**: `research`, `research-learning` (automatic selection enabled)
+
+See [Experimentation usage and storage](experimentation/README.md).
+
 ### hitl (v1.6.0)
 
 Set up HITL MCP and connect Inbox or the tray client. Skills guide agents through private configuration reuse, cross-device questions, plan reviews, notifications, and durable progress. Session and turn hooks inject usage guidance; a tool hook sends the built-in chat question tool to HITL. Includes Claude Code and Codex manifests.

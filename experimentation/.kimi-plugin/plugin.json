@@ -1,0 +1,7 @@
+{
+  "name": "experimentation",
+  "version": "1.0.0",
+  "description": "Evidence-driven research over competing ideas: choose experiments, test hypotheses, preserve conditional lessons, and resume studies across product discovery, algorithms, skills, historical strategy, and investment theses.",
+  "author": { "name": "Gautam Bhakar" },
+  "skills": "./skills/"
+}
