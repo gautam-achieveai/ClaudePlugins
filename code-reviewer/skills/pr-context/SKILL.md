@@ -266,7 +266,7 @@ Compare the PR's changes against the parent User Story / Feature:
 
 ## Error Handling
 
-- **ADO MCP tools unavailable** — use `ado:setup-ado-mcp` for this ADO flow (`gh:setup-gh-mcp` is the GitHub counterpart), then retry
+- **Provider tools unavailable** — report incomplete coverage; no setup or credential changes. Use available authorized sources.
 - **PR not found** — verify the PR number and repository name
 - **Work items inaccessible** — note which IDs couldn't be fetched; continue with available data
 - **No work items linked** — report clearly and suggest the author link the relevant work item

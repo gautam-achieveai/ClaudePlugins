@@ -30,6 +30,12 @@ from prior reviews or hardcoded defaults.
 
 ## Ensure Tooling Is Ready (soft)
 
+**PR-context exception:** Context gathering is read-only. If provider read tooling
+is missing, fails, or needs authentication, do not invoke provider setup or change
+credentials. Record affected sources as `Failed` or `Unavailable`, report incomplete
+coverage, and continue with available authorized sources. This also covers directly launched
+`pr-context-gatherer` agents. The setup fallback below applies only to other workflows.
+
 Before the first provider call, make sure the backend's tools are reachable. On a
 failure (connection error, tool not found, auth failure), follow the matching
 plugin's setup rule rather than asking the user to configure it manually:

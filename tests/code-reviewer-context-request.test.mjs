@@ -137,6 +137,13 @@ test("context entrypoints use the parser and preserve master contracts", () => {
   const skill = read("code-reviewer/skills/pr-context/SKILL.md");
   const review = read("code-reviewer/skills/pr-review/SKILL.md");
   const gatherer = read("code-reviewer/agents/pr-context-gatherer.md");
+  const provider = read("code-reviewer/references/provider-resolution.md");
+  const readiness = provider.split("## Ensure Tooling Is Ready (soft)")[1].split("\n## ")[0];
+  assert.match(readiness, /PR-context exception[\s\S]*do not invoke provider setup or change\s+credentials/);
+  assert.match(readiness, /`Failed` or `Unavailable`/);
+  assert.match(readiness, /directly launched[\s\S]*`pr-context-gatherer`/);
+  assert.match(skill, /\*\*Provider tools unavailable\*\*[\s\S]{0,240}report incomplete coverage/);
+  assert.doesNotMatch(skill, /tools unavailable\*\*[^\n]*use `(?:ado|gh):setup-/);
   assert.match(skill, /parse-context-request\.mjs.*--in.*--out/);
   assert.match(skill, /before[\s\S]{0,50}provider resolution/);
   assert.match(skill, /fail closed[\s\S]{0,100}without live fallback/);
