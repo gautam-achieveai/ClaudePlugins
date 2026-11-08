@@ -85,12 +85,17 @@ test("daemon branch forbids raw provider publication and free-form action recove
 test("daemon branch maps round intent to typed calls and finalizes deliberate no-op", () => {
   const branch = daemonBranch();
 
-  assert.match(branch, /first material[^\n]*`CreateRootSummary`/i);
-  assert.match(branch, /later[^\n]*(?:summary )?delta[^\n]*`AppendSummaryDelta`/i);
-  assert.match(branch, /grouped inline findings[^\n]*`SubmitInlineFindings`/i);
-  assert.match(branch, /clarification question[^\n]*`PostClarificationQuestion`/i);
-  assert.match(branch, /valuable[^\n]*discussion[^\n]*`ReplyToDiscussion`/i);
-  assert.match(branch, /deliberate no-op[^\n]*`FinalizeRound`/i);
+  const intents = new Map(
+    [...branch.matchAll(/^\d+\. `([^`]+)` — ([^\n]+)$/gm)].map(
+      ([, operation, intent]) => [operation, intent]
+    )
+  );
+  assert.match(intents.get("CreateRootSummary"), /first material/i);
+  assert.match(intents.get("AppendSummaryDelta"), /later[^\n]*summary delta/i);
+  assert.match(intents.get("SubmitInlineFindings"), /grouped inline findings/i);
+  assert.match(intents.get("PostClarificationQuestion"), /clarification question/i);
+  assert.match(intents.get("ReplyToDiscussion"), /valuable[^\n]*discussion/i);
+  assert.match(intents.get("FinalizeRound"), /deliberate no-op/i);
   assert.match(branch, /typed receipt or typed rejection/i);
   assert.match(branch, /stable[^\n]*round ID[^\n]*action ID/i);
 });

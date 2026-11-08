@@ -10,11 +10,10 @@ allowed-tools: Read, Bash, Skill, mcp__azure-devops__*
 # Post PR Review — Publish Results to GitHub or Azure DevOps
 
 **Primary objective:** Publish verified review results accurately and without duplicate or misplaced feedback.
-**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+**Decision rule:** For uncovered cases, advance this objective within scope, safety, and output requirements.
 
-Publish findings, questions, and summaries to a GitHub or Azure DevOps PR.
 Resolve the provider using [provider-resolution.md](../../references/provider-resolution.md).
-Own formatting, deduplication, threads, and posting; the caller supplies data.
+Own formatting, deduplication, threads, and posting; use caller data.
 
 ## When to Use
 
@@ -56,15 +55,6 @@ The only publication operations available in daemon mode are:
 
 A round may call several operations. Use each caller-supplied action ID exactly as given. Do not create a second action to retry an accepted receipt. Preserve provider-native targets: ADO thread/comment/parent/span/iteration identity and GitHub inline review-thread identity. When the supplied typed target explicitly represents a GitHub PR-level issue comment, accept the backend's typed flat-comment degradation and receipt rather than inventing nested ancestry.
 
-Map intent to operations as follows:
-
-- First material summary → `CreateRootSummary`.
-- Later summary delta → `AppendSummaryDelta`.
-- Grouped inline findings → `SubmitInlineFindings`.
-- Clarification question → `PostClarificationQuestion`.
-- Valuable reply to discussion → `ReplyToDiscussion`.
-- Deliberate no-op, or the terminal state after attempted actions → `FinalizeRound`.
-
 Before every call, check that its typed round ID, action ID, expected head, and target ref exactly match the supplied publication context. After every call, retain the complete typed receipt or rejection for audit. Finalize only after accounting for every intended action. `FinalizeRound` reports the agent's actual outcome; it never asks the backend to synthesize missing prose.
 
 Then return the typed receipts/rejections and finalization result to the caller. Do not continue into the ordinary provider-specific Steps 2–8 below.
@@ -82,6 +72,7 @@ proceeding — reject with a clear error if any are missing.
 | `repository` | string | Repository name (e.g., `MyRepository`) |
 | `botPrefix` | string | Bot prefix for all comments (e.g., `[<reviewer>'s bot]`) |
 | `reviewIntent` | object | Stable PR intent: stated problem, acceptance criteria, non-goals, goal coverage, solution direction, and evidence |
+| `reviewArtifactGaps[]` | array | Artifact gaps and sources checked. Ask once to post/link existing artifacts or reply none exist. Clear after inspecting artifacts or the author's/agent's no-documents reply. Preserve request/reply/disposition in the canonical summary, even after closure; never ask again. Pending gaps are one summary blocker; never invent a diff anchor. |
 | `findings[]` | array | Graded findings — each with severity, blocker flag, issue, impact, required outcome, suggested path, and closure evidence |
 | `reviewThreads[]` | array | Full durable state of non-terminal bot-owned finding threads plus new findings to post |
 | `closedThreadArchive[]` | array | Compact terminal records ordered by `closedAt`, then `findingId` |
@@ -257,7 +248,10 @@ Each item in `questions[]` must have:
    - `providerOpenBlockers`: every blocker not in `CLOSED` state. This set must
      be empty after actions and summary persistence before approving.
    Reject `APPROVE` or `APPROVE_WITH_COMMENTS` when `substantiveBlockers` is
-   non-empty. Reject `REQUEST_CHANGES` when it has no substantive blocker; a
+   non-empty. Non-empty `reviewArtifactGaps[]` independently requires
+   `REQUEST_CHANGES`, even with no code findings, and prevents approval/merge.
+   Artifact changes disable small-delta mode. Reject `REQUEST_CHANGES` when it
+   has neither a substantive blocker nor artifact gaps; a
    goal gap or unverified core outcome must be represented by an actionable blocker.
 9. If Review Intent is `UNCLEAR` with no active blocker, require
   `APPROVE_WITH_COMMENTS` plus one focused question. Never accept `COMMENT` as

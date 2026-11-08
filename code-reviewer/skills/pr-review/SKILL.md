@@ -10,15 +10,14 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, WebFetch, Skill, Task, TodoW
 # Pull Request Code Reviewer
 
 **Primary objective:** Help a PR reach its stated goal through evidence-based, actionable review.
-**Decision rule:** For relevant cases these steps do not cover, choose the next in-scope action that advances this objective; preserve explicit scope, safety, and output requirements.
+**Decision rule:** For uncovered cases, advance this objective within scope, safety, and output requirements.
 
 Route review work; do not run a duplicate parent-side code review. Read
 `${CLAUDE_PLUGIN_ROOT}/references/review-handoffs.md` before dispatch for role
 ownership, skill wrappers, immutable artifact capture, and completion validation.
 
-**Progressive loading:** this file is the workflow spine. Each step names the
-reference file to load WHEN you reach it. Load references at their step, not
-up front — the load instructions are mandatory, not optional.
+**Progressive loading:** load each required reference at its named step,
+not up front.
 
 ## Rigorous Reviews That Converge
 
@@ -37,28 +36,31 @@ Apply this decision order:
 4. **How can each blocker close?** State the required outcome, a minimal path,
   and objective done-when evidence.
 
-The PR goal is the invariant anchor. Improve, do not perfect. Separate impact
-from whether a finding blocks merge; evidence outranks taste. Re-reviews check
-the original closure criteria rather than moving the goalposts. Be direct
-about risks without holding a goal-complete PR for unrelated cleanup.
+Keep the PR goal and closure criteria stable; exclude unrelated cleanup.
 
-## Skill Scope
+## Required PR Artifacts
 
-Reviews individual pull requests (GitHub or Azure DevOps) or the current local
-branch, including re-reviews after updates. NOT for developer performance
-reviews over time.
+Check for implementation plans, human/developer approvals (who approved what),
+and learnings (discoveries, failed approaches, deviations).
+Accept PR content, linked documents/attachments, or linked work items.
+Record missing/inaccessible artifacts and sources checked in `reviewArtifactGaps[]`.
+Ask once per PR to post/link existing artifacts or reply that no such documents
+exist. Pending that reply, carry one **REQUEST_CHANGES** blocker outside code findings.
+Close gaps after inspecting posted artifacts or the author's/agent's no-documents
+reply; never demand new documents or retrospective approvals. Preserve the request,
+reply, and disposition in the canonical summary across re-reviews; never repeat the
+request. Recheck new evidence on unchanged commits. Report local reviews locally.
 
 ## Review Team
 
-When classifying the diff in Step 2, use this roster to understand the planned
-lanes and give each specialist a distinct question and expected result.
+At Step 2, give each specialist a distinct question and expected result.
 **Aim for 3-7 specialist agents per review.** Too many duplicate work and cost;
 too few can miss important perspectives. Do not pad a tiny review to reach
 three or drop required risk coverage to fit seven. If the plan requires more,
 explain the coverage need and use focused waves of at most seven; waves limit
 fan-out, not total cost. This is team-building guidance, not another classifier
-or a reason to launch every agent below. Follow the plan and load detailed
-triggers from `${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md` at Step 2.
+or a reason to launch every agent below. Load
+`${CLAUDE_SKILL_DIR}/reference/agent-dispatch.md` at Step 2.
 
 Bundled names below use `code-reviewer:<agent-id>`; definitions are at
 `${CLAUDE_PLUGIN_ROOT}/agents/<agent-id>.md`. Each scanner returns evidenced

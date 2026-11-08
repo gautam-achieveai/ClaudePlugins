@@ -1,0 +1,10 @@
+{
+  "name": "experimentation",
+  "version": "1.1.0",
+  "author": {
+    "name": "Gautam Bhakar"
+  },
+  "description": "Research and experimentation as distinct phases: investigate competing explanations, choose informative tests, and preserve evidence-linked lessons across product discovery, algorithms, skills, historical strategy, and investment theses.",
+  "displayName": "Research & Experimentation",
+  "license": "MIT"
+}

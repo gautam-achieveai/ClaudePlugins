@@ -91,6 +91,7 @@ these fields or validated artifacts containing their exact source records:
 | `repository` | Repository name from Step 1 |
 | `botPrefix` | `[<dev name>'s bot]` — the standard bot prefix for all comments |
 | `reviewIntent` | Stable Review Intent record from Step 3 |
+| `reviewArtifactGaps[]` | Artifact gaps and sources checked; clear after inspecting artifacts or the author's/agent's no-documents reply. One summary blocker while pending, requiring `REQUEST_CHANGES`; ask once to post/link or confirm none exist. Preserve request, reply, and disposition in the canonical summary across re-reviews; never repeat the request. |
 | `findings[]` | Posting-ready final findings from Step 11 (exact schema: graded severity, remediation, blocker/lane, instances, underlyingProblem, whyItMatters, requiredOutcome, suggestedPath, doneWhen) |
 | `unresolvedClaims[]` | Summary-only material unresolved records with exact missing evidence, conditional consequence, exposure, and provenance; non-blocking |
 | `reviewThreads[]` | Full durable state for non-terminal and new finding threads (contract above) |

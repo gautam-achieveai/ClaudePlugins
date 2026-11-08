@@ -27,6 +27,16 @@ need no extra steps.
 
 ## Available Plugins
 
+### Research & Experimentation (v1.1.0)
+
+Evidence-driven research over competing ideas, interacting designs and accumulated learning. Includes a method-selection rubric for compression, agent skills, historical strategy, long-term stock theses and product discovery; portable study records; a Node record utility; and external-memory guidance.
+
+**Skills**: `evidence-research`, `research`, `research-learning` (automatic selection enabled). Six predefined agents cover investigation, experiment design/execution, review and shared learning.
+
+Install ID: `experimentation@gb-plugins-marketplace`.
+
+See [Research & Experimentation usage and storage](experimentation/README.md).
+
 ### hitl (v1.6.0)
 
 Set up HITL MCP and connect Inbox or the tray client. Skills guide agents through private configuration reuse, cross-device questions, plan reviews, notifications, and durable progress. Session and turn hooks inject usage guidance; a tool hook sends the built-in chat question tool to HITL. Includes Claude Code and Codex manifests.
@@ -63,7 +73,7 @@ Development methodology toolkit — Agile team delivery for large features, thin
 
 **Agents**: `architect`, `manual-tester`, `developer`, `critic`, `blind-spot-detector`
 
-### code-reviewer (v1.30.0)
+### code-reviewer (v1.30.1)
 
 Code review toolkit with specialized agents for duplicate detection, EUII leak scanning, exception handling review, test coverage review, design simplification, code simplification, over-engineering / scope-creep detection, architecture review, performance review, schema and wire-contract compatibility review (forward/backward compat, rollout sequencing, serializer asymmetry, DB migration footguns), feature-flag rollout review (blast-radius and reversibility), severity grading quality gate, log review, and PR work item context gathering. Includes review-pr command automation, structured PR comment publishing, and batch PR review orchestration with persistent tracking.
 

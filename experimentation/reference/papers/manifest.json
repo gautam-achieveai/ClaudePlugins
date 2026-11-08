@@ -1,0 +1,567 @@
+[
+  {
+    "id": "2608.01913v1",
+    "title": "Diagnosing Search Behavior and Failure Modes in Long-Horizon Search Agents",
+    "file": "diagnosing-search-agent-behavior-and-failures-v1.md",
+    "source": "https://arxiv.org/abs/2608.01913v1",
+    "download_url": "https://arxiv.org/html/2608.01913v1",
+    "retrieved_utc": "2026-11-07T07:28:04.468027+00:00",
+    "version": "2608.01913v1",
+    "source_type": "paper",
+    "original_sha256": "b49c1037c65b2e3f064634186e8d50981419f4e195293c6be6e97467f8c8d745",
+    "markdown_sha256": "8900804839070305c0d5a563197d3badd1d3443ddb24acc8b4ae1df71e43e81b",
+    "characters": 88161,
+    "source_headings": 49,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2601.12369v6",
+    "title": "TaxoBench: Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies",
+    "file": "taxobench-retrieval-and-synthesis-gap-v6.md",
+    "source": "https://arxiv.org/abs/2601.12369v6",
+    "download_url": "https://arxiv.org/html/2601.12369v6",
+    "retrieved_utc": "2026-11-07T07:28:10.286275+00:00",
+    "version": "2601.12369v6",
+    "source_type": "paper",
+    "original_sha256": "e11cbf8154510c13a2484277fc2dfba5fccb2673fe2670dd6525cb7ed717ce71",
+    "markdown_sha256": "6ed002b39b1964b01b6aab80ce06344cc64a8f8bc2522ce94edcf81cf03dcba6",
+    "characters": 234190,
+    "source_headings": 163,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2602.01566v2",
+    "title": "FS-Researcher: Test-Time Scaling for Long-Horizon Research Tasks with File-System-Based Agents",
+    "file": "fs-researcher-file-system-research-agents-v2.md",
+    "source": "https://arxiv.org/abs/2602.01566v2",
+    "download_url": "https://arxiv.org/html/2602.01566v2",
+    "retrieved_utc": "2026-11-07T07:28:11.518170+00:00",
+    "version": "2602.01566v2",
+    "source_type": "paper",
+    "original_sha256": "a0184ca42555b6b5a3a3ff776152defd6203491772bea2aabee5fe467597b3b8",
+    "markdown_sha256": "5a578d2bc856999c11dc820fbff53e3d3d9b66f4c361a1cd2ec250e5bd11a73e",
+    "characters": 73149,
+    "source_headings": 48,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2606.20122v2",
+    "title": "ScaffoldAgent: Utility-Guided Dynamic Outline Optimization for Open-Ended Deep Research",
+    "file": "scaffoldagent-dynamic-outline-optimization-v2.md",
+    "source": "https://arxiv.org/abs/2606.20122v2",
+    "download_url": "https://arxiv.org/html/2606.20122v2",
+    "retrieved_utc": "2026-11-07T07:28:13.370776+00:00",
+    "version": "2606.20122v2",
+    "source_type": "paper",
+    "original_sha256": "550066c29624bbc624454dceefc24d822364e2b15f778fde48baebe5f4e0b281",
+    "markdown_sha256": "ab2c55d1d5f39384d9c1a2e183f48baf8304148e7eaf23c864bcfa6169cb27ef",
+    "characters": 116621,
+    "source_headings": 49,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2601.18267v1",
+    "title": "Orchestrating Specialized Agents for Trustworthy Enterprise RAG",
+    "file": "orchestrating-agents-for-trustworthy-enterprise-rag-v1.md",
+    "source": "https://arxiv.org/abs/2601.18267v1",
+    "download_url": "https://arxiv.org/html/2601.18267v1",
+    "retrieved_utc": "2026-11-07T07:28:13.921215+00:00",
+    "version": "2601.18267v1",
+    "source_type": "paper",
+    "original_sha256": "3c8458a02a7d3f75e0545d991748d1c9e73eece21e619f4baf17899b6a6a3c5c",
+    "markdown_sha256": "301c1ed026ca41167d413c6994fcda41792694585357829b4a008ca66c1fef31",
+    "characters": 28117,
+    "source_headings": 27,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2601.20975v1",
+    "title": "DeepSearchQA : Bridging the Comprehensiveness Gap for Deep Research Agents",
+    "file": "deepsearchqa-comprehensive-research-answers-v1.md",
+    "source": "https://arxiv.org/abs/2601.20975v1",
+    "download_url": "https://arxiv.org/html/2601.20975v1",
+    "retrieved_utc": "2026-11-07T07:28:15.243358+00:00",
+    "version": "2601.20975v1",
+    "source_type": "paper",
+    "original_sha256": "9d7aa55887da56ea4fedb2ff1194bf20eab5240e31bc254b74f5596cd529bb88",
+    "markdown_sha256": "f83ab7e0cfaeb616613601a3a4f751b3e75810e7e9d01d4ef5c0cdbc9b1825d1",
+    "characters": 61404,
+    "source_headings": 28,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2601.08536v3",
+    "title": "DeepResearch Bench II: Diagnosing Deep Research Agents via Rubrics from Expert Reports",
+    "file": "deepresearch-bench-ii-expert-report-rubrics-v3.md",
+    "source": "https://arxiv.org/abs/2601.08536v3",
+    "download_url": "https://arxiv.org/html/2601.08536v3",
+    "retrieved_utc": "2026-11-07T07:28:19.751014+00:00",
+    "version": "2601.08536v3",
+    "source_type": "paper",
+    "original_sha256": "0618e708c9bda829dc22602141a2343227d0c6a2831cdb2fdad28ee660937b21",
+    "markdown_sha256": "f0aa33b608f1731fcd4240bd00fb3b4472aa32ad2e7603f011cf42b87e84c327",
+    "characters": 166255,
+    "source_headings": 49,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2609.09410v1",
+    "title": "Benchmarking Hybrid Deep Research Across Database Querying and Web Search",
+    "file": "hybrid-deep-research-databases-and-web-search-v1.md",
+    "source": "https://arxiv.org/abs/2609.09410v1",
+    "download_url": "https://arxiv.org/html/2609.09410v1",
+    "retrieved_utc": "2026-11-07T07:28:21.238929+00:00",
+    "version": "2609.09410v1",
+    "source_type": "paper",
+    "original_sha256": "8f9fa3c80f2b217da47ff5fb2a4f0a53eeaa3340d55d4a96f269027d99ad886a",
+    "markdown_sha256": "e2cd4f65cc4fb667ab68f8073409fbc8565e14d75e03ab3397baaf8b760d0f30",
+    "characters": 113270,
+    "source_headings": 89,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2512.08296v3",
+    "title": "Towards a Science of Scaling Agent Systems",
+    "file": "towards-a-science-of-scaling-agent-systems-v3.md",
+    "source": "https://arxiv.org/abs/2512.08296v3",
+    "download_url": "https://arxiv.org/html/2512.08296v3",
+    "retrieved_utc": "2026-11-07T07:28:23.966185+00:00",
+    "version": "2512.08296v3",
+    "source_type": "paper",
+    "original_sha256": "df31beb3a2ae0f9ad2084750b34a05849b2ab418cb8121666ffb8a8a15517223",
+    "markdown_sha256": "632e3654c42b41cf75908c33a1fd3bd967574ddd8ccc58202d46dc9835a77cef",
+    "characters": 183161,
+    "source_headings": 82,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2603.28990v1",
+    "title": "Drop the Hierarchy and Roles: How Self-Organizing LLM Agents Outperform Designed Structures",
+    "file": "self-organizing-agents-beyond-hierarchy-and-roles-v1.md",
+    "source": "https://arxiv.org/abs/2603.28990v1",
+    "download_url": "https://arxiv.org/html/2603.28990v1",
+    "retrieved_utc": "2026-11-07T07:28:24.542302+00:00",
+    "version": "2603.28990v1",
+    "source_type": "paper",
+    "original_sha256": "1f7219884210ea256f451391843aa8b55c8d3e24056ae9ed99d06fcac00503fa",
+    "markdown_sha256": "b65fac44f0730f59aed68443a35953176033931290019c163d7ffd7c8bd4115e",
+    "characters": 49716,
+    "source_headings": 39,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2604.02460v2",
+    "title": "Single-Agent LLMs Outperform Multi-Agent Systems on Multi-Hop Reasoning Under Equal Thinking Token Budgets",
+    "file": "single-vs-multi-agent-reasoning-equal-token-budgets-v2.md",
+    "source": "https://arxiv.org/abs/2604.02460v2",
+    "download_url": "https://arxiv.org/html/2604.02460v2",
+    "retrieved_utc": "2026-11-07T07:28:26.863146+00:00",
+    "version": "2604.02460v2",
+    "source_type": "paper",
+    "original_sha256": "ab379c1040f9e0646e2e31d53f297bd79fce74658355279f56a6ead0cb177480",
+    "markdown_sha256": "19d2c3fbde5427dcf0b4a9d27b8135bb672772c5efa7074131c306b74c7c730c",
+    "characters": 108852,
+    "source_headings": 85,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2601.12307v1",
+    "title": "Rethinking the Value of Multi-Agent Workflow: A Strong Single Agent Baseline",
+    "file": "rethinking-multi-agent-workflows-strong-single-agent-baseline-v1.md",
+    "source": "https://arxiv.org/abs/2601.12307v1",
+    "download_url": "https://arxiv.org/html/2601.12307v1",
+    "retrieved_utc": "2026-11-07T07:28:29.473933+00:00",
+    "version": "2601.12307v1",
+    "source_type": "paper",
+    "original_sha256": "061a53ef7d5b636f42b4b5c3ef755bffa4a3f1d5c6df7cd13740af50558c41a5",
+    "markdown_sha256": "73c8afb829dd4ab091aaee5b5e22e7f0c4a3ea109cb64a976f4c7868e2aa89bf",
+    "characters": 121653,
+    "source_headings": 33,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2606.20629v1",
+    "title": "Specialize Roles, Mix Deployments: Pushing the Cost–Accuracy Frontier of LLM Agent Teams",
+    "file": "agentcard-specialized-roles-and-mixed-deployments-v1.md",
+    "source": "https://arxiv.org/abs/2606.20629v1",
+    "download_url": "https://arxiv.org/html/2606.20629v1",
+    "retrieved_utc": "2026-11-07T07:28:31.166202+00:00",
+    "version": "2606.20629v1",
+    "source_type": "paper",
+    "original_sha256": "1fe5037599448772056be6d12203b437d29feb78a46efd6cf8fae125a0e75b00",
+    "markdown_sha256": "9b6067431c3dc8891f730df3d0268217e3b0efc077ea2eec80b1187637045a03",
+    "characters": 116030,
+    "source_headings": 27,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2507.19457v2",
+    "title": "GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning",
+    "file": "gepa-reflective-prompt-evolution-v2.md",
+    "source": "https://arxiv.org/abs/2507.19457v2",
+    "download_url": "https://arxiv.org/html/2507.19457",
+    "retrieved_utc": "2026-11-07T07:28:51.315137+00:00",
+    "version": "2507.19457v2",
+    "source_type": "paper",
+    "original_sha256": "a8684c9ec8702de80207451f0b6144bfb4c533e2c02b9501a6058e11079d29ee",
+    "markdown_sha256": "923d3f915c690605c19ae151f1399d49d3928366e54b0b1c188f7def2f7146d8",
+    "characters": 529269,
+    "source_headings": 44,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2308.10144v3",
+    "title": "ExpeL: LLM Agents Are Experiential Learners",
+    "file": "expel-experiential-learning-agents-v3.md",
+    "source": "https://arxiv.org/abs/2308.10144v3",
+    "download_url": "https://arxiv.org/html/2308.10144",
+    "retrieved_utc": "2026-11-07T07:28:52.476283+00:00",
+    "version": "2308.10144v3",
+    "source_type": "paper",
+    "original_sha256": "05a9f62e0298a86ec0f22daf3d221a51a7fa51674f528f607cab326b318b3663",
+    "markdown_sha256": "2c27b515244bc24b58bbc98a8a28b62c73dc5f77afa833d2677a352505df212c",
+    "characters": 94331,
+    "source_headings": 67,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2510.04618v3",
+    "title": "Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models",
+    "file": "agentic-context-engineering-self-improving-language-models-v3.md",
+    "source": "https://arxiv.org/abs/2510.04618v3",
+    "download_url": "https://arxiv.org/html/2510.04618",
+    "retrieved_utc": "2026-11-07T07:28:54.240958+00:00",
+    "version": "2510.04618v3",
+    "source_type": "paper",
+    "original_sha256": "cd5e69ef613b8a8fad4b2010b05a671362763f8f569f7a9598d414ce153c1f2d",
+    "markdown_sha256": "86e02190c683dfddd8f94368e839fad10793bcfe7f365f882d136e7118fda01a",
+    "characters": 124114,
+    "source_headings": 66,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2602.14233v1",
+    "title": "Evaluating LLMs in Finance Requires Explicit Bias Consideration",
+    "file": "evaluating-llms-in-finance-bias-considerations-v1.md",
+    "source": "https://arxiv.org/abs/2602.14233v1",
+    "download_url": "https://arxiv.org/html/2602.14233",
+    "retrieved_utc": "2026-11-07T07:28:54.947026+00:00",
+    "version": "2602.14233v1",
+    "source_type": "paper",
+    "original_sha256": "eb470ade6f347fcdf7b5f8ffaaaa383a6ec91889a054c0df73cc4bc39fe34332",
+    "markdown_sha256": "6392b8f7c6cefe6840b386384f84de0e4c54189a8af0a98013de389a6949ef11",
+    "characters": 114773,
+    "source_headings": 34,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "1807.02811v1",
+    "title": "A Tutorial on Bayesian Optimization",
+    "file": "tutorial-on-bayesian-optimization-v1.md",
+    "source": "https://arxiv.org/abs/1807.02811v1",
+    "download_url": "https://arxiv.org/html/1807.02811",
+    "retrieved_utc": "2026-11-07T07:28:56.397599+00:00",
+    "version": "1807.02811v1",
+    "source_type": "paper",
+    "original_sha256": "0bd698b8715d196843d52b92ee9f748b47aa27c6a59c6da52730a9714aae80e3",
+    "markdown_sha256": "82aa42928812075bfb32a8ce096c1dda322f10826694863ced0b6a37266de6ee",
+    "characters": 113111,
+    "source_headings": 23,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2609.32961v1",
+    "title": "Beyond Token Savings: A Systematic Study of Context Compression in LLM Agents",
+    "file": "beyond-token-savings-context-compression-in-agents-v1.md",
+    "source": "https://arxiv.org/abs/2609.32961v1",
+    "download_url": "https://arxiv.org/html/2609.32961",
+    "retrieved_utc": "2026-11-07T07:28:57.375612+00:00",
+    "version": "2609.32961v1",
+    "source_type": "paper",
+    "original_sha256": "825d11b13c61bad7876537882466b1737f03b30f7850a9c8aaec1a852e3b2e87",
+    "markdown_sha256": "6be8614ccb124d2576266a6d9d5241751a69993bec713e88c7e985de7658832a",
+    "characters": 111214,
+    "source_headings": 45,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2610.21893v1",
+    "title": "GACC-Bench: Benchmarking G oal- A daptive C ontext C ompression Ability across Large Language Models",
+    "file": "gacc-bench-goal-adaptive-context-compression-v1.md",
+    "source": "https://arxiv.org/abs/2610.21893v1",
+    "download_url": "https://arxiv.org/html/2610.21893",
+    "retrieved_utc": "2026-11-07T07:28:58.942257+00:00",
+    "version": "2610.21893v1",
+    "source_type": "paper",
+    "original_sha256": "3ddcacb5a68aa351e236cb0a4a800dee1669fa7c5aa4738bc658ac1c86105553",
+    "markdown_sha256": "3ee1cf436304774f8a3f720cc4113f37cb40d193b0b0b356d4cae7cf3838ddf0",
+    "characters": 99508,
+    "source_headings": 48,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2502.13138v1",
+    "title": "AIDE: AI-Driven Exploration in the Space of Code",
+    "file": "aide-ai-driven-exploration-in-code-space-v1.md",
+    "source": "https://arxiv.org/abs/2502.13138v1",
+    "download_url": "https://arxiv.org/html/2502.13138",
+    "retrieved_utc": "2026-11-07T07:29:00.184338+00:00",
+    "version": "2502.13138v1",
+    "source_type": "paper",
+    "original_sha256": "572f1a8e8cdf05bcf37a2a40ca5951c616212de8b7ce83452a11abc0c7e336a5",
+    "markdown_sha256": "92c89f47cd3a065ee0ecee5c1c4f4d326798f70fbc70d9c8f303d4a610f9fb33",
+    "characters": 68369,
+    "source_headings": 36,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2503.04412v5",
+    "title": "Wider or Deeper? Scaling LLM Inference-Time Compute with Adaptive Branching Tree Search",
+    "file": "wider-or-deeper-adaptive-branching-tree-search-v5.md",
+    "source": "https://arxiv.org/abs/2503.04412v5",
+    "download_url": "https://arxiv.org/html/2503.04412",
+    "retrieved_utc": "2026-11-07T07:29:01.802074+00:00",
+    "version": "2503.04412v5",
+    "source_type": "paper",
+    "original_sha256": "fafd48e474249e8932febbf6423ab23f610d18a83b030dcb3b600486682f5086",
+    "markdown_sha256": "55c508b2249c956e774c16f4b2ad9580738ffd7c1ec21c810c02d325fb3ed708",
+    "characters": 130209,
+    "source_headings": 56,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2506.13131v1",
+    "title": "AlphaEvolve : A coding agent for scientific and algorithmic discovery",
+    "file": "alphaevolve-scientific-and-algorithmic-discovery-v1.md",
+    "source": "https://arxiv.org/abs/2506.13131v1",
+    "download_url": "https://arxiv.org/html/2506.13131",
+    "retrieved_utc": "2026-11-07T07:29:04.664271+00:00",
+    "version": "2506.13131v1",
+    "source_type": "paper",
+    "original_sha256": "eccec3409ca6f57f1fd28f8fec27f024af7eb4b96cd1f6254ab1084b55955d4e",
+    "markdown_sha256": "ce05f9fb5189c82456ad2abf922b21c65076cb736d0eb112fc69cedb718427ee",
+    "characters": 168302,
+    "source_headings": 54,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2606.12563v1",
+    "title": "Arbor: Tree Search as a Cognition Layer for Autonomous Agents",
+    "file": "arbor-tree-search-as-a-cognition-layer-v1.md",
+    "source": "https://arxiv.org/abs/2606.12563v1",
+    "download_url": "https://arxiv.org/html/2606.12563",
+    "retrieved_utc": "2026-11-07T07:29:04.923621+00:00",
+    "version": "2606.12563v1",
+    "source_type": "paper",
+    "original_sha256": "1a5eb9053e27141c4aece6444eeddfd69bf98c004e8f233fa8ac23ac9a1a6d90",
+    "markdown_sha256": "f43ff543a843f97be8bae88d20c9b92f4c02914275fc83872903b5f1f788d5dd",
+    "characters": 58981,
+    "source_headings": 42,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2605.17373v2",
+    "title": "FML-bench: A Controlled Study of AI Research Agent Strategies from the Perspective of Search Dynamics",
+    "file": "fml-bench-research-agent-search-strategies-v2.md",
+    "source": "https://arxiv.org/abs/2605.17373v2",
+    "download_url": "https://arxiv.org/html/2605.17373",
+    "retrieved_utc": "2026-11-07T07:29:06.809195+00:00",
+    "version": "2605.17373v2",
+    "source_type": "paper",
+    "original_sha256": "9b1fd78c075cab57654730bf0ef0e6b42ae69f1697a73c8fbf7cbac489c5e59e",
+    "markdown_sha256": "0866013dd7eb6f4fbca670855c791ee365eb9986251b3adda69c45bd79ec931a",
+    "characters": 159270,
+    "source_headings": 106,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2606.11926v1",
+    "title": "Toward Generalist Autonomous Research via Hypothesis-Tree Refinement",
+    "file": "generalist-autonomous-research-hypothesis-tree-refinement-v1.md",
+    "source": "https://arxiv.org/abs/2606.11926v1",
+    "download_url": "https://arxiv.org/html/2606.11926",
+    "retrieved_utc": "2026-11-07T07:29:09.426022+00:00",
+    "version": "2606.11926v1",
+    "source_type": "paper",
+    "original_sha256": "f7d5e501bf2ef34994e1afc541aca64452d54ae184006999ec5bb2645c30a2ab",
+    "markdown_sha256": "20ba85f627f4f26fff5c0e6ad95aaaf2365eb3829ca2d106e9b3d6898b3919ba",
+    "characters": 164189,
+    "source_headings": 104,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2609.26457v1",
+    "title": "Recursive self-improvement of AI research agents",
+    "file": "recursive-self-improvement-of-ai-research-agents-v1.md",
+    "source": "https://arxiv.org/abs/2609.26457v1",
+    "download_url": "https://arxiv.org/html/2609.26457",
+    "retrieved_utc": "2026-11-07T07:29:11.299919+00:00",
+    "version": "2609.26457v1",
+    "source_type": "paper",
+    "original_sha256": "b24fc47ac0e95f8643cbdb4890c1d1865b186760ca68442644088c2c25ffd2b0",
+    "markdown_sha256": "52202299f66d617782080e43a64374b51c5c3edb7471e2188d4eec3831d44049",
+    "characters": 118497,
+    "source_headings": 22,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "2402.14207v2",
+    "title": "Assisting in Writing Wikipedia-like Articles From Scratch with Large Language Models",
+    "file": "storm-writing-wikipedia-like-articles-from-scratch-v2.md",
+    "source": "https://arxiv.org/abs/2402.14207v2",
+    "download_url": "https://arxiv.org/html/2402.14207",
+    "retrieved_utc": "2026-11-07T07:29:13.257858+00:00",
+    "version": "2402.14207v2",
+    "source_type": "paper",
+    "original_sha256": "e3d71edab3955d099214887f71885d0dea192beda65829ed4401943962f2c1bf",
+    "markdown_sha256": "05c2e611e2762f88eb441b2cc995ce4b76487e8d4d7164b350d757fc05d7e1e8",
+    "characters": 122438,
+    "source_headings": 34,
+    "license_links": [
+      "https://info.arxiv.org/help/license/index.html#licenses-available"
+    ],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "arbor-how-it-works",
+    "title": "How It Works ¶",
+    "file": "arbor-how-it-works.md",
+    "source": "https://ruc-nlpir.github.io/Arbor/docs/how-it-works/",
+    "download_url": "https://ruc-nlpir.github.io/Arbor/docs/how-it-works/",
+    "retrieved_utc": "2026-11-07T07:29:13.531950+00:00",
+    "version": null,
+    "source_type": "documentation",
+    "original_sha256": "9da9e253507f5fb941fc48ea532c9148c751cc140e395522557f5aec39987f4d",
+    "markdown_sha256": "624fa28b48a5f4791c833e5282937fdf9243b733849b4b1787fe9dc41285a6fe",
+    "characters": 6141,
+    "source_headings": 9,
+    "license_links": [],
+    "conversion": "Publisher HTML article converted to Markdown; TeX math preserved. Figures remain source URLs; complex tables and layout may need the original."
+  },
+  {
+    "id": "understanding-process-tracing",
+    "title": "Understanding Process Tracing",
+    "file": "understanding-process-tracing.md",
+    "source": "https://polisci.berkeley.edu/sites/default/files/people/u3827/Understanding%20Process%20Tracing.pdf",
+    "download_url": "https://polisci.berkeley.edu/sites/default/files/people/u3827/Understanding%20Process%20Tracing.pdf",
+    "retrieved_utc": "2026-11-07T07:29:14.766797+00:00",
+    "version": null,
+    "source_type": "paper",
+    "original_sha256": "c467d55dc217257a67d0e65c43c56b46d10af3480271fa1b8af6ed7de1710fbf",
+    "markdown_sha256": "7b11b8d8001aa17a44a00bfd288c4fbbbb19f59827c7ba9e1f9d3be0a26a05c3",
+    "characters": 52867,
+    "pages": 8,
+    "conversion": "PyMuPDF text extraction with page boundaries and normalized ligatures. Reading order, tables, formulas and figures are not visually verified; consult the original for exact layout."
+  },
+  {
+    "id": "metric-interpretation-pitfalls",
+    "title": "Metric Interpretation Pitfalls in Online Controlled Experiments",
+    "file": "metric-interpretation-pitfalls.md",
+    "source": "https://www.microsoft.com/en-us/research/wp-content/uploads/2020/08/2017-08-KDDMetricInterpretationPitfalls.pdf",
+    "download_url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2020/08/2017-08-KDDMetricInterpretationPitfalls.pdf",
+    "retrieved_utc": "2026-11-07T07:29:17.702520+00:00",
+    "version": null,
+    "source_type": "paper",
+    "original_sha256": "b5383e3f869f67719c8b881396d64120501b9ec2f02f9dc6fd3f38858990f781",
+    "markdown_sha256": "3b5a48b19b3632b7383f9a0cda76978023f6e3624f97f0dcf95f36d92a50edf6",
+    "characters": 60321,
+    "pages": 10,
+    "conversion": "PyMuPDF text extraction with page boundaries and normalized ligatures. Reading order, tables, formulas and figures are not visually verified; consult the original for exact layout."
+  },
+  {
+    "id": "opportunities-and-expectations",
+    "title": "Opportunities and Expectations",
+    "file": "opportunities-and-expectations.md",
+    "source": "https://www.morganstanley.com/im/publication/insights/articles/article_opportunitiesandexpectations_ltr.pdf",
+    "download_url": "https://www.morganstanley.com/im/publication/insights/articles/article_opportunitiesandexpectations_ltr.pdf",
+    "retrieved_utc": "2026-11-07T07:29:20.234291+00:00",
+    "version": null,
+    "source_type": "paper",
+    "original_sha256": "7a6810b7ed189e292fa0e51560b8b75d196d674330e0f302b5715f2dddd74b78",
+    "markdown_sha256": "7ac210a8030e0370102d393e894365a2f02ec4932b52faebf8ddcf9ccea74bd1",
+    "characters": 35174,
+    "pages": 16,
+    "conversion": "PyMuPDF text extraction with page boundaries and normalized ligatures. Reading order, tables, formulas and figures are not visually verified; consult the original for exact layout."
+  }
+]
